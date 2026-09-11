@@ -25,18 +25,19 @@ source_policy() {
   test ! -e android/app/src/main/java/com/riftos/app/RiftMcpRelayClient.kt
   test ! -e android/app/src/main/java/com/riftos/app/RiftMcpBridgeActivity.kt
   test ! -e android/app/src/main/java/com/riftos/app/RiftMcpInitProvider.kt
+  test ! -e src/riftai-workspace.js
   test -f android/app/src/main/assets/riftbrowser-mcp-app.js
   test -f android/app/src/main/java/com/riftos/app/RiftBrowserMcpAppBridge.kt
   test -f android/app/src/main/java/com/riftos/app/RiftToolHost.kt
-  grep -Fq "ChatGPT Web" src/riftai-workspace.js
   grep -Fq "[RIFT_MCP_APP_V1]" android/app/src/main/assets/riftbrowser-mcp-app.js
+  grep -Fq "rift-tools-v2" android/app/src/main/assets/riftbrowser-mcp-app.js
   grep -Fq "rift_workspace_exec" android/app/src/main/java/com/riftos/app/RiftToolHost.kt
+  grep -Fq "ChatGPT Web tools" src/riftmcp-system.js
   if grep -Eqi 'api\.openai\.com|OPENAI_API_KEY|Authorization:[[:space:]]*Bearer' \
-      src/riftai-workspace.js \
       android/app/src/main/assets/riftbrowser-mcp-app.js \
       android/app/src/main/java/com/riftos/app/RiftBrowserWindow.kt \
       android/app/src/main/java/com/riftos/app/RiftBrowserMcpAppBridge.kt; then
-    echo "Direct model API path leaked into Rift AI source" >&2
+    echo "Direct model API path leaked into ChatGPT Web / local MCP source" >&2
     return 1
   fi
 }
@@ -50,11 +51,16 @@ verify_apk() {
   printf '%s\n' "$badging" | grep -Fq "sdkVersion:'26'"
   printf '%s\n' "$badging" | grep -Fq "package: name='com.riftos.app'"
   unzip -p "$FINAL" assets/www/index.html | grep -Fq "SAMSUNG ANDROID"
-  unzip -p "$FINAL" assets/www/src/riftai-workspace.js | grep -Fq "ChatGPT Web"
+  unzip -p "$FINAL" assets/www/src/riftmcp-system.js | grep -Fq "ChatGPT Web tools"
   unzip -p "$FINAL" assets/riftbrowser-mcp-app.js | grep -Fq "[RIFT_MCP_APP_V1]"
+  unzip -p "$FINAL" assets/riftbrowser-mcp-app.js | grep -Fq "rift-tools-v2"
   unzip -p "$FINAL" assets/riftbrowser-mcp-app.js | grep -Fq "<rift_call>"
   dex_strings="$(unzip -p "$FINAL" classes.dex | strings)"
   printf '%s\n' "$dex_strings" | grep -Fq "rift_workspace_exec"
+  if unzip -l "$FINAL" | grep -Fq "assets/www/src/riftai-workspace.js"; then
+    echo "Removed Rift AI workspace app leaked into APK" >&2
+    return 1
+  fi
   if unzip -l "$FINAL" | grep -Fq "assets/riftbrowser-chatgpt-agent.js"; then
     echo "Removed ChatGPT DOM agent leaked into APK" >&2
     return 1
@@ -74,7 +80,6 @@ test "$(git rev-parse HEAD)" = "${SOURCE_SHA:?}"
 test -f android/app/build.gradle.kts
 test -f android/riftos-debug.keystore.b64
 test -f index.html
-test -f src/riftai-workspace.js
 
 echo "Building private RiftOS ${SOURCE_SHA} for client ${CLIENT_ID:-unknown}."
 
@@ -85,6 +90,7 @@ if [ -d .github/workflows ] && find .github/workflows -type f -print -quit | gre
 fi
 
 run_private source-policy source_policy
+run_private source-check npm run check
 run_private android-build gradle -p android --stacktrace --build-cache :app:assembleRelease --no-daemon
 
 BUILD_TOOLS="${ANDROID_HOME:?}/build-tools/36.0.0"
