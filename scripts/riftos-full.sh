@@ -3,6 +3,7 @@ set -euo pipefail
 
 SOURCE_DIR="${1:?usage: riftos-full.sh <source-dir>}"
 SOURCE_DIR="$(cd "$SOURCE_DIR" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_DIR="${RUNNER_TEMP:?}/riftos-private-logs"
 OUT_DIR="${RUNNER_TEMP:?}/riftos-output"
 VERIFY_DIR="${RUNNER_TEMP:?}/riftos-verification"
@@ -15,26 +16,6 @@ run_private() {
   echo "Running ${name}…"
   if ! "$@" >"$log" 2>&1; then
     echo "Stage failed: ${name}. Detailed log will be returned privately." >&2
-    return 1
-  fi
-}
-
-source_policy() {
-  test ! -e services/rift-mcp-relay
-  test ! -e src/riftbridge-system.js
-  test ! -e android/app/src/main/java/com/riftos/app/RiftMcpRelayClient.kt
-  test ! -e android/app/src/main/java/com/riftos/app/RiftMcpBridgeActivity.kt
-  test ! -e android/app/src/main/java/com/riftos/app/RiftMcpInitProvider.kt
-  test ! -e src/riftai-workspace.js
-  test -f android/app/src/main/java/com/riftos/app/RiftMcpServer.kt
-  test -f android/app/src/main/java/com/riftos/app/RiftMcpRuntime.kt
-  test -f android/app/src/main/java/com/riftos/app/RiftToolHost.kt
-  grep -Fq "rift_workspace_exec" android/app/src/main/java/com/riftos/app/RiftToolHost.kt
-  if grep -Eqi 'api\.openai\.com|OPENAI_API_KEY|Authorization:[[:space:]]*Bearer' \
-      android/app/src/main/assets/riftbrowser-mcp-app.js \
-      android/app/src/main/java/com/riftos/app/RiftBrowserWindow.kt \
-      android/app/src/main/java/com/riftos/app/RiftBrowserMcpAppBridge.kt; then
-    echo "Direct model API path leaked into ChatGPT Web / local MCP source" >&2
     return 1
   fi
 }
@@ -82,8 +63,8 @@ if [ -d .github/workflows ] && find .github/workflows -type f -print -quit | gre
   exit 2
 fi
 
-run_private source-policy source_policy
-run_private source-check npm run check
+run_private source-policy "$SCRIPT_DIR/riftos-source-check.sh" policy "$SOURCE_DIR"
+run_private source-check "$SCRIPT_DIR/riftos-source-check.sh" syntax "$SOURCE_DIR"
 run_private android-build gradle -p android --stacktrace --build-cache :app:assembleRelease --no-daemon
 
 BUILD_TOOLS="${ANDROID_HOME:?}/build-tools/36.0.0"

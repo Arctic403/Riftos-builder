@@ -83,3 +83,9 @@ Failure runs return a private `RiftOS-worker-failure-<sha>.zip` when publishing 
 RiftOS is intended to become an Actions-free private source repository, matching the Vortex3D/VTXBuilder model. The Editor-side RiftOS build controller explicitly excludes/deletes `.github/workflows/` when synchronizing RiftOS source. The worker also refuses a source commit that still contains workflow files, preventing accidental private-repo Actions from creeping back into the build path.
 
 Public workflow logs deliberately contain only coarse build-stage status where practical. Detailed build/verification logs are captured and returned through the private RiftOS release channel instead.
+
+## Source validation
+
+The worker owns its build checks. It validates the current local MCP architecture and
+JavaScript syntax without invoking RiftOS's legacy browser-injection transport tests.
+Run `bash tests/test-riftos-source-check.sh` to exercise the source-policy regressions.
