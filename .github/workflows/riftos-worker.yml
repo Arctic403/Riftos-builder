@@ -14,7 +14,7 @@ on:
         default: ''
         type: string
       publish:
-        description: Return completed outputs to private RiftOS as a prerelease
+        description: Return the APK to private RiftOS as a prerelease
         required: true
         default: true
         type: boolean
@@ -27,53 +27,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  resolve-source:
-    runs-on: ubuntu-latest
-    outputs:
-      source_sha: ${{ steps.resolve.outputs.source_sha }}
-      publish: ${{ steps.resolve.outputs.publish }}
-      client_id: ${{ steps.resolve.outputs.client_id }}
-    steps:
-      - name: Resolve exact private RiftOS source
-        id: resolve
-        env:
-          GH_TOKEN: ${{ secrets.RIFTOS_PRIVATE_TOKEN }}
-          INPUT_REF: ${{ inputs.source_ref }}
-          INPUT_PUBLISH: ${{ inputs.publish }}
-          INPUT_CLIENT_ID: ${{ inputs.client_id }}
-        run: |
-          set -euo pipefail
-          test -n "${GH_TOKEN:-}" || { echo 'RIFTOS_PRIVATE_TOKEN is required.' >&2; exit 1; }
-          SOURCE_REF="${INPUT_REF:-main}"
-          PUBLISH="${INPUT_PUBLISH:-true}"
-          CLIENT_ID="${INPUT_CLIENT_ID:-manual-${GITHUB_RUN_ID}}"
-          SOURCE_SHA="$(gh api "repos/Arctic403/RiftOS/commits/${SOURCE_REF}" --jq '.sha')"
-          echo "source_sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
-          echo "publish=$PUBLISH" >> "$GITHUB_OUTPUT"
-          echo "client_id=$CLIENT_ID" >> "$GITHUB_OUTPUT"
-          echo "Resolved private RiftOS source to ${SOURCE_SHA}."
-
-  android-build:
-    needs: resolve-source
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      SOURCE_SHA: ${{ needs.resolve-source.outputs.source_sha }}
-      PUBLISH: ${{ needs.resolve-source.outputs.publish }}
-      CLIENT_ID: ${{ needs.resolve-source.outputs.client_id }}
+      SOURCE_SHA: ''
+      CLIENT_ID: ${{ inputs.client_id }}
+      PUBLISH: ${{ inputs.publish }}
     steps:
-      - name: Check out Riftos-builder worker code
+      - name: Resolve exact private RiftOS source
+        id: source
+        env:
+          GH_TOKEN: ${{ secrets.RIFTOS_PRIVATE_TOKEN }}
+          SOURCE_REF: ${{ inputs.source_ref }}
+        run: |
+          set -euo pipefail
+          test -n "${GH_TOKEN:-}" || { echo 'RIFTOS_PRIVATE_TOKEN is required.' >&2; exit 1; }
+          SOURCE_SHA="$(gh api "repos/Arctic403/RiftOS/commits/${SOURCE_REF:-main}" --jq '.sha')"
+          CLIENT_ID="${CLIENT_ID:-manual-${GITHUB_RUN_ID}}"
+          echo "source_sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+          echo "SOURCE_SHA=$SOURCE_SHA" >> "$GITHUB_ENV"
+          echo "CLIENT_ID=$CLIENT_ID" >> "$GITHUB_ENV"
+
+      - name: Check out builder
         uses: actions/checkout@v5
         with:
           path: worker
           persist-credentials: false
           fetch-depth: 1
 
-      - name: Check out exact private RiftOS commit
+      - name: Check out RiftOS
         uses: actions/checkout@v5
         with:
           repository: Arctic403/RiftOS
-          ref: ${{ env.SOURCE_SHA }}
+          ref: ${{ steps.source.outputs.source_sha }}
           token: ${{ secrets.RIFTOS_PRIVATE_TOKEN }}
           path: source
           persist-credentials: false
@@ -85,27 +72,23 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Use preinstalled Android SDK
-        shell: bash
+      - name: Set up Android SDK
         run: |
           set -euo pipefail
           SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
-          test -x "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
           echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "$SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" >/dev/null
 
-      - name: Ensure Android platform and build tools
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0" >/dev/null
-
-      - name: Set up cached Gradle
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.5.0'
           cache-read-only: false
           cache-cleanup: on-success
 
-      - name: Restore RiftOS signing identity
+      - name: Restore signing identity
         env:
           RIFTOS_KEYSTORE_B64: ${{ secrets.RIFTOS_KEYSTORE_B64 }}
           RIFTOS_KEYSTORE_PASSWORD: ${{ secrets.RIFTOS_KEYSTORE_PASSWORD }}
@@ -119,21 +102,18 @@ jobs:
             echo "RIFT_SIGN_STORE_PASS=${RIFTOS_KEYSTORE_PASSWORD}" >> "$GITHUB_ENV"
             echo "RIFT_SIGN_ALIAS=${RIFTOS_KEY_ALIAS}" >> "$GITHUB_ENV"
             echo "RIFT_SIGN_KEY_PASS=${RIFTOS_KEY_PASSWORD}" >> "$GITHUB_ENV"
-            echo "RIFT_SIGN_MODE=production-secret" >> "$GITHUB_ENV"
           else
             base64 --decode source/android/riftos-debug.keystore.b64 > "$RUNNER_TEMP/riftos-alpha.keystore"
             echo "RIFT_SIGN_STORE=$RUNNER_TEMP/riftos-alpha.keystore" >> "$GITHUB_ENV"
             echo "RIFT_SIGN_STORE_PASS=android" >> "$GITHUB_ENV"
             echo "RIFT_SIGN_ALIAS=riftosdebug" >> "$GITHUB_ENV"
             echo "RIFT_SIGN_KEY_PASS=android" >> "$GITHUB_ENV"
-            echo "RIFT_SIGN_MODE=alpha-fallback" >> "$GITHUB_ENV"
           fi
 
-      - name: Build and verify RiftOS privately
-        shell: bash
-        run: bash worker/scripts/riftos-full.sh source
+      - name: Build RiftOS APK
+        run: bash worker/scripts/riftos-build.sh source
 
-      - name: Return successful build to private RiftOS prerelease
+      - name: Publish APK to private RiftOS prerelease
         if: ${{ success() && env.PUBLISH == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.RIFTOS_PRIVATE_TOKEN }}
@@ -141,35 +121,31 @@ jobs:
           set -euo pipefail
           SHORT_SHA="${SOURCE_SHA:0:8}"
           TAG="rift-worker-${GITHUB_RUN_ID}-${SHORT_SHA}"
-          gh release create "$TAG" "$RUNNER_TEMP"/riftos-output/* \
+          gh release create "$TAG" "$RUNNER_TEMP/riftos-output/RiftOS-Android-debug.apk" \
             --repo Arctic403/RiftOS \
             --target "$SOURCE_SHA" \
             --prerelease \
             --title "RiftOS worker build ${SHORT_SHA}" \
-            --notes "RiftOS Android build produced by public Arctic403/Riftos-builder run ${GITHUB_RUN_ID}. Source ${SOURCE_SHA}. Client ${CLIENT_ID}. Verification passed. Artifacts are returned only through this private RiftOS prerelease; the public worker uploads no Actions artifact."
+            --notes "RiftOS APK built by Arctic403/Riftos-builder run ${GITHUB_RUN_ID}. Source ${SOURCE_SHA}. Client ${CLIENT_ID}."
 
-      - name: Return private failure diagnostics
-        if: ${{ failure() && env.PUBLISH == 'true' }}
+      - name: Return private build log
+        if: ${{ failure() && env.PUBLISH == 'true' && env.SOURCE_SHA != '' }}
         env:
           GH_TOKEN: ${{ secrets.RIFTOS_PRIVATE_TOKEN }}
         run: |
           set -euo pipefail
           SHORT_SHA="${SOURCE_SHA:0:8}"
           TAG="rift-worker-failed-${GITHUB_RUN_ID}-${SHORT_SHA}"
-          mkdir -p "$RUNNER_TEMP/riftos-private-logs" "$RUNNER_TEMP/riftos-output"
+          mkdir -p "$RUNNER_TEMP/riftos-private-logs"
           printf 'source_sha=%s\nclient_id=%s\nbuilder_run_id=%s\n' "$SOURCE_SHA" "$CLIENT_ID" "$GITHUB_RUN_ID" > "$RUNNER_TEMP/riftos-private-logs/failure-context.txt"
-          # Preserve stage logs created by riftos-full.sh (Gradle/Kotlin diagnostics).
-          find "$RUNNER_TEMP/riftos-private-logs" -maxdepth 1 -type f -print
-          (cd "$RUNNER_TEMP/riftos-private-logs" && zip -qr "$RUNNER_TEMP/riftos-output/RiftOS-worker-failure-${SHORT_SHA}.zip" .)
-          gh release create "$TAG" "$RUNNER_TEMP/riftos-output/RiftOS-worker-failure-${SHORT_SHA}.zip" \
+          (cd "$RUNNER_TEMP/riftos-private-logs" && zip -qr "$RUNNER_TEMP/RiftOS-worker-failure-${SHORT_SHA}.zip" .)
+          gh release create "$TAG" "$RUNNER_TEMP/RiftOS-worker-failure-${SHORT_SHA}.zip" \
             --repo Arctic403/RiftOS \
             --target "$SOURCE_SHA" \
             --prerelease \
             --title "RiftOS worker FAILED ${SHORT_SHA}" \
-            --notes "Public Riftos-builder run ${GITHUB_RUN_ID} failed while building private RiftOS source ${SOURCE_SHA}. Client ${CLIENT_ID}. Detailed diagnostics are attached privately."
+            --notes "RiftOS build failed in public builder run ${GITHUB_RUN_ID}. Source ${SOURCE_SHA}. Client ${CLIENT_ID}."
 
-      - name: Confirm public worker retained no private artifact
+      - name: Remove private source
         if: ${{ always() }}
-        run: |
-          rm -rf source
-          echo 'Riftos-builder intentionally uses no actions/upload-artifact for private RiftOS builds.'
+        run: rm -rf source
