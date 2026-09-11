@@ -26,13 +26,10 @@ source_policy() {
   test ! -e android/app/src/main/java/com/riftos/app/RiftMcpBridgeActivity.kt
   test ! -e android/app/src/main/java/com/riftos/app/RiftMcpInitProvider.kt
   test ! -e src/riftai-workspace.js
-  test -f android/app/src/main/assets/riftbrowser-mcp-app.js
-  test -f android/app/src/main/java/com/riftos/app/RiftBrowserMcpAppBridge.kt
+  test -f android/app/src/main/java/com/riftos/app/RiftMcpServer.kt
+  test -f android/app/src/main/java/com/riftos/app/RiftMcpRuntime.kt
   test -f android/app/src/main/java/com/riftos/app/RiftToolHost.kt
-  grep -Fq "[RIFT_MCP_APP_V1]" android/app/src/main/assets/riftbrowser-mcp-app.js
-  grep -Fq "rift-tools-v2" android/app/src/main/assets/riftbrowser-mcp-app.js
   grep -Fq "rift_workspace_exec" android/app/src/main/java/com/riftos/app/RiftToolHost.kt
-  grep -Fq "ChatGPT Web tools" src/riftmcp-system.js
   if grep -Eqi 'api\.openai\.com|OPENAI_API_KEY|Authorization:[[:space:]]*Bearer' \
       android/app/src/main/assets/riftbrowser-mcp-app.js \
       android/app/src/main/java/com/riftos/app/RiftBrowserWindow.kt \
@@ -51,10 +48,6 @@ verify_apk() {
   printf '%s\n' "$badging" | grep -Fq "sdkVersion:'26'"
   printf '%s\n' "$badging" | grep -Fq "package: name='com.riftos.app'"
   unzip -p "$FINAL" assets/www/index.html | grep -Fq "SAMSUNG ANDROID"
-  unzip -p "$FINAL" assets/www/src/riftmcp-system.js | grep -Fq "ChatGPT Web tools"
-  unzip -p "$FINAL" assets/riftbrowser-mcp-app.js | grep -Fq "[RIFT_MCP_APP_V1]"
-  unzip -p "$FINAL" assets/riftbrowser-mcp-app.js | grep -Fq "rift-tools-v2"
-  unzip -p "$FINAL" assets/riftbrowser-mcp-app.js | grep -Fq "<rift_call>"
   dex_strings="$(unzip -p "$FINAL" classes.dex | strings)"
   printf '%s\n' "$dex_strings" | grep -Fq "rift_workspace_exec"
   if unzip -l "$FINAL" | grep -Fq "assets/www/src/riftai-workspace.js"; then
