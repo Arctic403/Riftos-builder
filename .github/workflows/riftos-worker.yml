@@ -158,6 +158,8 @@ jobs:
           TAG="rift-worker-failed-${GITHUB_RUN_ID}-${SHORT_SHA}"
           mkdir -p "$RUNNER_TEMP/riftos-private-logs" "$RUNNER_TEMP/riftos-output"
           printf 'source_sha=%s\nclient_id=%s\nbuilder_run_id=%s\n' "$SOURCE_SHA" "$CLIENT_ID" "$GITHUB_RUN_ID" > "$RUNNER_TEMP/riftos-private-logs/failure-context.txt"
+          # Preserve stage logs created by riftos-full.sh (Gradle/Kotlin diagnostics).
+          find "$RUNNER_TEMP/riftos-private-logs" -maxdepth 1 -type f -print
           (cd "$RUNNER_TEMP/riftos-private-logs" && zip -qr "$RUNNER_TEMP/riftos-output/RiftOS-worker-failure-${SHORT_SHA}.zip" .)
           gh release create "$TAG" "$RUNNER_TEMP/riftos-output/RiftOS-worker-failure-${SHORT_SHA}.zip" \
             --repo Arctic403/RiftOS \
