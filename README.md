@@ -86,6 +86,7 @@ Public workflow logs deliberately contain only coarse build-stage status where p
 
 ## Source validation
 
-The worker owns its build checks. It validates the current local MCP architecture and
-JavaScript syntax without invoking RiftOS's legacy browser-injection transport tests.
+The worker owns its build checks. It validates the native MCP runtime plus the narrow
+ChatGPT JavaScript connector that routes only MCP initialization, tool discovery, and tool calls.
+The connector contains no tool implementation, remote relay, or direct model API path.
 Run `bash tests/test-riftos-source-check.sh` to exercise the source-policy regressions.

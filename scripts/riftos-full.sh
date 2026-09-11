@@ -21,16 +21,26 @@ run_private() {
 }
 
 verify_apk() {
-  "$BUILD_TOOLS/zipalign" -c -v 4 "$FINAL"
-  local verify_output badging dex_strings
-  verify_output="$("$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$FINAL")"
-  printf '%s\n' "$verify_output" | grep -Fq "Verified using v2 scheme (APK Signature Scheme v2): true"
-  badging="$("$BUILD_TOOLS/aapt" dump badging "$FINAL")"
-  printf '%s\n' "$badging" | grep -Fq "sdkVersion:'26'"
-  printf '%s\n' "$badging" | grep -Fq "package: name='com.riftos.app'"
-  unzip -p "$FINAL" assets/www/index.html | grep -Fq "SAMSUNG ANDROID"
-  dex_strings="$(unzip -p "$FINAL" classes.dex | strings)"
-  printf '%s\n' "$dex_strings" | grep -Fq "rift_workspace_exec"
+  "$BUILD_TOOLS/zipalign" -c -v 4 "$FINAL" || return 1
+  local verify_output badging dex_strings adapter
+  verify_output="$("$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$FINAL")" || return 1
+  printf '%s\n' "$verify_output" | grep -Fq "Verified using v2 scheme (APK Signature Scheme v2): true" || return 1
+  badging="$("$BUILD_TOOLS/aapt" dump badging "$FINAL")" || return 1
+  printf '%s\n' "$badging" | grep -Fq "sdkVersion:'26'" || return 1
+  printf '%s\n' "$badging" | grep -Fq "package: name='com.riftos.app'" || return 1
+  unzip -p "$FINAL" assets/www/index.html | grep -Fq "SAMSUNG ANDROID" || return 1
+
+  adapter="$(unzip -p "$FINAL" assets/riftbrowser-mcp-app.js)" || return 1
+  printf '%s\n' "$adapter" | grep -Fq "RiftMcpNative.postMessage" || return 1
+  printf '%s\n' "$adapter" | grep -Fq "postRpc('tools/list'" || return 1
+  printf '%s\n' "$adapter" | grep -Fq "postRpc('tools/call'" || return 1
+  if printf '%s\n' "$adapter" | grep -Eqi 'api\.openai\.com|OPENAI_API_KEY|Authorization:[[:space:]]*Bearer|WebSocket|wss://'; then
+    echo "Remote model or relay path leaked into ChatGPT connector" >&2
+    return 1
+  fi
+
+  dex_strings="$(unzip -p "$FINAL" classes.dex | strings)" || return 1
+  printf '%s\n' "$dex_strings" | grep -Fq "rift_workspace_exec" || return 1
   if unzip -l "$FINAL" | grep -Fq "assets/www/src/riftai-workspace.js"; then
     echo "Removed Rift AI workspace app leaked into APK" >&2
     return 1

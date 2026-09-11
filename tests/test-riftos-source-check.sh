@@ -7,6 +7,7 @@ FIXTURE="$(mktemp -d)"
 trap 'rm -rf "$FIXTURE"' EXIT
 
 mkdir -p \
+  "$FIXTURE/android/app/src/main/assets" \
   "$FIXTURE/android/app/src/main/java/com/riftos/app" \
   "$FIXTURE/apps/riftdev" \
   "$FIXTURE/src" \
@@ -21,12 +22,22 @@ touch \
   "$FIXTURE/android/app/src/main/java/com/riftos/app/RiftMcpServer.kt" \
   "$FIXTURE/android/app/src/main/java/com/riftos/app/RiftToolSandbox.kt"
 
-printf '%s\n' 'class RiftBrowserMcpAppBridge' \
+printf '%s\n' \
+  'assets.open("riftbrowser-mcp-app.js")' \
+  'addDocumentStartJavaScript' \
+  'evaluateJavascript(script' \
   > "$FIXTURE/android/app/src/main/java/com/riftos/app/RiftBrowserMcpAppBridge.kt"
 printf '%s\n' 'class RiftBrowserWindow' \
   > "$FIXTURE/android/app/src/main/java/com/riftos/app/RiftBrowserWindow.kt"
 printf '%s\n' 'const tool = "rift_workspace_exec"' \
   > "$FIXTURE/android/app/src/main/java/com/riftos/app/RiftToolHost.kt"
+printf '%s\n' \
+  'window.RiftMcpAppNative = {};' \
+  'RiftMcpNative.postMessage("{}");' \
+  "postRpc('initialize');" \
+  "postRpc('tools/list');" \
+  "postRpc('tools/call');" \
+  > "$FIXTURE/android/app/src/main/assets/riftbrowser-mcp-app.js"
 printf '%s\n' 'export const mcp = true;' > "$FIXTURE/src/riftmcp-system.js"
 printf '%s\n' 'export const ok = true;' > "$FIXTURE/src/valid.js"
 printf '%s\n' '{"scripts":{"check":"node --check check.js"}}' > "$FIXTURE/apps/riftdev/package.json"
@@ -35,21 +46,19 @@ printf '%s\n' 'const ok = true;' > "$FIXTURE/apps/riftdev/check.js"
 "$CHECK" policy "$FIXTURE"
 "$CHECK" syntax "$FIXTURE"
 
-cp "$FIXTURE/android/app/src/main/java/com/riftos/app/RiftMcpServer.kt" "$FIXTURE/server.kt"
-rm "$FIXTURE/android/app/src/main/java/com/riftos/app/RiftMcpServer.kt"
+mv "$FIXTURE/android/app/src/main/assets/riftbrowser-mcp-app.js" "$FIXTURE/connector.js"
 if "$CHECK" policy "$FIXTURE" >/dev/null 2>&1; then
-  echo "missing required source was accepted" >&2
+  echo "missing ChatGPT connector was accepted" >&2
   exit 1
 fi
-mv "$FIXTURE/server.kt" "$FIXTURE/android/app/src/main/java/com/riftos/app/RiftMcpServer.kt"
+mv "$FIXTURE/connector.js" "$FIXTURE/android/app/src/main/assets/riftbrowser-mcp-app.js"
 
-mkdir -p "$FIXTURE/android/app/src/main/assets"
-touch "$FIXTURE/android/app/src/main/assets/riftbrowser-mcp-app.js"
+printf '%s\n' 'const socket = new WebSocket("wss://relay.example");' \
+  >> "$FIXTURE/android/app/src/main/assets/riftbrowser-mcp-app.js"
 if "$CHECK" policy "$FIXTURE" >/dev/null 2>&1; then
-  echo "removed page-injection asset was accepted" >&2
+  echo "remote relay path was accepted" >&2
   exit 1
 fi
-rm "$FIXTURE/android/app/src/main/assets/riftbrowser-mcp-app.js"
 
 printf '%s\n' 'const broken = ;' > "$FIXTURE/src/valid.js"
 if "$CHECK" syntax "$FIXTURE" >/dev/null 2>&1; then

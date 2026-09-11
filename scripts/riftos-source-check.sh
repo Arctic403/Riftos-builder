@@ -25,6 +25,7 @@ check_policy() {
     index.html
     android/app/build.gradle.kts
     android/riftos-debug.keystore.b64
+    android/app/src/main/assets/riftbrowser-mcp-app.js
     android/app/src/main/java/com/riftos/app/RiftBrowserMcpAppBridge.kt
     android/app/src/main/java/com/riftos/app/RiftBrowserWindow.kt
     android/app/src/main/java/com/riftos/app/RiftMcpRuntime.kt
@@ -37,7 +38,6 @@ check_policy() {
     services/rift-mcp-relay
     src/riftbridge-system.js
     src/riftai-workspace.js
-    android/app/src/main/assets/riftbrowser-mcp-app.js
     android/app/src/main/java/com/riftos/app/RiftMcpRelayClient.kt
     android/app/src/main/java/com/riftos/app/RiftMcpBridgeActivity.kt
     android/app/src/main/java/com/riftos/app/RiftMcpInitProvider.kt
@@ -49,16 +49,32 @@ check_policy() {
   grep -Fq "rift_workspace_exec" android/app/src/main/java/com/riftos/app/RiftToolHost.kt \
     || fail "RiftToolHost does not expose rift_workspace_exec"
 
-  if grep -Eqi 'api\.openai\.com|OPENAI_API_KEY|Authorization:[[:space:]]*Bearer' \
-      android/app/src/main/java/com/riftos/app/RiftBrowserWindow.kt \
-      android/app/src/main/java/com/riftos/app/RiftBrowserMcpAppBridge.kt \
-      src/riftmcp-system.js; then
-    fail "direct model API path leaked into browser/local MCP source"
-  fi
+  local adapter=android/app/src/main/assets/riftbrowser-mcp-app.js
+  grep -Fq "RiftMcpNative.postMessage" "$adapter" \
+    || fail "ChatGPT connector does not call the native MCP bridge"
+  grep -Fq "window.RiftMcpAppNative" "$adapter" \
+    || fail "ChatGPT connector cannot receive native MCP responses"
+  grep -Fq "postRpc('initialize'" "$adapter" \
+    || fail "ChatGPT connector does not initialize MCP"
+  grep -Fq "postRpc('tools/list'" "$adapter" \
+    || fail "ChatGPT connector does not request the native tool manifest"
+  grep -Fq "postRpc('tools/call'" "$adapter" \
+    || fail "ChatGPT connector does not route calls to the native tool host"
 
-  if grep -Eq 'addDocumentStartJavaScript|evaluateJavascript\(script' \
-      android/app/src/main/java/com/riftos/app/RiftBrowserMcpAppBridge.kt; then
-    fail "removed ChatGPT page-injection path is still active"
+  local bridge=android/app/src/main/java/com/riftos/app/RiftBrowserMcpAppBridge.kt
+  grep -Fq 'assets.open("riftbrowser-mcp-app.js")' "$bridge" \
+    || fail "native bridge does not load the ChatGPT connector asset"
+  grep -Fq "addDocumentStartJavaScript" "$bridge" \
+    || fail "native bridge does not install the connector at document start"
+  grep -Fq "evaluateJavascript(script" "$bridge" \
+    || fail "native bridge has no fallback connector injection"
+
+  if grep -Eqi 'api\.openai\.com|OPENAI_API_KEY|Authorization:[[:space:]]*Bearer|WebSocket|wss://' \
+      "$adapter" \
+      android/app/src/main/java/com/riftos/app/RiftBrowserWindow.kt \
+      "$bridge" \
+      src/riftmcp-system.js; then
+    fail "remote model or relay path leaked into browser/native MCP connection"
   fi
 }
 
@@ -69,7 +85,7 @@ check_syntax() {
     node --check "$file"
     checked=$((checked + 1))
   done < <(
-    find src scripts apps/riftdev workspace-live -type f \
+    find src scripts apps/riftdev workspace-live android/app/src/main/assets -type f \
       \( -name '*.js' -o -name '*.mjs' \) -print0
   )
   test "$checked" -gt 0 || fail "no JavaScript sources found"
