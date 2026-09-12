@@ -96,19 +96,17 @@ jobs:
           RIFTOS_KEY_PASSWORD: ${{ secrets.RIFTOS_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          if [ -n "${RIFTOS_KEYSTORE_B64:-}" ]; then
-            printf '%s' "$RIFTOS_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/riftos-release.keystore"
-            echo "RIFT_SIGN_STORE=$RUNNER_TEMP/riftos-release.keystore" >> "$GITHUB_ENV"
-            echo "RIFT_SIGN_STORE_PASS=${RIFTOS_KEYSTORE_PASSWORD}" >> "$GITHUB_ENV"
-            echo "RIFT_SIGN_ALIAS=${RIFTOS_KEY_ALIAS}" >> "$GITHUB_ENV"
-            echo "RIFT_SIGN_KEY_PASS=${RIFTOS_KEY_PASSWORD}" >> "$GITHUB_ENV"
-          else
-            base64 --decode source/android/riftos-debug.keystore.b64 > "$RUNNER_TEMP/riftos-alpha.keystore"
-            echo "RIFT_SIGN_STORE=$RUNNER_TEMP/riftos-alpha.keystore" >> "$GITHUB_ENV"
-            echo "RIFT_SIGN_STORE_PASS=android" >> "$GITHUB_ENV"
-            echo "RIFT_SIGN_ALIAS=riftosdebug" >> "$GITHUB_ENV"
-            echo "RIFT_SIGN_KEY_PASS=android" >> "$GITHUB_ENV"
-          fi
+          umask 077
+          for required in RIFTOS_KEYSTORE_B64 RIFTOS_KEYSTORE_PASSWORD RIFTOS_KEY_ALIAS RIFTOS_KEY_PASSWORD; do
+            test -n "${!required}" || { echo "Missing signing secret: $required. Refusing fallback signing." >&2; exit 1; }
+          done
+          printf '%s' "$RIFTOS_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/riftos-release.keystore"
+          fingerprint="$(keytool -exportcert -keystore "$RUNNER_TEMP/riftos-release.keystore" -storepass:env RIFTOS_KEYSTORE_PASSWORD -alias "$RIFTOS_KEY_ALIAS" | sha256sum | cut -d' ' -f1)"
+          test "$fingerprint" != "4de8926eb4673c00779a645a1cef7c2aec53a83f52d3b79a29a2cc48d4faf4e8" || { echo 'Compromised public signing key rejected.' >&2; exit 1; }
+          echo "RIFT_SIGN_STORE=$RUNNER_TEMP/riftos-release.keystore" >> "$GITHUB_ENV"
+          echo "RIFT_SIGN_STORE_PASS=$RIFTOS_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "RIFT_SIGN_ALIAS=$RIFTOS_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "RIFT_SIGN_KEY_PASS=$RIFTOS_KEY_PASSWORD" >> "$GITHUB_ENV"
 
       - name: Build RiftOS APK
         run: bash worker/scripts/riftos-build.sh source
@@ -148,4 +146,6 @@ jobs:
 
       - name: Remove private source
         if: ${{ always() }}
-        run: rm -rf source
+        run: |
+          rm -rf source
+          rm -f "$RUNNER_TEMP/riftos-release.keystore"
