@@ -49,17 +49,38 @@ require_entry "AndroidManifest.xml"
 require_entry "classes.dex"
 require_entry "resources.arsc"
 
-# Generated RiftOS web assets must be the exact source checked out for this build.
+# The Android asset sync includes all current src/ and workspace-live/ files.
+# Compare every one byte-for-byte, including new modules added after this builder version.
 require_matches_source "assets/www/index.html" "index.html"
 require_matches_source "assets/www/styles.css" "styles.css"
-require_matches_source "assets/www/src/riftandroid-entry.js" "src/riftandroid-entry.js"
-require_matches_source "assets/www/src/riftworkspace-web.js" "src/riftworkspace-web.js"
-require_matches_source "assets/www/src/riftworkspace-android-adapter.js" "src/riftworkspace-android-adapter.js"
-require_matches_source "assets/www/src/riftworkspace-live-host.js" "src/riftworkspace-live-host.js"
-require_matches_source "assets/www/src/riftgit.js" "src/riftgit.js"
-require_matches_source "assets/www/workspace-live/index.html" "workspace-live/index.html"
-require_matches_source "assets/www/workspace-live/app.js" "workspace-live/app.js"
-require_matches_source "assets/www/workspace-live/style.css" "workspace-live/style.css"
+for directory in src workspace-live; do
+  test -d "$SOURCE_DIR/$directory" || { echo "APK smoke check failed: source directory missing: $directory" >&2; exit 1; }
+  while IFS= read -r -d '' source; do
+    source_rel="${source#"$SOURCE_DIR/"}"
+    case "$source_rel" in
+      src/riftbrowser-*|*/manifest.webmanifest|*/*sw.js|*/pwa-*) continue ;;
+    esac
+    require_matches_source "assets/www/$source_rel" "$source_rel"
+  done < <(find "$SOURCE_DIR/$directory" -type f -print0)
+done
+
+# A previously generated or unexpected www/ file must not ride along in the APK.
+while IFS= read -r entry; do
+  case "$entry" in
+    assets/www/*)
+      case "$entry" in */) continue ;; esac
+      source_rel="${entry#assets/www/}"
+      case "$source_rel" in
+        index.html|styles.css|src/*|workspace-live/*) ;;
+        *) echo "APK smoke check failed: unexpected web asset: $entry" >&2; exit 1 ;;
+      esac
+      test -f "$SOURCE_DIR/$source_rel" || {
+        echo "APK smoke check failed: stale web asset: $entry" >&2
+        exit 1
+      }
+      ;;
+  esac
+done <<< "$entries"
 
 # Native browser-injected assets come from android/app/src/main/assets.
 require_matches_source "assets/riftbrowser-mcp-app.js" "android/app/src/main/assets/riftbrowser-mcp-app.js"

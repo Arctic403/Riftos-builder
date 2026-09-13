@@ -21,10 +21,16 @@ A build must pass all of these stages before publication:
 5. Verify zip alignment and the APK signature/certificate.
 6. Run `scripts/verify-riftos-apk.sh` against the **final signed APK**.
 
-The APK smoke gate verifies the Android payload exists, critical RiftOS web/browser assets are
-present, and important packaged files match the checked-out source byte-for-byte. It also rejects
+The APK smoke gate verifies the Android payload exists, every packaged RiftOS `src/`
+and `workspace-live/` file matches the checked-out source byte-for-byte, and no stale
+`assets/www/` files slipped in. It also verifies native browser-injected assets, rejects
 retired PWA/service-worker packaging and the removed Rift AI cockpit CSS, and checks that the
 packaged workspace surface is the current Workspace Records UI.
+
+The worker builds a **Git commit** from `Arctic403/RiftOS`, not the phone's local
+`workspace/RiftOS-main` directory. Push RiftOS workspace changes to the RiftOS repository
+before dispatching a build, then use the intended commit as `source_ref`. Dispatch remains
+manual; updating either workspace does not start a build or publish an APK.
 
 Failure logs are kept in `$RUNNER_TEMP/riftos-private-logs` and are returned through the private
 RiftOS prerelease failure bundle when publication is enabled. This separates source-validation,
