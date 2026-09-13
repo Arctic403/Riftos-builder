@@ -1,18 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_DIR="${1:?usage: riftos-build.sh <source-dir>}"
 SOURCE_DIR="$(cd "$SOURCE_DIR" && pwd)"
 LOG_DIR="${RUNNER_TEMP:?}/riftos-private-logs"
 OUT_DIR="${RUNNER_TEMP:?}/riftos-output"
 mkdir -p "$LOG_DIR" "$OUT_DIR"
 
+# Fail before the expensive Android build if the builder-side smoke gate itself is malformed.
+bash -n "$SCRIPT_DIR/verify-riftos-apk.sh"
+
 cd "$SOURCE_DIR"
 echo "Building RiftOS ${SOURCE_SHA:-unknown}."
+if [ -n "${SOURCE_SHA:-}" ]; then
+  ACTUAL_SHA="$(git rev-parse HEAD)"
+  test "$ACTUAL_SHA" = "$SOURCE_SHA" || {
+    echo "Source SHA mismatch: expected $SOURCE_SHA, got $ACTUAL_SHA" >&2
+    exit 1
+  }
+fi
+
 : "${RIFT_SIGN_STORE:?Release signing identity required}"
 : "${RIFT_SIGN_ALIAS:?Release key alias required}"
 export RIFT_SIGN_STORE_PASS="${RIFT_SIGN_STORE_PASS:?Release store password required}"
 export RIFT_SIGN_KEY_PASS="${RIFT_SIGN_KEY_PASS:?Release key password required}"
+
 if ! npm run check >"$LOG_DIR/source-check.log" 2>&1; then
   echo 'Source checks failed; APK build stopped.' >&2
   exit 1
@@ -44,4 +57,10 @@ test -f "$UNSIGNED" || { echo "Gradle did not produce $UNSIGNED" >&2; exit 1; }
 
 "$BUILD_TOOLS/zipalign" -c -v 4 "$FINAL" >"$LOG_DIR/alignment.log" 2>&1
 "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$FINAL" >"$LOG_DIR/signature.log" 2>&1
-echo "RiftOS Android APK built, signed and verified."
+
+if ! bash "$SCRIPT_DIR/verify-riftos-apk.sh" "$FINAL" "$SOURCE_DIR" >"$LOG_DIR/apk-smoke.log" 2>&1; then
+  echo "RiftOS APK packaging smoke check failed. Detailed log will be returned privately." >&2
+  exit 1
+fi
+
+echo "RiftOS Android APK built, packaged, signed and verified."

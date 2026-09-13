@@ -150,4 +150,4 @@ jobs:
         if: ${{ always() }}
         run: |
           rm -rf source
-          rm -f "$RUNNER_TEMP/riftos-release.keystore"
+          rm -f "$RUNNER_TEMP/riftos-release.keystore" "$RUNNER_TEMP/riftos-alpha.keystore"
