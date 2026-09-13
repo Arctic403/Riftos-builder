@@ -22,10 +22,11 @@ A build must pass all of these stages before publication:
 6. Run `scripts/verify-riftos-apk.sh` against the **final signed APK**.
 
 The APK smoke gate verifies the Android payload exists, every packaged RiftOS `src/`
-and `workspace-live/` file matches the checked-out source byte-for-byte, and no stale
-`assets/www/` files slipped in. It also verifies native browser-injected assets, rejects
-retired PWA/service-worker packaging and the removed Rift AI cockpit CSS, and checks that the
-packaged workspace surface is the current Workspace Records UI.
+and `workspace-live/` file—including the desktop taskbar and local Records changes—matches
+the checked-out source byte-for-byte, and no stale `assets/www/` files slipped in. It also
+verifies every runtime native asset under `android/app/src/main/assets/` (including new
+adapters), rejects retired PWA/service-worker packaging and the removed Rift AI cockpit CSS,
+and checks that the packaged workspace surface is the current Workspace Records UI.
 
 The worker builds a **Git commit** from `Arctic403/RiftOS`, not the phone's local
 `workspace/RiftOS-main` directory. Push RiftOS workspace changes to the RiftOS repository

@@ -82,9 +82,15 @@ while IFS= read -r entry; do
   esac
 done <<< "$entries"
 
-# Native browser-injected assets come from android/app/src/main/assets.
-require_matches_source "assets/riftbrowser-mcp-app.js" "android/app/src/main/assets/riftbrowser-mcp-app.js"
-require_matches_source "assets/adapters/ai-adapter-registry.js" "android/app/src/main/assets/adapters/ai-adapter-registry.js"
+# Verify every runtime native asset, including adapters added after this builder version.
+# Android's asset merger does not promise to package documentation files.
+native_assets="$SOURCE_DIR/android/app/src/main/assets"
+test -d "$native_assets" || { echo 'APK smoke check failed: native assets directory is missing.' >&2; exit 1; }
+while IFS= read -r -d '' source; do
+  source_rel="${source#"$native_assets/"}"
+  case "$source_rel" in *.md) continue ;; esac
+  require_matches_source "assets/$source_rel" "android/app/src/main/assets/$source_rel"
+done < <(find "$native_assets" -type f -print0)
 
 # These are intentionally excluded from Android. Their return means the web/PWA packaging
 # boundary drifted and the APK is carrying the wrong boot model.
