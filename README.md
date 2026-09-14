@@ -8,7 +8,10 @@ publishes `RiftOS-Android-debug.apk` to a private RiftOS prerelease.
 
 Builds remain `workflow_dispatch` only. The builder does not duplicate RiftOS product tests;
 it runs the validation suite owned by the exact RiftOS source commit and adds artifact-level
-checks that only the builder can perform.
+checks that only the builder can perform. The workflow uses current Node-24-capable GitHub
+Actions (`actions/checkout@v7`, `actions/setup-java@v5`, `gradle/actions/setup-gradle@v6`); the
+Gradle action uses its open-source `basic` cache provider so this maintenance update does not
+change the builder's trust boundary.
 
 ## Build gates
 
@@ -28,11 +31,16 @@ verifies every runtime native asset under `android/app/src/main/assets/` (includ
 adapters), rejects retired PWA/service-worker packaging and the removed Rift AI cockpit CSS,
 and checks that the packaged workspace surface is the current Workspace Records UI.
 
-Because important RiftOS fixes can live entirely in Kotlin, the final signed-APK gate also
-scans all packaged DEX files for the core native RiftOS classes (`MainActivity`, native desktop,
-local UI agent, structured Dev Lab agent, shell bridge/runtime and tool host) and for the exact `SOURCE_SHA` compiled into
-RiftOS runtime diagnostics. This closes the gap where Web assets could match source while the
-final native payload or provenance was not independently asserted.
+Because important RiftOS fixes can live entirely in Kotlin, the final signed-APK gate derives
+its required top-level native class descriptors from RiftOS's own
+`android/app/build.gradle.kts` `verifyRiftOsAndroidSources` contract and requires every one in
+the packaged DEX files. That now automatically covers current native surfaces such as
+`RiftNativeAppHost` and `RiftVolumePaths` and future mandatory Kotlin additions without a
+second Builder list drifting behind the source contract. The private top-level
+`RiftDevLabLocalAgent` object remains an explicit extra provenance assertion because it lives
+inside `RiftVortexLocalAgent.kt`. The exact `SOURCE_SHA` compiled into runtime diagnostics must
+also survive into DEX. This closes the gap where Web assets could match source while the final
+native payload or provenance was not independently asserted.
 
 The worker builds a **Git commit** from `Arctic403/RiftOS`, not the phone's local
 `workspace/RiftOS-main` directory. Push RiftOS workspace changes to the RiftOS repository

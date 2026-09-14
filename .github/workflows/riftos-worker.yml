@@ -50,14 +50,14 @@ jobs:
           echo "CLIENT_ID=$CLIENT_ID" >> "$GITHUB_ENV"
 
       - name: Check out builder
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           path: worker
           persist-credentials: false
           fetch-depth: 1
 
       - name: Check out RiftOS
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: Arctic403/RiftOS
           ref: ${{ steps.source.outputs.source_sha }}
@@ -82,9 +82,10 @@ jobs:
           "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" >/dev/null
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '9.5.0'
+          cache-provider: basic
           cache-read-only: false
           cache-cleanup: on-success
 

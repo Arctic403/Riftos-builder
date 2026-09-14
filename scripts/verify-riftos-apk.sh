@@ -74,20 +74,36 @@ require_entry "classes.dex"
 require_entry "resources.arsc"
 
 # Native-only RiftOS patches must be proven in the final signed artifact too, not merely in
-# the checked-out source. Minification is disabled, so these class descriptors must remain in
-# one of the APK's DEX files. The exact SOURCE_SHA is compiled into BuildConfig-backed runtime
-# diagnostics and must also survive into DEX when the worker provides it.
-for descriptor in \
-  'Lcom/riftos/app/MainActivity;' \
-  'Lcom/riftos/app/RiftNativeDesktop;' \
-  'Lcom/riftos/app/RiftVortexLocalAgent;' \
-  'Lcom/riftos/app/RiftDevLabLocalAgent;' \
-  'Lcom/riftos/app/RiftShellBridge;' \
-  'Lcom/riftos/app/RiftMcpRuntime;' \
-  'Lcom/riftos/app/RiftToolHost;'
-do
-  require_dex_string "$descriptor" "native class $descriptor"
+# the checked-out source. RiftOS owns the mandatory native-source contract in
+# android/app/build.gradle.kts::verifyRiftOsAndroidSources; consume that contract here so a new
+# required Kotlin runtime class automatically becomes a final-APK DEX requirement without a
+# second hard-coded Builder list drifting behind it. Minification is disabled, so each top-level
+# class descriptor must remain in one of the APK's DEX files.
+gradle_contract="$SOURCE_DIR/android/app/build.gradle.kts"
+test -f "$gradle_contract" || { echo 'APK smoke check failed: RiftOS Gradle source contract is missing.' >&2; exit 1; }
+mapfile -t required_native_sources < <(
+  sed -nE 's/.*"(src\/main\/java\/com\/riftos\/app\/[A-Za-z0-9_]+\.kt)".*/\1/p' "$gradle_contract"
+)
+if [ "${#required_native_sources[@]}" -eq 0 ]; then
+  echo 'APK smoke check failed: RiftOS Gradle source contract declared no mandatory native sources.' >&2
+  exit 1
+fi
+for source_rel in "${required_native_sources[@]}"; do
+  source="$SOURCE_DIR/android/app/$source_rel"
+  test -f "$source" || { echo "APK smoke check failed: mandatory native source is missing: $source_rel" >&2; exit 1; }
+  class_name="${source_rel##*/}"
+  class_name="${class_name%.kt}"
+  descriptor="Lcom/riftos/app/${class_name};"
+  require_dex_string "$descriptor" "required native class $descriptor from $source_rel"
 done
+
+# RiftDevLabLocalAgent is a private top-level object inside RiftVortexLocalAgent.kt, so it is not
+# represented by a standalone Gradle source filename but is still a required structured-agent
+# provenance marker in the final signed APK.
+require_dex_string 'Lcom/riftos/app/RiftDevLabLocalAgent;' 'structured Dev Lab local agent'
+
+# The exact SOURCE_SHA is compiled into BuildConfig-backed runtime diagnostics and must also
+# survive into DEX when the worker provides it.
 if [ -n "${SOURCE_SHA:-}" ]; then
   require_dex_string "$SOURCE_SHA" "embedded RiftOS source SHA $SOURCE_SHA"
 fi
