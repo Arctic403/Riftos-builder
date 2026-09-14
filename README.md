@@ -30,7 +30,7 @@ and checks that the packaged workspace surface is the current Workspace Records 
 
 Because important RiftOS fixes can live entirely in Kotlin, the final signed-APK gate also
 scans all packaged DEX files for the core native RiftOS classes (`MainActivity`, native desktop,
-local agent, shell bridge/runtime and tool host) and for the exact `SOURCE_SHA` compiled into
+local UI agent, structured Dev Lab agent, shell bridge/runtime and tool host) and for the exact `SOURCE_SHA` compiled into
 RiftOS runtime diagnostics. This closes the gap where Web assets could match source while the
 final native payload or provenance was not independently asserted.
 

@@ -81,6 +81,7 @@ for descriptor in \
   'Lcom/riftos/app/MainActivity;' \
   'Lcom/riftos/app/RiftNativeDesktop;' \
   'Lcom/riftos/app/RiftVortexLocalAgent;' \
+  'Lcom/riftos/app/RiftDevLabLocalAgent;' \
   'Lcom/riftos/app/RiftShellBridge;' \
   'Lcom/riftos/app/RiftMcpRuntime;' \
   'Lcom/riftos/app/RiftToolHost;'
