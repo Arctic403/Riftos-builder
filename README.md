@@ -14,7 +14,7 @@ checks that only the builder can perform.
 
 A build must pass all of these stages before publication:
 
-1. Resolve the requested RiftOS ref to an exact commit SHA and verify the checkout still matches it.
+1. Resolve the requested RiftOS ref to an exact commit SHA, verify `HEAD` matches it, and require the checked-out working tree to remain byte-clean (no tracked drift or untracked files) before source validation.
 2. Run RiftOS `npm run check` so its wiring, transport, docs, protocol, shell/Git and app-import regressions gate the APK.
 3. Compile the Android release APK with Gradle.
 4. Align and sign the APK.

@@ -21,6 +21,20 @@ if [ -n "${SOURCE_SHA:-}" ]; then
   }
 fi
 
+# A matching HEAD is not enough: source validation must run against the exact checked-out tree.
+# Fail loudly if any tracked or untracked file drifted after actions/checkout instead of labeling
+# mutated bytes with the resolved SOURCE_SHA in the private failure bundle.
+{
+  echo "head=$(git rev-parse HEAD)"
+  echo "status:"
+  git status --porcelain=v1 --untracked-files=all
+} >"$LOG_DIR/source-integrity.log"
+if ! git diff --quiet HEAD -- || [ -n "$(git status --porcelain=v1 --untracked-files=all)" ]; then
+  echo 'RiftOS source tree drifted after checkout; refusing to run source checks against mutated bytes.' >&2
+  git status --short --untracked-files=all >&2 || true
+  exit 1
+fi
+
 : "${RIFT_SIGN_STORE:?Release signing identity required}"
 : "${RIFT_SIGN_ALIAS:?Release key alias required}"
 export RIFT_SIGN_STORE_PASS="${RIFT_SIGN_STORE_PASS:?Release store password required}"
