@@ -28,6 +28,12 @@ verifies every runtime native asset under `android/app/src/main/assets/` (includ
 adapters), rejects retired PWA/service-worker packaging and the removed Rift AI cockpit CSS,
 and checks that the packaged workspace surface is the current Workspace Records UI.
 
+Because important RiftOS fixes can live entirely in Kotlin, the final signed-APK gate also
+scans all packaged DEX files for the core native RiftOS classes (`MainActivity`, native desktop,
+local agent, shell bridge/runtime and tool host) and for the exact `SOURCE_SHA` compiled into
+RiftOS runtime diagnostics. This closes the gap where Web assets could match source while the
+final native payload or provenance was not independently asserted.
+
 The worker builds a **Git commit** from `Arctic403/RiftOS`, not the phone's local
 `workspace/RiftOS-main` directory. Push RiftOS workspace changes to the RiftOS repository
 before dispatching a build, then use the intended commit as `source_ref`. Dispatch remains

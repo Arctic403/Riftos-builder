@@ -43,11 +43,53 @@ require_matches_source() {
   fi
   rm -f "$tmp"
 }
+require_dex_string() {
+  local needle="$1"
+  local label="$2"
+  local entry tmp
+  while IFS= read -r entry; do
+    case "$entry" in
+      classes*.dex)
+        tmp="$(mktemp)"
+        if ! unzip -p "$APK" "$entry" >"$tmp"; then
+          rm -f "$tmp"
+          echo "APK smoke check failed: could not extract $entry for native-code verification" >&2
+          exit 1
+        fi
+        if grep -aFq -- "$needle" "$tmp"; then
+          rm -f "$tmp"
+          return 0
+        fi
+        rm -f "$tmp"
+        ;;
+    esac
+  done <<< "$entries"
+  echo "APK smoke check failed: compiled DEX is missing $label" >&2
+  exit 1
+}
 
 # Basic installable Android payload.
 require_entry "AndroidManifest.xml"
 require_entry "classes.dex"
 require_entry "resources.arsc"
+
+# Native-only RiftOS patches must be proven in the final signed artifact too, not merely in
+# the checked-out source. Minification is disabled, so these class descriptors must remain in
+# one of the APK's DEX files. The exact SOURCE_SHA is compiled into BuildConfig-backed runtime
+# diagnostics and must also survive into DEX when the worker provides it.
+for descriptor in \
+  'Lcom/riftos/app/MainActivity;' \
+  'Lcom/riftos/app/RiftNativeDesktop;' \
+  'Lcom/riftos/app/RiftVortexLocalAgent;' \
+  'Lcom/riftos/app/RiftShellBridge;' \
+  'Lcom/riftos/app/RiftMcpRuntime;' \
+  'Lcom/riftos/app/RiftToolHost;'
+do
+  require_dex_string "$descriptor" "native class $descriptor"
+done
+if [ -n "${SOURCE_SHA:-}" ]; then
+  require_dex_string "$SOURCE_SHA" "embedded RiftOS source SHA $SOURCE_SHA"
+fi
 
 # The Android asset sync includes all current src/ and workspace-live/ files.
 # Compare every one byte-for-byte, including new modules added after this builder version.
