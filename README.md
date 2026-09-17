@@ -49,7 +49,10 @@ manual; updating either workspace does not start a build or publish an APK.
 
 Failure logs are kept in `$RUNNER_TEMP/riftos-private-logs` and are returned through the private
 RiftOS prerelease failure bundle when publication is enabled. This separates source-validation,
-Android compile, APK packaging, alignment and signature failures.
+Android compile, APK packaging, alignment, signature, and private-release publication failures.
+The publish stage creates the private prerelease first, then uploads the verified APK with up to
+three bounded retries. `publish.log` captures GitHub CLI output, and a failed asset upload removes
+the half-created release/tag before the private failure bundle is returned.
 
 ## Required secret
 

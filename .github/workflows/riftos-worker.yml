@@ -122,12 +122,37 @@ jobs:
           set -euo pipefail
           SHORT_SHA="${SOURCE_SHA:0:8}"
           TAG="rift-worker-${GITHUB_RUN_ID}-${SHORT_SHA}"
-          gh release create "$TAG" "$RUNNER_TEMP/riftos-output/RiftOS-Android-debug.apk" \
+          APK="$RUNNER_TEMP/riftos-output/RiftOS-Android-debug.apk"
+          PUBLISH_LOG="$RUNNER_TEMP/riftos-private-logs/publish.log"
+          test -f "$APK" || { echo "Verified APK missing before publication: $APK" | tee -a "$PUBLISH_LOG" >&2; exit 1; }
+
+          cleanup_partial_release() {
+            gh release delete "$TAG" --repo Arctic403/RiftOS --yes --cleanup-tag >>"$PUBLISH_LOG" 2>&1 || true
+          }
+          trap cleanup_partial_release ERR
+
+          echo "Creating private RiftOS prerelease $TAG for $SOURCE_SHA" >>"$PUBLISH_LOG"
+          gh release create "$TAG" \
             --repo Arctic403/RiftOS \
             --target "$SOURCE_SHA" \
             --prerelease \
             --title "RiftOS worker build ${SHORT_SHA}" \
-            --notes "RiftOS APK built by Arctic403/Riftos-builder run ${GITHUB_RUN_ID}. Source ${SOURCE_SHA}. Client ${CLIENT_ID}."
+            --notes "RiftOS APK built by Arctic403/Riftos-builder run ${GITHUB_RUN_ID}. Source ${SOURCE_SHA}. Client ${CLIENT_ID}." \
+            >>"$PUBLISH_LOG" 2>&1
+
+          uploaded=false
+          for attempt in 1 2 3; do
+            echo "APK upload attempt $attempt/3" >>"$PUBLISH_LOG"
+            if gh release upload "$TAG" "$APK" --repo Arctic403/RiftOS --clobber >>"$PUBLISH_LOG" 2>&1; then
+              uploaded=true
+              break
+            fi
+            sleep $((attempt * 2))
+          done
+          test "$uploaded" = true || { echo 'APK upload failed after 3 attempts.' | tee -a "$PUBLISH_LOG" >&2; exit 1; }
+
+          trap - ERR
+          echo "Private RiftOS prerelease published successfully." >>"$PUBLISH_LOG"
 
       - name: Return private build log
         if: ${{ failure() && env.PUBLISH == 'true' && env.SOURCE_SHA != '' }}
