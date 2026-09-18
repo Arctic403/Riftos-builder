@@ -118,13 +118,13 @@ fi
 
 manifest_tree="$($AAPT2 dump xmltree "$APK" --file AndroidManifest.xml)"
 manifest_sdk_lines="$(grep -E 'android:(minSdkVersion|targetSdkVersion)' <<<"$manifest_tree" || true)"
-if ! grep -Eq 'android:minSdkVersion\([^)]*\)=\(type 0x10\)0x1a([[:space:]]|$)' <<<"$manifest_tree"; then
+if ! grep -Eq 'android:minSdkVersion\([^)]*\)=(26|\(type 0x10\)0x1a)([[:space:]]|$)' <<<"$manifest_tree"; then
   echo 'APK smoke check failed: packaged minSdk is not 26.' >&2
   echo 'Observed compiled-manifest SDK lines:' >&2
   printf '%s\n' "$manifest_sdk_lines" >&2
   exit 1
 fi
-if ! grep -Eq 'android:targetSdkVersion\([^)]*\)=\(type 0x10\)0x24([[:space:]]|$)' <<<"$manifest_tree"; then
+if ! grep -Eq 'android:targetSdkVersion\([^)]*\)=(36|\(type 0x10\)0x24)([[:space:]]|$)' <<<"$manifest_tree"; then
   echo 'APK smoke check failed: packaged targetSdk is not 36.' >&2
   echo 'Observed compiled-manifest SDK lines:' >&2
   printf '%s\n' "$manifest_sdk_lines" >&2
