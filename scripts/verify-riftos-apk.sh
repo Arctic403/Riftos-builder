@@ -110,19 +110,28 @@ require_entry "AndroidManifest.xml"
 require_entry "classes.dex"
 require_entry "resources.arsc"
 
-badging="$($AAPT2 dump badging "$APK")"
-grep -Eq "^package: name='com\\.riftos\\.app'([[:space:]]|$)" <<<"$badging" || {
-  echo 'APK smoke check failed: packaged application ID is not com.riftos.app.' >&2
+package_name="$($AAPT2 dump packagename "$APK" | tr -d '\r\n')"
+if [ "$package_name" != 'com.riftos.app' ]; then
+  echo "APK smoke check failed: packaged application ID is '$package_name', expected com.riftos.app." >&2
   exit 1
-}
-grep -Fxq "sdkVersion:'26'" <<<"$badging" || {
+fi
+
+manifest_tree="$($AAPT2 dump xmltree "$APK" --file AndroidManifest.xml)"
+manifest_sdk_lines="$(grep -E 'android:(minSdkVersion|targetSdkVersion)' <<<"$manifest_tree" || true)"
+if ! grep -Eq 'android:minSdkVersion\([^)]*\)=\(type 0x10\)0x1a([[:space:]]|$)' <<<"$manifest_tree"; then
   echo 'APK smoke check failed: packaged minSdk is not 26.' >&2
+  echo 'Observed compiled-manifest SDK lines:' >&2
+  printf '%s\n' "$manifest_sdk_lines" >&2
   exit 1
-}
-grep -Fxq "targetSdkVersion:'36'" <<<"$badging" || {
+fi
+if ! grep -Eq 'android:targetSdkVersion\([^)]*\)=\(type 0x10\)0x24([[:space:]]|$)' <<<"$manifest_tree"; then
   echo 'APK smoke check failed: packaged targetSdk is not 36.' >&2
+  echo 'Observed compiled-manifest SDK lines:' >&2
+  printf '%s\n' "$manifest_sdk_lines" >&2
   exit 1
-}
+fi
+
+badging="$($AAPT2 dump badging "$APK")"
 if grep -Fq 'application-debuggable' <<<"$badging"; then
   echo 'APK smoke check failed: release APK is marked debuggable.' >&2
   exit 1

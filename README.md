@@ -25,7 +25,7 @@ A build must pass all of these stages before publication:
 6. Compile/package the Android release APK with Gradle.
 7. Align and sign the APK.
 8. Verify zip alignment and the APK signature/certificate.
-9. Run `scripts/verify-riftos-apk.sh` against the **final signed APK**. The final smoke verifies packaged application ID/minSdk/targetSdk/non-debuggable manifest state, rejects duplicate/unsafe ZIP entries, leaked source/VCS/keystore material, retired native class descriptors, stale OS web assets, missing mandatory native classes/provenance, and byte-mismatched runtime assets.
+9. Run `scripts/verify-riftos-apk.sh` against the **final signed APK**. The final smoke reads package identity with AAPT2 `packagename`, reads minSdk/targetSdk from the compiled `AndroidManifest.xml` via AAPT2 `xmltree`, verifies non-debuggable release state, rejects duplicate/unsafe ZIP entries, leaked source/VCS/keystore material, retired native class descriptors, stale OS web assets, missing mandatory native classes/provenance, and byte-mismatched runtime assets.
 
 The APK smoke gate verifies the Android payload exists and that the only OS-execution files under `assets/www/` are the exact byte-for-byte `src/riftpp-core.js` and `src/riftvm.js` headless assets. Any returned `index.html`, `styles.css`, `workspace-live/`, PWA/service-worker file, or other unexpected `assets/www/` content is a failure. Explicit runtime assets under `android/app/src/main/assets/` (including RiftBrowser adapters) are verified separately byte-for-byte.
 
