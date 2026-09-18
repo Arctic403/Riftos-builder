@@ -18,11 +18,12 @@ change the builder's trust boundary.
 A build must pass all of these stages before publication:
 
 1. Resolve the requested RiftOS ref to an exact commit SHA, verify `HEAD` matches it, and require the checked-out working tree to remain byte-clean (no tracked drift or untracked files) before source validation.
-2. Run RiftOS `npm run check` so its wiring, transport, docs, protocol, shell/Git and app-import regressions gate the APK.
-3. Compile the Android release APK with Gradle.
-4. Align and sign the APK.
-5. Verify zip alignment and the APK signature/certificate.
-6. Run `scripts/verify-riftos-apk.sh` against the **final signed APK**.
+2. Preflight the Builder's own DEX-verifier assumption against RiftOS's exact mandatory Kotlin source list: every listed filename must exist and declare a matching top-level class/object/interface, otherwise the Builder fails early as stale instead of waiting for final APK smoke.
+3. Run RiftOS `npm run check` so its wiring, transport, docs, protocol, native/live and explicitly retained-reference regressions gate the APK.
+4. Compile the Android release APK with Gradle.
+5. Align and sign the APK.
+6. Verify zip alignment and the APK signature/certificate.
+7. Run `scripts/verify-riftos-apk.sh` against the **final signed APK**.
 
 The APK smoke gate verifies the Android payload exists and that the only OS-execution files under `assets/www/` are the exact byte-for-byte `src/riftpp-core.js` and `src/riftvm.js` headless assets. Any returned `index.html`, `styles.css`, `workspace-live/`, PWA/service-worker file, or other unexpected `assets/www/` content is a failure. Explicit runtime assets under `android/app/src/main/assets/` (including RiftBrowser adapters) are verified separately byte-for-byte.
 

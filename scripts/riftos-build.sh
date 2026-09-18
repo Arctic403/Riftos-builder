@@ -35,6 +35,25 @@ if ! git diff --quiet HEAD -- || [ -n "$(git status --porcelain=v1 --untracked-f
   exit 1
 fi
 
+# Validate the Builder's DEX-verifier assumption against the exact source contract before
+# source tests/Gradle: every mandatory Kotlin filename must declare a matching top-level
+# class/object/interface because verify-riftos-apk.sh derives that DEX descriptor from the file name.
+gradle_contract="android/app/build.gradle.kts"
+mapfile -t required_native_sources < <(
+  sed -nE 's/.*"(src\/main\/java\/com\/riftos\/app\/[A-Za-z0-9_]+\.kt)".*/\1/p' "$gradle_contract"
+)
+test "${#required_native_sources[@]}" -gt 0 || { echo 'Builder contract preflight found no mandatory Kotlin sources.' >&2; exit 1; }
+for source_rel in "${required_native_sources[@]}"; do
+  source="android/app/$source_rel"
+  test -f "$source" || { echo "Builder contract preflight missing mandatory Kotlin source: $source_rel" >&2; exit 1; }
+  class_name="${source_rel##*/}"
+  class_name="${class_name%.kt}"
+  if ! grep -Eq "^[[:space:]]*((public|private|internal|protected)[[:space:]]+)?((data|sealed|enum|annotation|value)[[:space:]]+)?(class|object|interface)[[:space:]]+${class_name}([[:space:]<(::{]|$)" "$source"; then
+    echo "Builder DEX verifier assumption is stale: $source_rel does not declare top-level $class_name." >&2
+    exit 1
+  fi
+done
+
 : "${RIFT_SIGN_STORE:?Release signing identity required}"
 : "${RIFT_SIGN_ALIAS:?Release key alias required}"
 export RIFT_SIGN_STORE_PASS="${RIFT_SIGN_STORE_PASS:?Release store password required}"
