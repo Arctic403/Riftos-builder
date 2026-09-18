@@ -24,19 +24,13 @@ A build must pass all of these stages before publication:
 5. Verify zip alignment and the APK signature/certificate.
 6. Run `scripts/verify-riftos-apk.sh` against the **final signed APK**.
 
-The APK smoke gate verifies the Android payload exists, every packaged RiftOS `src/`
-and `workspace-live/` file—including the desktop taskbar and local Records changes—matches
-the checked-out source byte-for-byte, and no stale `assets/www/` files slipped in. It also
-verifies every runtime native asset under `android/app/src/main/assets/` (including new
-adapters), rejects retired PWA/service-worker packaging and the removed Rift AI cockpit CSS,
-and checks that the packaged workspace surface is the current Workspace Records UI.
+The APK smoke gate verifies the Android payload exists and that the only OS-execution files under `assets/www/` are the exact byte-for-byte `src/riftpp-core.js` and `src/riftvm.js` headless assets. Any returned `index.html`, `styles.css`, `workspace-live/`, PWA/service-worker file, or other unexpected `assets/www/` content is a failure. Explicit runtime assets under `android/app/src/main/assets/` (including RiftBrowser adapters) are verified separately byte-for-byte.
 
 Because important RiftOS fixes can live entirely in Kotlin, the final signed-APK gate derives
 its required top-level native class descriptors from RiftOS's own
 `android/app/build.gradle.kts` `verifyRiftOsAndroidSources` contract and requires every one in
 the packaged DEX files. That now automatically covers current native surfaces such as
-`RiftNativeAppHost` and `RiftVolumePaths` and future mandatory Kotlin additions without a
-second Builder list drifting behind the source contract. The private top-level
+`MainActivity`, `RiftBrowserAppHost`, `RiftVolumePaths` and every other file in the current mandatory native snapshot without a second Builder list drifting behind the source contract. The private top-level
 `RiftDevLabLocalAgent` object remains an explicit extra provenance assertion because it lives
 inside `RiftVortexLocalAgent.kt`. The exact `SOURCE_SHA` compiled into runtime diagnostics must
 also survive into DEX. This closes the gap where Web assets could match source while the final
@@ -66,5 +60,8 @@ Optional production-signing secrets:
 - `RIFTOS_KEY_ALIAS`
 - `RIFTOS_KEY_PASSWORD`
 
-Without those four signing secrets, the worker uses RiftOS's alpha/debug keystore.
+Without those four signing secrets, the worker uses RiftOS's alpha/debug keystore with the known development alias/password. That fallback is suitable only as an alpha/development signing identity and is not strong production publisher identity. A production distribution policy should require private release signing and remove the fallback separately.
+
+The workflow currently references major-version GitHub Action tags rather than immutable action commit SHAs; that remains an external supply-chain/reproducibility limitation.
+
 Builds never use `actions/upload-artifact`.

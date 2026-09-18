@@ -108,40 +108,25 @@ if [ -n "${SOURCE_SHA:-}" ]; then
   require_dex_string "$SOURCE_SHA" "embedded RiftOS source SHA $SOURCE_SHA"
 fi
 
-# The Android asset sync includes all current src/ and workspace-live/ files.
-# Compare every one byte-for-byte, including new modules added after this builder version.
-require_matches_source "assets/www/index.html" "index.html"
-require_matches_source "assets/www/styles.css" "styles.css"
-for directory in src workspace-live; do
-  test -d "$SOURCE_DIR/$directory" || { echo "APK smoke check failed: source directory missing: $directory" >&2; exit 1; }
-  while IFS= read -r -d '' source; do
-    source_rel="${source#"$SOURCE_DIR/"}"
-    case "$source_rel" in
-      src/riftbrowser-*|*/manifest.webmanifest|*/*sw.js|*/pwa-*) continue ;;
-    esac
-    require_matches_source "assets/www/$source_rel" "$source_rel"
-  done < <(find "$SOURCE_DIR/$directory" -type f -print0)
-done
+# The native Android build intentionally packages only the two headless Rift++ execution assets
+# beneath assets/www. The retired HTML/DOM shell, broad src tree and workspace-live tree must
+# never return as OS execution assets.
+require_matches_source "assets/www/src/riftpp-core.js" "src/riftpp-core.js"
+require_matches_source "assets/www/src/riftvm.js" "src/riftvm.js"
 
-# A previously generated or unexpected www/ file must not ride along in the APK.
 while IFS= read -r entry; do
   case "$entry" in
     assets/www/*)
-      case "$entry" in */) continue ;; esac
-      source_rel="${entry#assets/www/}"
-      case "$source_rel" in
-        index.html|styles.css|src/*|workspace-live/*) ;;
-        *) echo "APK smoke check failed: unexpected web asset: $entry" >&2; exit 1 ;;
+      case "$entry" in
+        */) continue ;;
+        assets/www/src/riftpp-core.js|assets/www/src/riftvm.js) ;;
+        *) echo "APK smoke check failed: unexpected OS web asset: $entry" >&2; exit 1 ;;
       esac
-      test -f "$SOURCE_DIR/$source_rel" || {
-        echo "APK smoke check failed: stale web asset: $entry" >&2
-        exit 1
-      }
       ;;
   esac
 done <<< "$entries"
 
-# Verify every runtime native asset, including adapters added after this builder version.
+# Verify every explicit Android runtime asset, including RiftBrowser adapters.
 # Android's asset merger does not promise to package documentation files.
 native_assets="$SOURCE_DIR/android/app/src/main/assets"
 test -d "$native_assets" || { echo 'APK smoke check failed: native assets directory is missing.' >&2; exit 1; }
@@ -151,20 +136,13 @@ while IFS= read -r -d '' source; do
   require_matches_source "assets/$source_rel" "android/app/src/main/assets/$source_rel"
 done < <(find "$native_assets" -type f -print0)
 
-# These are intentionally excluded from Android. Their return means the web/PWA packaging
-# boundary drifted and the APK is carrying the wrong boot model.
+# Explicit negative guards make the retired boot/runtime boundary obvious even if the generic
+# unexpected-assets loop above is later edited.
+forbid_entry '^assets/www/index\.html$'
+forbid_entry '^assets/www/styles\.css$'
+forbid_entry '^assets/www/workspace-live/'
 forbid_entry '^assets/www/manifest\.webmanifest$'
 forbid_entry '^assets/www/(.*/)?sw\.js$'
 forbid_entry '^assets/www/(.*/)?pwa-'
-
-# Regression guards for architecture we deliberately retired/replaced.
-if unzip -p "$APK" assets/www/styles.css | grep -q '\.rift-ai-'; then
-  echo 'APK smoke check failed: retired .rift-ai-* cockpit CSS was packaged.' >&2
-  exit 1
-fi
-if ! unzip -p "$APK" assets/www/workspace-live/index.html | grep -q 'Workspace Records'; then
-  echo 'APK smoke check failed: Workspace Records UI marker is missing.' >&2
-  exit 1
-fi
 
 printf 'APK smoke check passed: %s entries; critical RiftOS assets match source.\n' "$(wc -l <<<"$entries" | tr -d ' ')"
