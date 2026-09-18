@@ -19,7 +19,7 @@ A build must pass all of these stages before publication:
 
 1. Resolve the requested RiftOS ref to an exact commit SHA and check out Builder + RiftOS.
 2. Syntax-check both Builder shell scripts with `bash -n`, verify RiftOS `HEAD` matches the resolved SHA, and require the checked-out source tree to remain byte-clean (no tracked drift or untracked files).
-3. Preflight Builder assumptions against RiftOS Gradle: namespace/application ID `com.riftos.app`, compile/target Android 36, minSdk 26, Java 17, release minification disabled, and every mandatory Kotlin filename declaring a matching top-level class/object/interface. Any drift fails explicitly as a stale Builder contract before source tests/Gradle.
+3. Preflight Builder assumptions against RiftOS Gradle: root KGP `2.4.10` paired with `quickjs-kt 1.0.14`, namespace/application ID `com.riftos.app`, compile/target Android 36, minSdk 26, Java 17, release minification disabled, `kotlinx-coroutines-android 1.11.0`, and every mandatory Kotlin filename declaring a matching top-level class/object/interface. Any drift fails explicitly as a stale Builder contract before source tests/Gradle.
 4. Run RiftOS `npm run check` so its wiring, transport, docs, protocol, native/live and explicitly retained-reference regressions gate the APK.
 5. Run the dedicated Gradle validation tasks (`verifyRiftOsAndroidSources` and `validateRiftBrowserWebViewOwnership`) and capture them separately in `gradle-validation.log`.
 6. Compile/package the Android release APK with Gradle.

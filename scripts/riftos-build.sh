@@ -38,7 +38,12 @@ fi
 # Validate the Builder's DEX-verifier assumption against the exact source contract before
 # source tests/Gradle: every mandatory Kotlin filename must declare a matching top-level
 # class/object/interface because verify-riftos-apk.sh derives that DEX descriptor from the file name.
+root_gradle_contract="android/build.gradle.kts"
 gradle_contract="android/app/build.gradle.kts"
+grep -Fq 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.10' "$root_gradle_contract" || {
+  echo 'Builder contract is stale: RiftOS root Gradle must pin Kotlin Gradle plugin 2.4.10 for QuickJS 1.0.14 metadata compatibility.' >&2
+  exit 1
+}
 for required_gradle_contract in \
   'namespace = "com.riftos.app"' \
   'applicationId = "com.riftos.app"' \
@@ -46,7 +51,9 @@ for required_gradle_contract in \
   'minSdk = 26' \
   'targetSdk = 36' \
   'JavaVersion.VERSION_17' \
-  'getByName("release") { isMinifyEnabled = false }'; do
+  'getByName("release") { isMinifyEnabled = false }' \
+  'io.github.dokar3:quickjs-kt:1.0.14' \
+  'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0'; do
   grep -Fq "$required_gradle_contract" "$gradle_contract" || {
     echo "Builder contract is stale: expected Gradle contract missing: $required_gradle_contract" >&2
     exit 1
