@@ -7,8 +7,22 @@ SOURCE_DIR="$(cd "$SOURCE_DIR" && pwd)"
 test -f "$APK" || { echo "APK not found: $APK" >&2; exit 1; }
 command -v unzip >/dev/null 2>&1 || { echo 'unzip is required for APK smoke validation.' >&2; exit 1; }
 command -v cmp >/dev/null 2>&1 || { echo 'cmp is required for APK smoke validation.' >&2; exit 1; }
+AAPT2="${ANDROID_HOME:?}/build-tools/36.0.0/aapt2"
+test -x "$AAPT2" || { echo "APK smoke check failed: aapt2 not found at $AAPT2" >&2; exit 1; }
 
 entries="$(unzip -Z1 "$APK")"
+
+duplicates="$(sort <<<"$entries" | uniq -d)"
+if [ -n "$duplicates" ]; then
+  echo "APK smoke check failed: duplicate ZIP entries detected:" >&2
+  printf '%s\n' "$duplicates" >&2
+  exit 1
+fi
+if grep -Eq '(^|/)\.\.(/|$)|^/' <<<"$entries"; then
+  echo 'APK smoke check failed: unsafe ZIP entry path detected.' >&2
+  exit 1
+fi
+
 require_entry() {
   local entry="$1"
   if ! grep -Fxq "$entry" <<<"$entries"; then
@@ -67,11 +81,58 @@ require_dex_string() {
   echo "APK smoke check failed: compiled DEX is missing $label" >&2
   exit 1
 }
+forbid_dex_string() {
+  local needle="$1"
+  local label="$2"
+  local entry tmp
+  while IFS= read -r entry; do
+    case "$entry" in
+      classes*.dex)
+        tmp="$(mktemp)"
+        if ! unzip -p "$APK" "$entry" >"$tmp"; then
+          rm -f "$tmp"
+          echo "APK smoke check failed: could not extract $entry for retired-code verification" >&2
+          exit 1
+        fi
+        if grep -aFq -- "$needle" "$tmp"; then
+          rm -f "$tmp"
+          echo "APK smoke check failed: compiled DEX still contains retired $label" >&2
+          exit 1
+        fi
+        rm -f "$tmp"
+        ;;
+    esac
+  done <<< "$entries"
+}
 
 # Basic installable Android payload.
 require_entry "AndroidManifest.xml"
 require_entry "classes.dex"
 require_entry "resources.arsc"
+
+badging="$($AAPT2 dump badging "$APK")"
+grep -Eq "^package: name='com\\.riftos\\.app'([[:space:]]|$)" <<<"$badging" || {
+  echo 'APK smoke check failed: packaged application ID is not com.riftos.app.' >&2
+  exit 1
+}
+grep -Fxq "sdkVersion:'26'" <<<"$badging" || {
+  echo 'APK smoke check failed: packaged minSdk is not 26.' >&2
+  exit 1
+}
+grep -Fxq "targetSdkVersion:'36'" <<<"$badging" || {
+  echo 'APK smoke check failed: packaged targetSdk is not 36.' >&2
+  exit 1
+}
+if grep -Fq 'application-debuggable' <<<"$badging"; then
+  echo 'APK smoke check failed: release APK is marked debuggable.' >&2
+  exit 1
+fi
+
+# Source, VCS and signing-key material must never leak into the APK ZIP.
+forbid_entry '\.(kt|java)$'
+forbid_entry '(^|/)\.git/'
+forbid_entry 'riftos-debug\.keystore'
+forbid_entry '\.keystore$'
 
 # Native-only RiftOS patches must be proven in the final signed artifact too, not merely in
 # the checked-out source. RiftOS owns the mandatory native-source contract in
@@ -101,6 +162,13 @@ done
 # represented by a standalone Gradle source filename but is still a required structured-agent
 # provenance marker in the final signed APK.
 require_dex_string 'Lcom/riftos/app/RiftDevLabLocalAgent;' 'structured Dev Lab local agent'
+
+# Retired native migration classes must not survive in final DEX through stale build cache/output.
+for retired in \
+  RiftShellBridge RiftSystemDump AndroidWebViewBrowserEngine RiftNativeAppHost \
+  RiftPreviewActivity RiftRendererCrashGuard RiftNativeDispatcher RiftTransferManifest; do
+  forbid_dex_string "Lcom/riftos/app/${retired};" "native class $retired"
+done
 
 # The exact SOURCE_SHA is compiled into BuildConfig-backed runtime diagnostics and must also
 # survive into DEX when the worker provides it.

@@ -39,6 +39,19 @@ fi
 # source tests/Gradle: every mandatory Kotlin filename must declare a matching top-level
 # class/object/interface because verify-riftos-apk.sh derives that DEX descriptor from the file name.
 gradle_contract="android/app/build.gradle.kts"
+for required_gradle_contract in \
+  'namespace = "com.riftos.app"' \
+  'applicationId = "com.riftos.app"' \
+  'compileSdk = 36' \
+  'minSdk = 26' \
+  'targetSdk = 36' \
+  'JavaVersion.VERSION_17' \
+  'getByName("release") { isMinifyEnabled = false }'; do
+  grep -Fq "$required_gradle_contract" "$gradle_contract" || {
+    echo "Builder contract is stale: expected Gradle contract missing: $required_gradle_contract" >&2
+    exit 1
+  }
+done
 mapfile -t required_native_sources < <(
   sed -nE 's/.*"(src\/main\/java\/com\/riftos\/app\/[A-Za-z0-9_]+\.kt)".*/\1/p' "$gradle_contract"
 )
@@ -64,9 +77,17 @@ if ! npm run check >"$LOG_DIR/source-check.log" 2>&1; then
   exit 1
 fi
 
+if ! gradle -p android --stacktrace \
+    :app:verifyRiftOsAndroidSources \
+    :app:validateRiftBrowserWebViewOwnership \
+    --no-daemon >"$LOG_DIR/gradle-validation.log" 2>&1; then
+  echo "RiftOS Gradle validation failed before compilation. Detailed log will be returned privately." >&2
+  exit 1
+fi
+
 if ! gradle -p android --stacktrace --build-cache :app:assembleRelease --no-daemon \
     >"$LOG_DIR/android-build.log" 2>&1; then
-  echo "RiftOS Android build failed. Detailed log will be returned privately." >&2
+  echo "RiftOS Android compilation/packaging failed. Detailed log will be returned privately." >&2
   exit 1
 fi
 
@@ -95,5 +116,6 @@ if ! bash "$SCRIPT_DIR/verify-riftos-apk.sh" "$FINAL" "$SOURCE_DIR" >"$LOG_DIR/a
   echo "RiftOS APK packaging smoke check failed. Detailed log will be returned privately." >&2
   exit 1
 fi
+sha256sum "$FINAL" >"$LOG_DIR/apk-sha256.log"
 
 echo "RiftOS Android APK built, packaged, signed and verified."

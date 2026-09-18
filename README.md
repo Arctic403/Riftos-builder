@@ -17,13 +17,15 @@ change the builder's trust boundary.
 
 A build must pass all of these stages before publication:
 
-1. Resolve the requested RiftOS ref to an exact commit SHA, verify `HEAD` matches it, and require the checked-out working tree to remain byte-clean (no tracked drift or untracked files) before source validation.
-2. Preflight the Builder's own DEX-verifier assumption against RiftOS's exact mandatory Kotlin source list: every listed filename must exist and declare a matching top-level class/object/interface, otherwise the Builder fails early as stale instead of waiting for final APK smoke.
-3. Run RiftOS `npm run check` so its wiring, transport, docs, protocol, native/live and explicitly retained-reference regressions gate the APK.
-4. Compile the Android release APK with Gradle.
-5. Align and sign the APK.
-6. Verify zip alignment and the APK signature/certificate.
-7. Run `scripts/verify-riftos-apk.sh` against the **final signed APK**.
+1. Resolve the requested RiftOS ref to an exact commit SHA and check out Builder + RiftOS.
+2. Syntax-check both Builder shell scripts with `bash -n`, verify RiftOS `HEAD` matches the resolved SHA, and require the checked-out source tree to remain byte-clean (no tracked drift or untracked files).
+3. Preflight Builder assumptions against RiftOS Gradle: namespace/application ID `com.riftos.app`, compile/target Android 36, minSdk 26, Java 17, release minification disabled, and every mandatory Kotlin filename declaring a matching top-level class/object/interface. Any drift fails explicitly as a stale Builder contract before source tests/Gradle.
+4. Run RiftOS `npm run check` so its wiring, transport, docs, protocol, native/live and explicitly retained-reference regressions gate the APK.
+5. Run the dedicated Gradle validation tasks (`verifyRiftOsAndroidSources` and `validateRiftBrowserWebViewOwnership`) and capture them separately in `gradle-validation.log`.
+6. Compile/package the Android release APK with Gradle.
+7. Align and sign the APK.
+8. Verify zip alignment and the APK signature/certificate.
+9. Run `scripts/verify-riftos-apk.sh` against the **final signed APK**. The final smoke verifies packaged application ID/minSdk/targetSdk/non-debuggable manifest state, rejects duplicate/unsafe ZIP entries, leaked source/VCS/keystore material, retired native class descriptors, stale OS web assets, missing mandatory native classes/provenance, and byte-mismatched runtime assets.
 
 The APK smoke gate verifies the Android payload exists and that the only OS-execution files under `assets/www/` are the exact byte-for-byte `src/riftpp-core.js` and `src/riftvm.js` headless assets. Any returned `index.html`, `styles.css`, `workspace-live/`, PWA/service-worker file, or other unexpected `assets/www/` content is a failure. Explicit runtime assets under `android/app/src/main/assets/` (including RiftBrowser adapters) are verified separately byte-for-byte.
 
@@ -43,8 +45,7 @@ before dispatching a build, then use the intended commit as `source_ref`. Dispat
 manual; updating either workspace does not start a build or publish an APK.
 
 Failure logs are kept in `$RUNNER_TEMP/riftos-private-logs` and are returned through the private
-RiftOS prerelease failure bundle when publication is enabled. This separates source-validation,
-Android compile, APK packaging, alignment, signature, and private-release publication failures.
+RiftOS prerelease failure bundle when publication is enabled. This separates source-validation, dedicated Gradle-validation, Android compile/package, APK smoke, alignment, signature, and private-release publication failures.
 The publish stage creates the private prerelease first, then uploads the verified APK with up to
 three bounded retries. `publish.log` captures GitHub CLI output, and a failed asset upload removes
 the half-created release/tag before the private failure bundle is returned.
