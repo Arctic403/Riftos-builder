@@ -185,18 +185,19 @@ if [ -n "${SOURCE_SHA:-}" ]; then
   require_dex_string "$SOURCE_SHA" "embedded RiftOS source SHA $SOURCE_SHA"
 fi
 
-# The native Android build intentionally packages only the two headless Rift++ execution assets
-# beneath assets/www. The retired HTML/DOM shell, broad src tree and workspace-live tree must
-# never return as OS execution assets.
+# The native Android build intentionally packages only the bounded headless compiler/runtime
+# assets beneath assets/www. The retired HTML/DOM shell, broad src tree and workspace-live tree
+# must never return as OS execution assets.
 require_matches_source "assets/www/src/riftpp-core.js" "src/riftpp-core.js"
 require_matches_source "assets/www/src/riftvm.js" "src/riftvm.js"
+require_matches_source "assets/www/src/semnexis-bootstrap.js" "src/semnexis-bootstrap.js"
 
 while IFS= read -r entry; do
   case "$entry" in
     assets/www/*)
       case "$entry" in
         */) continue ;;
-        assets/www/src/riftpp-core.js|assets/www/src/riftvm.js) ;;
+        assets/www/src/riftpp-core.js|assets/www/src/riftvm.js|assets/www/src/semnexis-bootstrap.js) ;;
         *) echo "APK smoke check failed: unexpected OS web asset: $entry" >&2; exit 1 ;;
       esac
       ;;
