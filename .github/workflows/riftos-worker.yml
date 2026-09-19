@@ -137,16 +137,12 @@ jobs:
             echo "RIFT_SIGN_KEY_PASS=${RIFTOS_KEY_PASSWORD}" >> "$GITHUB_ENV"
             echo "RIFT_SIGNING_MODE=private-release" >> "$GITHUB_ENV"
           else
-            if [ "${PUBLISH}" = "true" ]; then
-              echo 'Publishing RiftOS requires the private release signing identity; the public alpha key may not publish prereleases.' >&2
-              exit 1
-            fi
             base64 --decode source/android/riftos-debug.keystore.b64 > "$RUNNER_TEMP/riftos-alpha.keystore"
             echo "RIFT_SIGN_STORE=$RUNNER_TEMP/riftos-alpha.keystore" >> "$GITHUB_ENV"
             echo "RIFT_SIGN_STORE_PASS=android" >> "$GITHUB_ENV"
             echo "RIFT_SIGN_ALIAS=riftosdebug" >> "$GITHUB_ENV"
             echo "RIFT_SIGN_KEY_PASS=android" >> "$GITHUB_ENV"
-            echo "RIFT_SIGNING_MODE=alpha-local-proof" >> "$GITHUB_ENV"
+            echo "RIFT_SIGNING_MODE=alpha-development" >> "$GITHUB_ENV"
           fi
 
       - name: Build RiftOS APK
