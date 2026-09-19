@@ -8,6 +8,23 @@ LOG_DIR="${RUNNER_TEMP:?}/riftos-private-logs"
 OUT_DIR="${RUNNER_TEMP:?}/riftos-output"
 mkdir -p "$LOG_DIR" "$OUT_DIR"
 
+for required_command in timeout node npm gradle git grep sed sha256sum; do
+  command -v "$required_command" >/dev/null 2>&1 || {
+    echo "Builder runtime is missing required command: $required_command" >&2
+    exit 1
+  }
+done
+NODE_MAJOR="$(node -p 'Number(process.versions.node.split(".")[0])')"
+[ "$NODE_MAJOR" -ge 24 ] || {
+  echo "Builder requires Node 24+ for the RiftOS source gate; observed $(node --version)." >&2
+  exit 1
+}
+
+SOURCE_CHECK_TIMEOUT="${SOURCE_CHECK_TIMEOUT:-12m}"
+GRADLE_VALIDATE_TIMEOUT="${GRADLE_VALIDATE_TIMEOUT:-6m}"
+GRADLE_BUILD_TIMEOUT="${GRADLE_BUILD_TIMEOUT:-20m}"
+APK_VERIFY_TIMEOUT="${APK_VERIFY_TIMEOUT:-3m}"
+
 # Fail before the expensive Android build if the builder-side smoke gate itself is malformed.
 bash -n "$SCRIPT_DIR/verify-riftos-apk.sh"
 
@@ -79,22 +96,25 @@ done
 export RIFT_SIGN_STORE_PASS="${RIFT_SIGN_STORE_PASS:?Release store password required}"
 export RIFT_SIGN_KEY_PASS="${RIFT_SIGN_KEY_PASS:?Release key password required}"
 
-if ! npm run check >"$LOG_DIR/source-check.log" 2>&1; then
-  echo 'Source checks failed; APK build stopped.' >&2
+if ! timeout --signal=TERM --kill-after=30s "$SOURCE_CHECK_TIMEOUT" \
+    npm run check >"$LOG_DIR/source-check.log" 2>&1; then
+  echo "Source checks failed or exceeded $SOURCE_CHECK_TIMEOUT; APK build stopped." >&2
   exit 1
 fi
 
-if ! gradle -p android --stacktrace \
-    :app:verifyRiftOsAndroidSources \
-    :app:validateRiftBrowserWebViewOwnership \
-    --no-daemon >"$LOG_DIR/gradle-validation.log" 2>&1; then
-  echo "RiftOS Gradle validation failed before compilation. Detailed log will be returned privately." >&2
+if ! timeout --signal=TERM --kill-after=30s "$GRADLE_VALIDATE_TIMEOUT" \
+    gradle -p android --stacktrace \
+      :app:verifyRiftOsAndroidSources \
+      :app:validateRiftBrowserWebViewOwnership \
+      --no-daemon >"$LOG_DIR/gradle-validation.log" 2>&1; then
+  echo "RiftOS Gradle validation failed or exceeded $GRADLE_VALIDATE_TIMEOUT before compilation. Detailed log will be returned privately." >&2
   exit 1
 fi
 
-if ! gradle -p android --stacktrace --build-cache :app:assembleRelease --no-daemon \
+if ! timeout --signal=TERM --kill-after=30s "$GRADLE_BUILD_TIMEOUT" \
+    gradle -p android --stacktrace --build-cache :app:assembleRelease --no-daemon \
     >"$LOG_DIR/android-build.log" 2>&1; then
-  echo "RiftOS Android compilation/packaging failed. Detailed log will be returned privately." >&2
+  echo "RiftOS Android compilation/packaging failed or exceeded $GRADLE_BUILD_TIMEOUT. Detailed log will be returned privately." >&2
   exit 1
 fi
 
@@ -119,8 +139,9 @@ test -f "$UNSIGNED" || { echo "Gradle did not produce $UNSIGNED" >&2; exit 1; }
 "$BUILD_TOOLS/zipalign" -c -v 4 "$FINAL" >"$LOG_DIR/alignment.log" 2>&1
 "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$FINAL" >"$LOG_DIR/signature.log" 2>&1
 
-if ! bash "$SCRIPT_DIR/verify-riftos-apk.sh" "$FINAL" "$SOURCE_DIR" >"$LOG_DIR/apk-smoke.log" 2>&1; then
-  echo "RiftOS APK packaging smoke check failed. Detailed log will be returned privately." >&2
+if ! timeout --signal=TERM --kill-after=15s "$APK_VERIFY_TIMEOUT" \
+    bash "$SCRIPT_DIR/verify-riftos-apk.sh" "$FINAL" "$SOURCE_DIR" >"$LOG_DIR/apk-smoke.log" 2>&1; then
+  echo "RiftOS APK packaging smoke check failed or exceeded $APK_VERIFY_TIMEOUT. Detailed log will be returned privately." >&2
   exit 1
 fi
 sha256sum "$FINAL" >"$LOG_DIR/apk-sha256.log"
