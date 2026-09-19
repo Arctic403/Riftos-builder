@@ -1,6 +1,9 @@
 name: Rift Clang Payload Proof
 
 on:
+  push:
+    paths:
+      - '.github/riftclang-arm32.trigger'
   workflow_dispatch:
     inputs:
       host_abi:
@@ -21,13 +24,15 @@ permissions:
   contents: write
 
 concurrency:
-  group: riftclang-payload-${{ inputs.host_abi }}
+  group: riftclang-payload-${{ github.event_name == 'workflow_dispatch' && inputs.host_abi || 'armeabi-v7a' }}
   cancel-in-progress: false
 
 jobs:
   payload:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    env:
+      HOST_ABI: ${{ github.event_name == 'workflow_dispatch' && inputs.host_abi || 'armeabi-v7a' }}
     steps:
       - name: Check out builder
         uses: actions/checkout@v7
@@ -58,7 +63,7 @@ jobs:
           LLVM_VERSION: '23.1.1'
         run: |
           set -euo pipefail
-          bash scripts/build-riftclang-payload.sh "${{ inputs.host_abi }}" "$RUNNER_TEMP/riftclang"
+          bash scripts/build-riftclang-payload.sh "$HOST_ABI" "$RUNNER_TEMP/riftclang"
 
       - name: Record proof summary
         run: |
@@ -69,12 +74,12 @@ jobs:
           ls -lh "$RUNNER_TEMP/riftclang/"*.tar.gz
 
       - name: Publish proven payload
-        if: ${{ success() && inputs.publish }}
+        if: ${{ success() && github.event_name == 'workflow_dispatch' && inputs.publish }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          ABI="${{ inputs.host_abi }}"
+          ABI="$HOST_ABI"
           TAG="riftclang-v1-${ABI}-${GITHUB_RUN_ID}"
           FILE="$RUNNER_TEMP/riftclang/rift-clang-v1-${ABI}.tar.gz"
           SHA="$(cut -d' ' -f1 "$RUNNER_TEMP/riftclang/payload.sha256")"
