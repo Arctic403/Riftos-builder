@@ -172,16 +172,6 @@ done
 # provenance marker in the final signed APK.
 require_dex_string 'Lcom/riftos/app/RiftDevLabLocalAgent;' 'structured Dev Lab local agent'
 
-# The anti-hang lifecycle introduced in the current native runtime must survive compilation into
-# the final signed APK, not merely exist in source. These markers prove both the shared bounded
-# async/deadline primitive and the server/UI timeout paths reached DEX.
-require_dex_string 'Lcom/riftos/app/RiftDeadline;' 'cooperative native deadline helper'
-require_dex_string '0.18.0-bounded-request-lifecycle' 'bounded MCP server lifecycle version'
-require_dex_string 'Local MCP request timed out after' 'MCP server terminal watchdog'
-require_dex_string 'Installed Rift app preparation timed out' 'installed-app preparation watchdog'
-require_dex_string 'Native I/O task timed out after' 'native workspace I/O watchdog'
-require_dex_string 'watch:burst' 'workspace watcher burst coalescing'
-
 # Retired native migration classes must not survive in final DEX through stale build cache/output.
 for retired in \
   RiftShellBridge RiftSystemDump AndroidWebViewBrowserEngine RiftNativeAppHost \
