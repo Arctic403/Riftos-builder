@@ -68,17 +68,4 @@ The workflow currently references major-version GitHub Action tags rather than i
 
 Builds never use `actions/upload-artifact`.
 
-## Rift Clang payload proof
-
-The builder also contains a separate manual `Rift Clang Payload Proof` workflow. It is not part of normal RiftOS APK builds.
-
-It pins:
-- LLVM 23.1.1;
-- Android NDK r30 / 30.0.16248370;
-- Android API 26;
-- ARM + AArch64 LLVM backends only.
-
-The payload workflow builds native host TableGen tools first, then cross-compiles Clang + LLD for the selected Android host ABI using the NDK CMake toolchain. It strips the two executables, renames them to Android-packageable `libriftclang.so` / `libriftlld.so`, stages the matching NDK sysroot target tree and Clang resource headers, and writes a deterministic manifest/hash set.
-
-Publication is opt-in. The normal RiftOS worker does not consume a payload until a later pin-by-hash integration gate is implemented and device proof passes.
 
