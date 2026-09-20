@@ -167,6 +167,12 @@ for source_rel in "${required_native_sources[@]}"; do
   require_dex_string "$descriptor" "required native class $descriptor from $source_rel"
 done
 
+# N1.5 final-artifact proof: the final signed DEX must contain the passive event/relay
+# diagnostics that distinguish local event creation, device WSS queueing, replay and relay ACK.
+for marker in   'riftcli.event-bus'   'mcp.relay'   'event.created'   'cli.event.send'   'relay.ready'   'cli.replay.request'   'cli.replay.send'   'cli.ack'; do
+  require_dex_string "$marker" "RiftCLI N1.5 debug marker $marker"
+done
+
 # RiftCLI is a real native C++ subsystem. Bootstrap-0 is not proven unless the final
 # signed APK contains the exact native library for both supported ARM ABIs.
 require_entry "lib/arm64-v8a/libriftcli.so"
@@ -174,8 +180,11 @@ require_entry "lib/armeabi-v7a/libriftcli.so"
 forbid_entry '^lib/x86/libriftcli\.so$'
 forbid_entry '^lib/x86_64/libriftcli\.so$'
 
-# RiftBuild's Codynex MC0 proof packager reads this ARM32 host from RiftOS's own APK.
+# RiftBuild's Codynex machine-proof packagers read these disposable ARM32 hosts
+# from RiftOS's own APK. Compiler authority remains the external exact raw seed bytes.
 require_entry "lib/armeabi-v7a/libcodynex_mc0_host.so"
+require_entry "lib/armeabi-v7a/libcodynex_mc1a_host.so"
+require_entry "lib/armeabi-v7a/libcodynex_mc1b_host.so"
 
 # RiftDevLabLocalAgent is a private top-level object inside RiftVortexLocalAgent.kt, so it is not
 # represented by a standalone Gradle source filename but is still a required structured-agent

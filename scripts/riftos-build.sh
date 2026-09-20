@@ -52,6 +52,38 @@ if ! git diff --quiet HEAD -- || [ -n "$(git status --porcelain=v1 --untracked-f
   exit 1
 fi
 
+# Builder-owned syntax preflight for the source-gate entrypoints. This runs before the
+# source-owned validator so a malformed validator cannot hide its own parse failure.
+for source_gate_script in   scripts/validate-rift-wiring.mjs   scripts/validate-rift-transport.mjs   scripts/validate-rift-docs.mjs   scripts/test-rift-cli-push-channel.mjs   scripts/test-rift-cli-batch-v2.mjs   scripts/test-rift-debug-hub.mjs; do
+  node --check "$source_gate_script" >>"$LOG_DIR/source-syntax.log" 2>&1 || {
+    echo "RiftOS source-gate syntax failed: $source_gate_script" >&2
+    exit 1
+  }
+done
+
+node -e '
+  const pkg = require("./package.json");
+  const check = String(pkg.scripts?.check || "");
+  const transport = String(pkg.scripts?.["check:transport"] || "");
+  if (!check.includes("npm run check:transport")) {
+    console.error("Builder contract is stale: npm check no longer delegates to check:transport");
+    process.exit(1);
+  }
+  for (const required of [
+    "node scripts/validate-rift-wiring.mjs",
+    "node scripts/validate-rift-transport.mjs",
+    "node scripts/validate-rift-docs.mjs",
+    "node scripts/test-rift-cli-push-channel.mjs",
+    "node scripts/test-rift-cli-batch-v2.mjs",
+    "node scripts/test-rift-debug-hub.mjs",
+  ]) {
+    if (!transport.includes(required)) {
+      console.error("Builder contract is stale: check:transport missing " + required);
+      process.exit(1);
+    }
+  }
+'
+
 # Validate the Builder's DEX-verifier assumption against the exact source contract before
 # source tests/Gradle: every mandatory Kotlin filename must declare a matching top-level
 # class/object/interface because verify-riftos-apk.sh derives that DEX descriptor from the file name.
@@ -102,6 +134,8 @@ for native_source in \
   android/app/src/main/cpp/riftcli/rift_cli_core.h \
   android/app/src/main/cpp/riftcli/rift_cli_jni.cpp \
   android/app/src/main/cpp/mc0/codynex_mc0_host.cpp \
+  android/app/src/main/cpp/mc1/codynex_mc1a_host.cpp \
+  android/app/src/main/cpp/mc1/codynex_mc1b_host.cpp \
   android/app/src/main/java/com/riftos/app/RiftCliHost.kt; do
   test -f "$native_source" || {
     echo "Builder contract preflight missing required native source: $native_source" >&2
@@ -118,6 +152,14 @@ grep -Fq 'riftcli' android/app/src/main/cpp/CMakeLists.txt || {
 }
 grep -Fq 'codynex_mc0_host' android/app/src/main/cpp/CMakeLists.txt || {
   echo 'Builder contract is stale: CMake must build libcodynex_mc0_host for RiftBuild MC0 proof packaging.' >&2
+  exit 1
+}
+grep -Fq 'codynex_mc1a_host' android/app/src/main/cpp/CMakeLists.txt || {
+  echo 'Builder contract is stale: CMake must build libcodynex_mc1a_host for RiftBuild MC1-A proof packaging.' >&2
+  exit 1
+}
+grep -Fq 'codynex_mc1b_host' android/app/src/main/cpp/CMakeLists.txt || {
+  echo 'Builder contract is stale: CMake must build libcodynex_mc1b_host for RiftBuild MC1-B proof packaging.' >&2
   exit 1
 }
 
