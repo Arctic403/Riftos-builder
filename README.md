@@ -8,10 +8,10 @@ publishes `RiftOS-Android-debug.apk` to a private RiftOS prerelease.
 
 Builds remain `workflow_dispatch` only. The builder does not duplicate RiftOS product tests;
 it runs the validation suite owned by the exact RiftOS source commit and adds artifact-level
-checks that only the builder can perform. The workflow uses current Node-24-capable GitHub
-Actions (`actions/checkout@v7`, `actions/setup-java@v5`, `gradle/actions/setup-gradle@v6`); the
-Gradle action uses its open-source `basic` cache provider so this maintenance update does not
-change the builder's trust boundary.
+checks that only the builder can perform. The workflow uses Node 24 through `actions/setup-node@v4` and current build actions
+(`actions/checkout@v7`, `actions/setup-java@v5`, `gradle/actions/setup-gradle@v6`); the Gradle
+action uses its open-source `basic` cache provider so this maintenance update does not change
+the builder's trust boundary.
 
 ## Build gates
 
@@ -25,9 +25,9 @@ A build must pass all of these stages before publication:
 6. Compile/package the Android release APK with Gradle.
 7. Align and sign the APK.
 8. Verify zip alignment and the APK signature/certificate.
-9. Run `scripts/verify-riftos-apk.sh` against the **final signed APK**. The final smoke reads package identity with AAPT2 `packagename`, reads minSdk/targetSdk from the compiled `AndroidManifest.xml` via AAPT2 `xmltree` while accepting AAPT2's decimal or typed-hex rendering of the same numeric value, verifies non-debuggable release state, rejects duplicate/unsafe ZIP entries, leaked source/VCS/keystore material, retired native class descriptors, stale OS web assets, missing mandatory native classes/provenance, and byte-mismatched runtime assets. Native RiftCLI Bootstrap-0 additionally requires `lib/arm64-v8a/libriftcli.so` and `lib/armeabi-v7a/libriftcli.so` and forbids x86/x86_64 copies.
+9. Run `scripts/verify-riftos-apk.sh` against the **final signed APK**. The final smoke reads package identity with AAPT2 `packagename`, reads minSdk/targetSdk from the compiled `AndroidManifest.xml` via AAPT2 `xmltree` while accepting AAPT2's decimal or typed-hex rendering of the same numeric value, verifies non-debuggable release state, rejects duplicate/unsafe ZIP entries, leaked source/VCS/keystore material, retired native class descriptors, stale OS web assets, missing mandatory native classes/provenance, and byte-mismatched runtime assets. Builder preflight also requires both native CMake targets (`riftcli` and `codynex_mc0_host`) and their source files before source tests or Gradle compilation begin. Native RiftCLI Bootstrap-0 additionally requires the exact ZIP entries `lib/arm64-v8a/libriftcli.so` and `lib/armeabi-v7a/libriftcli.so` and forbids x86/x86_64 copies. The verifier's `require_entry` helper is literal/exact (not regex). The final APK must also contain `lib/armeabi-v7a/libcodynex_mc0_host.so`, because native RiftBuild reads that exact ARM32 host from RiftOS's own APK when preparing the Codynex MC0 proof package.
 
-The APK smoke gate verifies the Android payload exists and that the only OS-execution files under `assets/www/` are the exact byte-for-byte `src/riftpp-core.js` and `src/riftvm.js` headless assets. Any returned `index.html`, `styles.css`, `workspace-live/`, PWA/service-worker file, or other unexpected `assets/www/` content is a failure. Explicit runtime assets under `android/app/src/main/assets/` (including RiftBrowser adapters) are verified separately byte-for-byte.
+The APK smoke gate verifies the Android payload exists and that the only OS-execution files under `assets/www/` are the exact byte-for-byte `src/riftpp-core.js`, `src/riftvm.js`, and `src/semnexis-bootstrap.js` headless assets. Any returned `index.html`, `styles.css`, `workspace-live/`, PWA/service-worker file, or other unexpected `assets/www/` content is a failure. Explicit runtime assets under `android/app/src/main/assets/` (including RiftBrowser adapters) are verified separately byte-for-byte.
 
 Because important RiftOS fixes can live entirely in Kotlin or C++, the final signed-APK gate derives
 its required top-level Kotlin class descriptors from RiftOS's own

@@ -169,10 +169,13 @@ done
 
 # RiftCLI is a real native C++ subsystem. Bootstrap-0 is not proven unless the final
 # signed APK contains the exact native library for both supported ARM ABIs.
-require_entry '^lib/arm64-v8a/libriftcli\.so$'
-require_entry '^lib/armeabi-v7a/libriftcli\.so$'
+require_entry "lib/arm64-v8a/libriftcli.so"
+require_entry "lib/armeabi-v7a/libriftcli.so"
 forbid_entry '^lib/x86/libriftcli\.so$'
 forbid_entry '^lib/x86_64/libriftcli\.so$'
+
+# RiftBuild's Codynex MC0 proof packager reads this ARM32 host from RiftOS's own APK.
+require_entry "lib/armeabi-v7a/libcodynex_mc0_host.so"
 
 # RiftDevLabLocalAgent is a private top-level object inside RiftVortexLocalAgent.kt, so it is not
 # represented by a standalone Gradle source filename but is still a required structured-agent

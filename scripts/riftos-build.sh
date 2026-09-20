@@ -95,15 +95,16 @@ for source_rel in "${required_native_sources[@]}"; do
   fi
 done
 
-# Native RiftCLI Bootstrap-0 must remain a real C++ build, not a Kotlin-only placeholder.
+# Required native subsystems must remain real C++ builds, not Kotlin-only placeholders.
 for native_source in \
   android/app/src/main/cpp/CMakeLists.txt \
   android/app/src/main/cpp/riftcli/rift_cli_core.cpp \
   android/app/src/main/cpp/riftcli/rift_cli_core.h \
   android/app/src/main/cpp/riftcli/rift_cli_jni.cpp \
+  android/app/src/main/cpp/mc0/codynex_mc0_host.cpp \
   android/app/src/main/java/com/riftos/app/RiftCliHost.kt; do
   test -f "$native_source" || {
-    echo "Builder contract preflight missing RiftCLI native source: $native_source" >&2
+    echo "Builder contract preflight missing required native source: $native_source" >&2
     exit 1
   }
 done
@@ -113,6 +114,10 @@ grep -Fq 'add_library(' android/app/src/main/cpp/CMakeLists.txt || {
 }
 grep -Fq 'riftcli' android/app/src/main/cpp/CMakeLists.txt || {
   echo 'Builder contract is stale: RiftCLI CMake must build libriftcli.' >&2
+  exit 1
+}
+grep -Fq 'codynex_mc0_host' android/app/src/main/cpp/CMakeLists.txt || {
+  echo 'Builder contract is stale: CMake must build libcodynex_mc0_host for RiftBuild MC0 proof packaging.' >&2
   exit 1
 }
 
