@@ -167,11 +167,17 @@ for source_rel in "${required_native_sources[@]}"; do
   require_dex_string "$descriptor" "required native class $descriptor from $source_rel"
 done
 
+# RiftCLI is a real native C++ subsystem. Bootstrap-0 is not proven unless the final
+# signed APK contains the exact native library for both supported ARM ABIs.
+require_entry '^lib/arm64-v8a/libriftcli\.so$'
+require_entry '^lib/armeabi-v7a/libriftcli\.so$'
+forbid_entry '^lib/x86/libriftcli\.so$'
+forbid_entry '^lib/x86_64/libriftcli\.so$'
+
 # RiftDevLabLocalAgent is a private top-level object inside RiftVortexLocalAgent.kt, so it is not
 # represented by a standalone Gradle source filename but is still a required structured-agent
 # provenance marker in the final signed APK.
 require_dex_string 'Lcom/riftos/app/RiftDevLabLocalAgent;' 'structured Dev Lab local agent'
-
 # Retired native migration classes must not survive in final DEX through stale build cache/output.
 for retired in \
   RiftShellBridge RiftSystemDump AndroidWebViewBrowserEngine RiftNativeAppHost \

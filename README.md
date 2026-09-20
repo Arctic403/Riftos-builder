@@ -19,18 +19,18 @@ A build must pass all of these stages before publication:
 
 1. Resolve the requested RiftOS ref to an exact commit SHA and check out Builder + RiftOS.
 2. Syntax-check both Builder shell scripts with `bash -n`, verify RiftOS `HEAD` matches the resolved SHA, and require the checked-out source tree to remain byte-clean (no tracked drift or untracked files).
-3. Preflight Builder assumptions against RiftOS Gradle: root KGP `2.4.10` paired with `quickjs-kt 1.0.14`, namespace/application ID `com.riftos.app`, compile/target Android 36, minSdk 26, Java 17, release minification disabled, `kotlinx-coroutines-android 1.11.0`, and every mandatory Kotlin filename declaring a matching top-level class/object/interface. Any drift fails explicitly as a stale Builder contract before source tests/Gradle.
+3. Preflight Builder assumptions against RiftOS Gradle: root KGP `2.4.10` paired with `quickjs-kt 1.0.14`, namespace/application ID `com.riftos.app`, compile/target Android 36, minSdk 26, Java 17, release minification disabled, `kotlinx-coroutines-android 1.11.0`, pinned NDK `28.2.13676358`, CMake `3.22.1`, ARM64 + ARM32 ABI filters, and every mandatory Kotlin filename declaring a matching top-level class/object/interface. Any drift fails explicitly as a stale Builder contract before source tests/Gradle.
 4. Run RiftOS `npm run check` so its wiring, transport, docs, protocol, native/live and explicitly retained-reference regressions gate the APK.
 5. Run the dedicated Gradle validation tasks (`verifyRiftOsAndroidSources` and `validateRiftBrowserWebViewOwnership`) and capture them separately in `gradle-validation.log`.
 6. Compile/package the Android release APK with Gradle.
 7. Align and sign the APK.
 8. Verify zip alignment and the APK signature/certificate.
-9. Run `scripts/verify-riftos-apk.sh` against the **final signed APK**. The final smoke reads package identity with AAPT2 `packagename`, reads minSdk/targetSdk from the compiled `AndroidManifest.xml` via AAPT2 `xmltree` while accepting AAPT2's decimal or typed-hex rendering of the same numeric value, verifies non-debuggable release state, rejects duplicate/unsafe ZIP entries, leaked source/VCS/keystore material, retired native class descriptors, stale OS web assets, missing mandatory native classes/provenance, and byte-mismatched runtime assets.
+9. Run `scripts/verify-riftos-apk.sh` against the **final signed APK**. The final smoke reads package identity with AAPT2 `packagename`, reads minSdk/targetSdk from the compiled `AndroidManifest.xml` via AAPT2 `xmltree` while accepting AAPT2's decimal or typed-hex rendering of the same numeric value, verifies non-debuggable release state, rejects duplicate/unsafe ZIP entries, leaked source/VCS/keystore material, retired native class descriptors, stale OS web assets, missing mandatory native classes/provenance, and byte-mismatched runtime assets. Native RiftCLI Bootstrap-0 additionally requires `lib/arm64-v8a/libriftcli.so` and `lib/armeabi-v7a/libriftcli.so` and forbids x86/x86_64 copies.
 
 The APK smoke gate verifies the Android payload exists and that the only OS-execution files under `assets/www/` are the exact byte-for-byte `src/riftpp-core.js` and `src/riftvm.js` headless assets. Any returned `index.html`, `styles.css`, `workspace-live/`, PWA/service-worker file, or other unexpected `assets/www/` content is a failure. Explicit runtime assets under `android/app/src/main/assets/` (including RiftBrowser adapters) are verified separately byte-for-byte.
 
-Because important RiftOS fixes can live entirely in Kotlin, the final signed-APK gate derives
-its required top-level native class descriptors from RiftOS's own
+Because important RiftOS fixes can live entirely in Kotlin or C++, the final signed-APK gate derives
+its required top-level Kotlin class descriptors from RiftOS's own
 `android/app/build.gradle.kts` `verifyRiftOsAndroidSources` contract and requires every one in
 the packaged DEX files. That now automatically covers current native surfaces such as
 `MainActivity`, `RiftBrowserAppHost`, `RiftVolumePaths` and every other file in the current mandatory native snapshot without a second Builder list drifting behind the source contract. The private top-level

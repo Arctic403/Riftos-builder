@@ -69,6 +69,10 @@ for required_gradle_contract in \
   'targetSdk = 36' \
   'JavaVersion.VERSION_17' \
   'getByName("release") { isMinifyEnabled = false }' \
+  'ndkVersion = "28.2.13676358"' \
+  'abiFilters += listOf("arm64-v8a", "armeabi-v7a")' \
+  'path = file("src/main/cpp/CMakeLists.txt")' \
+  'version = "3.22.1"' \
   'io.github.dokar3:quickjs-kt:1.0.14' \
   'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0'; do
   grep -Fq "$required_gradle_contract" "$gradle_contract" || {
@@ -90,6 +94,27 @@ for source_rel in "${required_native_sources[@]}"; do
     exit 1
   fi
 done
+
+# Native RiftCLI Bootstrap-0 must remain a real C++ build, not a Kotlin-only placeholder.
+for native_source in \
+  android/app/src/main/cpp/CMakeLists.txt \
+  android/app/src/main/cpp/riftcli/rift_cli_core.cpp \
+  android/app/src/main/cpp/riftcli/rift_cli_core.h \
+  android/app/src/main/cpp/riftcli/rift_cli_jni.cpp \
+  android/app/src/main/java/com/riftos/app/RiftCliHost.kt; do
+  test -f "$native_source" || {
+    echo "Builder contract preflight missing RiftCLI native source: $native_source" >&2
+    exit 1
+  }
+done
+grep -Fq 'add_library(' android/app/src/main/cpp/CMakeLists.txt || {
+  echo 'Builder contract is stale: RiftCLI CMake must declare a native library.' >&2
+  exit 1
+}
+grep -Fq 'riftcli' android/app/src/main/cpp/CMakeLists.txt || {
+  echo 'Builder contract is stale: RiftCLI CMake must build libriftcli.' >&2
+  exit 1
+}
 
 : "${RIFT_SIGN_STORE:?Release signing identity required}"
 : "${RIFT_SIGN_ALIAS:?Release key alias required}"
