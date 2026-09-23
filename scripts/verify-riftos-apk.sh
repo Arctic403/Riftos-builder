@@ -167,6 +167,26 @@ for source_rel in "${required_native_sources[@]}"; do
   require_dex_string "$descriptor" "required native class $descriptor from $source_rel"
 done
 
+# N1.8.2 propagation final-artifact proof: require both the lane schema and the
+# false-reference hardening marker so the signed DEX cannot satisfy this gate with the older
+# propagation implementation.
+for marker in \
+  'rift-semantic-propagation-v1' \
+  'ignoredNameMatches'; do
+  require_dex_string "$marker" "RiftOS N1.8.2 propagation marker $marker"
+done
+
+# RiftLLM V2 final-artifact proof: class descriptors above prove the mandatory sources compiled,
+# while these stable strings prove the production-data candidate routes/qualification contracts
+# survived into the signed runtime DEX.
+for marker in \
+  'rift.train-data-v2-status/1' \
+  'rift-b2-bottomk-v1' \
+  'rift-b2-bottomk-threshold-qualification-v1' \
+  'train-v2-adversarial-lab'; do
+  require_dex_string "$marker" "RiftLLM V2 runtime marker $marker"
+done
+
 # N1.5 final-artifact proof: the final signed DEX must contain the passive event/relay
 # diagnostics that distinguish local event creation, device WSS queueing, replay and relay ACK.
 for marker in   'riftcli.event-bus'   'mcp.relay'   'event.created'   'cli.event.send'   'relay.ready'   'cli.replay.request'   'cli.replay.send'   'cli.ack'; do
