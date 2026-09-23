@@ -176,6 +176,16 @@ for marker in \
   require_dex_string "$marker" "RiftOS N1.8.2 propagation marker $marker"
 done
 
+# N1.8.3 contracts final-artifact proof: the class descriptor is already derived from the
+# RiftOS Gradle source contract above; require stable schema/rule strings too so an older or
+# hollow contracts implementation cannot satisfy the final signed-APK gate.
+for marker in \
+  'rift-cross-boundary-contracts-v1' \
+  'async-timeout-order-mismatch' \
+  'jni-managed-declaration-missing'; do
+  require_dex_string "$marker" "RiftOS N1.8.3 contracts marker $marker"
+done
+
 # RiftLLM V2 final-artifact proof: class descriptors above prove the mandatory sources compiled,
 # while these stable strings prove the production-data candidate routes/qualification contracts
 # survived into the signed runtime DEX.
