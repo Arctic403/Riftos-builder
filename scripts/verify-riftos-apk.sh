@@ -211,7 +211,8 @@ for marker in \
   'heuristicTestsCanSatisfyAffectedTest' \
   'affected-test-evidence-missing' \
   'proofsSha256' \
-  'executesVerification'; do
+  'executesVerification' \
+  'project-local-plan-v1'; do
   require_dex_string "$marker" "RiftOS N1.8.5 proofs marker $marker"
 done
 
