@@ -203,6 +203,18 @@ for marker in \
   require_dex_string "$marker" "RiftOS N1.8.4 claims marker $marker"
 done
 
+# N1.8.5 proof-planner final-artifact proof: require stable schema/substitution/evidence markers
+# so the signed DEX proves the focused-verification policy survived compilation.
+for marker in \
+  'rift-proof-obligations-v1' \
+  'generalSuiteCanSubstituteForAffectedTest' \
+  'heuristicTestsCanSatisfyAffectedTest' \
+  'affected-test-evidence-missing' \
+  'proofsSha256' \
+  'executesVerification'; do
+  require_dex_string "$marker" "RiftOS N1.8.5 proofs marker $marker"
+done
+
 # RiftLLM V2 final-artifact proof: class descriptors above prove the mandatory sources compiled,
 # while these stable strings prove the production-data candidate routes/qualification contracts
 # survived into the signed runtime DEX.
