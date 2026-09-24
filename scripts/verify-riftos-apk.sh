@@ -182,7 +182,8 @@ done
 for marker in \
   'rift-cross-boundary-contracts-v1' \
   'async-timeout-order-mismatch' \
-  'jni-managed-declaration-missing'; do
+  'jni-managed-declaration-missing' \
+  'partialFindingsSuppressed'; do
   require_dex_string "$marker" "RiftOS N1.8.3 contracts marker $marker"
 done
 
