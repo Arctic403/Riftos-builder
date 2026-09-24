@@ -195,7 +195,11 @@ for marker in \
   'source-build-runtime-over-documentation' \
   'documentation-authority-policy-missing' \
   'documentation-promotion-run-stale' \
-  'freeFormProseInference'; do
+  'freeFormProseInference' \
+  'observer/phase-authority.json' \
+  'rift-observer-phase-authority-v1' \
+  'claims-phase-authority-missing' \
+  'claims-phase-authority-invalid'; do
   require_dex_string "$marker" "RiftOS N1.8.4 claims marker $marker"
 done
 
