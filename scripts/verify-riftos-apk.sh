@@ -223,7 +223,9 @@ for marker in \
   'trackingPolicyVersion' \
   'candidateSessionsByPath' \
   'candidateSessionEvidenceComplete' \
-  'workspace semantic impact'; do
+  'workspace semantic impact' \
+  'candidate-projects' \
+  'no-candidate-changes'; do
   require_dex_string "$marker" "RiftOS Workspace Records hardening marker $marker"
 done
 
