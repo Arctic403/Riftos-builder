@@ -82,9 +82,58 @@ node -e '
   }
 ' "$PHASE_AUTHORITY_FILE"
 
+# N2.0 machine contract/phase authority are source, not documentation. Guard the
+# lifecycle, runtime-inactive boundary and frozen component identities independently.
+N2_CONTRACT_FILE="riftmemory/n2-contract-v1.json"
+N2_PHASE_AUTHORITY_FILE="riftmemory/n2-phase-authority.json"
+for required_n2_file in "$N2_CONTRACT_FILE" "$N2_PHASE_AUTHORITY_FILE"; do
+  [ -f "$required_n2_file" ] || {
+    echo "RiftOS N2.0 machine authority missing: $required_n2_file" >&2
+    exit 1
+  }
+  [ "$(wc -c < "$required_n2_file")" -le 65536 ] || {
+    echo "RiftOS N2.0 machine authority exceeds 64 KiB: $required_n2_file" >&2
+    exit 1
+  }
+done
+node -e '
+  const fs = require("node:fs");
+  const contract = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+  const phase = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+  const benchmarkRule = "NO_PERFORMANCE_OR_COMPARATIVE_BENCHMARKS_UNTIL_FULL_RIFTCLI_COMPLETE_AND_LIVE";
+  if (contract?.schema !== "rift-memory-n2-contract-v1" ||
+      contract?.phase !== "N2.0" ||
+      contract?.status !== "source-implemented" ||
+      contract?.promotion !== "pending-builder-install-proof" ||
+      contract?.runtimeActivation !== false ||
+      contract?.globalBenchmarkRule !== benchmarkRule) {
+    console.error("RiftOS N2.0 machine contract lifecycle mismatch");
+    process.exit(1);
+  }
+  if (contract?.terminologySha256 !== "bf18c5f2db272c5a66723879ab021a3ffc42483c4cd4fc6597d10bd96fc949d8" ||
+      contract?.memoryStoreSha256 !== "68c46266e926e546e95543eb7a2092576c91499f810bcc5d483671d706823d16" ||
+      contract?.correctnessCorpusSha256 !== "4ec6cd3e133de7c9a4f5f4d91c48b0873df02fb79a7b19727c96256b6e4687c4" ||
+      contract?.correctnessThresholdsSha256 !== "a6307031907834e0bb4060d24209a98706df4d0bfe39a7936cc5750fb06f6801" ||
+      contract?.contractPayloadSha256 !== "bf70f093f303f745b2e861431f2890be87367160c7cfbbd1c1a22004c49b4bb2") {
+    console.error("RiftOS N2.0 frozen hash mismatch");
+    process.exit(1);
+  }
+  if (phase?.schema !== "rift-memory-n2-phase-authority-v1" ||
+      phase?.programStatus !== "N2.0 SOURCE-IMPLEMENTED / PROMOTION PENDING; N2.1-N2.12 PENDING" ||
+      phase?.runtimeStatus !== "N2 RUNTIME INACTIVE" ||
+      phase?.n18Prerequisite !== "SATISFIED" ||
+      phase?.benchmarkRule !== benchmarkRule ||
+      phase?.phases?.length !== 13 ||
+      phase?.phases?.[0]?.status !== "source-implemented" ||
+      phase?.phases?.slice(1).some(row => row.status !== "pending")) {
+    console.error("RiftOS N2 phase authority lifecycle mismatch");
+    process.exit(1);
+  }
+' "$N2_CONTRACT_FILE" "$N2_PHASE_AUTHORITY_FILE"
+
 # Builder-owned syntax preflight for the source-gate entrypoints. This runs before the
 # source-owned validator so a malformed validator cannot hide its own parse failure.
-for source_gate_script in   scripts/validate-rift-wiring.mjs   scripts/validate-rift-transport.mjs   scripts/validate-rift-docs.mjs   scripts/test-rift-cli-push-channel.mjs   scripts/test-rift-cli-batch-v2.mjs   scripts/test-rift-debug-hub.mjs   scripts/test-rift-propagation-v1.mjs   scripts/test-rift-cross-boundary-contracts-v1.mjs   scripts/test-rift-documentation-claims-v1.mjs   scripts/test-rift-proof-obligations-v1.mjs   scripts/test-rift-observer-adversarial-v1.mjs   scripts/test-riftllm-training-v2.mjs; do
+for source_gate_script in   scripts/validate-rift-wiring.mjs   scripts/validate-rift-transport.mjs   scripts/validate-rift-docs.mjs   scripts/test-rift-cli-push-channel.mjs   scripts/test-rift-cli-batch-v2.mjs   scripts/test-rift-debug-hub.mjs   scripts/test-rift-propagation-v1.mjs   scripts/test-rift-cross-boundary-contracts-v1.mjs   scripts/test-rift-documentation-claims-v1.mjs   scripts/test-rift-proof-obligations-v1.mjs   scripts/test-rift-observer-adversarial-v1.mjs   scripts/test-rift-memory-n2-contract-v1.mjs   scripts/test-riftllm-training-v2.mjs; do
   node --check "$source_gate_script" >>"$LOG_DIR/source-syntax.log" 2>&1 || {
     echo "RiftOS source-gate syntax failed: $source_gate_script" >&2
     exit 1
@@ -111,6 +160,7 @@ node -e '
     "node scripts/test-rift-documentation-claims-v1.mjs",
     "node scripts/test-rift-proof-obligations-v1.mjs",
     "node scripts/test-rift-observer-adversarial-v1.mjs",
+    "node scripts/test-rift-memory-n2-contract-v1.mjs",
     "node scripts/test-riftllm-training-v2.mjs",
   ]) {
     if (!transport.includes(required)) {
