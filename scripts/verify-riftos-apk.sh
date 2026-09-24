@@ -225,7 +225,9 @@ for marker in \
   'candidateSessionEvidenceComplete' \
   'workspace semantic impact' \
   'candidate-projects' \
-  'no-candidate-changes'; do
+  'no-candidate-changes' \
+  'candidateStateSha256' \
+  'evidenceManifestSha256'; do
   require_dex_string "$marker" "RiftOS Workspace Records hardening marker $marker"
 done
 
