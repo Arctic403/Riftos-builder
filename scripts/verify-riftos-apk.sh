@@ -187,6 +187,18 @@ for marker in \
   require_dex_string "$marker" "RiftOS N1.8.3 contracts marker $marker"
 done
 
+# N1.8.4 claims final-artifact proof: class descriptor coverage comes from the Gradle
+# mandatory-source contract; require stable schema/authority/rule markers too so the signed DEX
+# proves the source-of-truth oracle itself survived compilation.
+for marker in \
+  'rift-documentation-claims-v1' \
+  'source-build-runtime-over-documentation' \
+  'documentation-authority-policy-missing' \
+  'documentation-promotion-run-stale' \
+  'freeFormProseInference'; do
+  require_dex_string "$marker" "RiftOS N1.8.4 claims marker $marker"
+done
+
 # RiftLLM V2 final-artifact proof: class descriptors above prove the mandatory sources compiled,
 # while these stable strings prove the production-data candidate routes/qualification contracts
 # survived into the signed runtime DEX.
