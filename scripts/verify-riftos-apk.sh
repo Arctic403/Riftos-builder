@@ -215,6 +215,18 @@ for marker in \
   require_dex_string "$marker" "RiftOS N1.8.5 proofs marker $marker"
 done
 
+# N1.8.5 Workspace Records hardening final-artifact proof: source regressions lock the exact
+# 256-record/60-second/timeout-chain constants; these stable runtime strings prove the new
+# tracking-policy migration and separately persisted active-candidate evidence survived DEX.
+for marker in \
+  'tracking-policy-v2' \
+  'trackingPolicyVersion' \
+  'candidateSessionsByPath' \
+  'candidateSessionEvidenceComplete' \
+  'workspace semantic impact'; do
+  require_dex_string "$marker" "RiftOS Workspace Records hardening marker $marker"
+done
+
 # RiftLLM V2 final-artifact proof: class descriptors above prove the mandatory sources compiled,
 # while these stable strings prove the production-data candidate routes/qualification contracts
 # survived into the signed runtime DEX.
