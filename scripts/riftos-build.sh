@@ -52,6 +52,36 @@ if ! git diff --quiet HEAD -- || [ -n "$(git status --porcelain=v1 --untracked-f
   exit 1
 fi
 
+
+# N1.8.4 machine phase authority is source, not documentation. Guard its basic transport
+# contract independently before source-owned tests execute; the source regression owns the
+# deeper lifecycle/source/run semantics.
+PHASE_AUTHORITY_FILE="observer/phase-authority.json"
+[ -f "$PHASE_AUTHORITY_FILE" ] || {
+  echo "RiftOS N1.8.4 phase authority missing: $PHASE_AUTHORITY_FILE" >&2
+  exit 1
+}
+node -e '
+  const fs = require("node:fs");
+  const p = process.argv[1];
+  const stat = fs.statSync(p);
+  if (stat.size > 64 * 1024) {
+    console.error("RiftOS N1.8.4 phase authority exceeds 64 KiB");
+    process.exit(1);
+  }
+  let value;
+  try {
+    value = JSON.parse(fs.readFileSync(p, "utf8"));
+  } catch (error) {
+    console.error("RiftOS N1.8.4 phase authority is not valid JSON: " + error.message);
+    process.exit(1);
+  }
+  if (value?.schema !== "rift-observer-phase-authority-v1") {
+    console.error("RiftOS N1.8.4 phase authority schema mismatch");
+    process.exit(1);
+  }
+' "$PHASE_AUTHORITY_FILE"
+
 # Builder-owned syntax preflight for the source-gate entrypoints. This runs before the
 # source-owned validator so a malformed validator cannot hide its own parse failure.
 for source_gate_script in   scripts/validate-rift-wiring.mjs   scripts/validate-rift-transport.mjs   scripts/validate-rift-docs.mjs   scripts/test-rift-cli-push-channel.mjs   scripts/test-rift-cli-batch-v2.mjs   scripts/test-rift-debug-hub.mjs   scripts/test-rift-propagation-v1.mjs   scripts/test-rift-cross-boundary-contracts-v1.mjs   scripts/test-rift-documentation-claims-v1.mjs   scripts/test-riftllm-training-v2.mjs; do
