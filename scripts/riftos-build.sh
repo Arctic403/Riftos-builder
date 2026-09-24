@@ -127,7 +127,7 @@ node -e '
     ["N2.10", "N2.11"],
   ];
   if (phase?.schema !== "rift-memory-n2-phase-authority-v1" ||
-      phase?.programStatus !== "N2.0-N2.2 PROMOTED / N2-M1 PROMOTED; N2.3 + N2.4 SOURCE-IMPLEMENTED / N2-M2 PROMOTION PENDING; N2.5-N2.12 PENDING" ||
+      phase?.programStatus !== "N2.0-N2.4 PROMOTED / N2-M1 + N2-M2 PROMOTED; N2.5-N2.12 PENDING" ||
       phase?.runtimeStatus !== "N2 CANONICAL MEMORY RUNTIME INACTIVE; N2-M2 DIAGNOSTIC ONLY" ||
       phase?.n18Prerequisite !== "SATISFIED" ||
       phase?.benchmarkRule !== benchmarkRule ||
@@ -137,10 +137,10 @@ node -e '
       phase?.phases?.[0]?.promotedSourceSha !== "f6bf12b9fb452cc128e9290fd73599297ba134f2" ||
       String(phase?.phases?.[0]?.builderRunNumber) !== "341" ||
       phase?.phases?.slice(1, 3).some(row => row.status !== "promoted" || row.promotedSourceSha !== "694c1e31a6c3f4bd4317edd121208be894be2586" || String(row.builderRunNumber) !== "346") ||
-      phase?.phases?.slice(3, 5).some(row => row.status !== "source-implemented" || row.promotedSourceSha !== null || row.builderRunNumber !== null) ||
+      phase?.phases?.slice(3, 5).some(row => row.status !== "promoted" || row.promotedSourceSha !== "18f1156075e08cb94573a9392031ac64552313f2" || String(row.builderRunNumber) !== "350") ||
       phase?.phases?.slice(5).some(row => row.status !== "pending") ||
       phase?.macroImplementationPlan?.[0]?.status !== "promoted" ||
-      phase?.macroImplementationPlan?.[1]?.status !== "source-implemented/promotion-pending" ||
+      phase?.macroImplementationPlan?.[1]?.status !== "promoted" ||
       phase?.macroImplementationPlan?.slice(2).some(row => row.status !== "pending") ||
       JSON.stringify(phase?.macroImplementationPlan?.map(row => row.phases)) !== JSON.stringify(expectedMacroPhases) ||
       !String(phase?.macroPlanRule || "").includes("execution groupings only") ||
