@@ -118,15 +118,29 @@ node -e '
     console.error("RiftOS N2.0 frozen hash mismatch");
     process.exit(1);
   }
+  const expectedMacroPhases = [
+    ["N2.1", "N2.2"],
+    ["N2.3", "N2.4"],
+    ["N2.5", "N2.6"],
+    ["N2.7", "N2.8"],
+    ["N2.9"],
+    ["N2.10", "N2.11"],
+  ];
   if (phase?.schema !== "rift-memory-n2-phase-authority-v1" ||
-      phase?.programStatus !== "N2.0 SOURCE-IMPLEMENTED / PROMOTION PENDING; N2.1-N2.12 PENDING" ||
+      phase?.programStatus !== "N2.0 PROMOTED; N2.1-N2.12 PENDING" ||
       phase?.runtimeStatus !== "N2 RUNTIME INACTIVE" ||
       phase?.n18Prerequisite !== "SATISFIED" ||
       phase?.benchmarkRule !== benchmarkRule ||
+      phase?.contractLifecycleSemantics !== "immutable-N2.0-freeze-snapshot; current lifecycle is authoritative only in this phase-authority file" ||
       phase?.phases?.length !== 13 ||
-      phase?.phases?.[0]?.status !== "source-implemented" ||
-      phase?.phases?.slice(1).some(row => row.status !== "pending")) {
-    console.error("RiftOS N2 phase authority lifecycle mismatch");
+      phase?.phases?.[0]?.status !== "promoted" ||
+      phase?.phases?.[0]?.promotedSourceSha !== "f6bf12b9fb452cc128e9290fd73599297ba134f2" ||
+      String(phase?.phases?.[0]?.builderRunNumber) !== "341" ||
+      phase?.phases?.slice(1).some(row => row.status !== "pending") ||
+      JSON.stringify(phase?.macroImplementationPlan?.map(row => row.phases)) !== JSON.stringify(expectedMacroPhases) ||
+      !String(phase?.macroPlanRule || "").includes("execution groupings only") ||
+      !String(phase?.macroPlanRule || "").includes("N2.12 remains a separate final correctness/adversarial promotion gate")) {
+    console.error("RiftOS N2 phase authority lifecycle/macro-plan mismatch");
     process.exit(1);
   }
 ' "$N2_CONTRACT_FILE" "$N2_PHASE_AUTHORITY_FILE"
