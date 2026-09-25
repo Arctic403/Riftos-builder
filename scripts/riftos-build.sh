@@ -127,8 +127,8 @@ node -e '
     ["N2.10", "N2.11"],
   ];
   if (phase?.schema !== "rift-memory-n2-phase-authority-v1" ||
-      phase?.programStatus !== "N2.0-N2.8 PROMOTED / N2-M1 + N2-M2 + N2-M3 + N2-M4 PROMOTED; N2.9-N2.12 PENDING" ||
-      phase?.runtimeStatus !== "N2 CANONICAL MEMORY RUNTIME INACTIVE; N2-M1 + N2-M2 + N2-M3 + N2-M4 PROMOTED DIAGNOSTICS" ||
+      phase?.programStatus !== "N2.0-N2.8 PROMOTED / N2-M1 + N2-M2 + N2-M3 + N2-M4 PROMOTED; N2.9 SOURCE IMPLEMENTED / N2-M5 SOURCE IMPLEMENTED; N2.10-N2.12 PENDING" ||
+      phase?.runtimeStatus !== "N2 CANONICAL MEMORY RUNTIME INACTIVE; N2-M1 + N2-M2 + N2-M3 + N2-M4 PROMOTED DIAGNOSTICS; N2-M5 SOURCE-IMPLEMENTED DIAGNOSTIC ONLY" ||
       phase?.n18Prerequisite !== "SATISFIED" ||
       phase?.benchmarkRule !== benchmarkRule ||
       phase?.contractLifecycleSemantics !== "immutable-N2.0-freeze-snapshot; current lifecycle is authoritative only in this phase-authority file" ||
@@ -140,12 +140,16 @@ node -e '
       phase?.phases?.slice(3, 5).some(row => row.status !== "promoted" || row.promotedSourceSha !== "18f1156075e08cb94573a9392031ac64552313f2" || String(row.builderRunNumber) !== "350") ||
       phase?.phases?.slice(5, 7).some(row => row.status !== "promoted" || row.promotedSourceSha !== "62382a94f50dd6052e1754c1496da2a0f794c0af" || String(row.builderRunNumber) !== "355") ||
       phase?.phases?.slice(7, 9).some(row => row.status !== "promoted" || row.promotedSourceSha !== "d39960832a701311461058670b5b93597ae612c9" || String(row.builderRunNumber) !== "368") ||
-      phase?.phases?.slice(9).some(row => row.status !== "pending" || row.promotedSourceSha !== null || row.builderRunNumber !== null) ||
+      phase?.phases?.[9]?.status !== "source-implemented" ||
+      phase?.phases?.[9]?.promotedSourceSha !== null ||
+      phase?.phases?.[9]?.builderRunNumber !== null ||
+      phase?.phases?.slice(10).some(row => row.status !== "pending" || row.promotedSourceSha !== null || row.builderRunNumber !== null) ||
       phase?.macroImplementationPlan?.[0]?.status !== "promoted" ||
       phase?.macroImplementationPlan?.[1]?.status !== "promoted" ||
       phase?.macroImplementationPlan?.[2]?.status !== "promoted" ||
       phase?.macroImplementationPlan?.[3]?.status !== "promoted" ||
-      phase?.macroImplementationPlan?.slice(4).some(row => row.status !== "pending") ||
+      phase?.macroImplementationPlan?.[4]?.status !== "source-implemented" ||
+      phase?.macroImplementationPlan?.[5]?.status !== "pending" ||
       JSON.stringify(phase?.macroImplementationPlan?.map(row => row.phases)) !== JSON.stringify(expectedMacroPhases) ||
       !String(phase?.macroPlanRule || "").includes("execution groupings only") ||
       !String(phase?.macroPlanRule || "").includes("N2.12 remains a separate final correctness/adversarial promotion gate")) {
@@ -156,7 +160,7 @@ node -e '
 
 # Builder-owned syntax preflight for the source-gate entrypoints. This runs before the
 # source-owned validator so a malformed validator cannot hide its own parse failure.
-for source_gate_script in   scripts/validate-rift-wiring.mjs   scripts/validate-rift-transport.mjs   scripts/validate-rift-docs.mjs   scripts/test-rift-cli-push-channel.mjs   scripts/test-rift-cli-batch-v2.mjs   scripts/test-rift-debug-hub.mjs   scripts/test-rift-integrity-v1.mjs   scripts/test-rift-propagation-v1.mjs   scripts/test-rift-cross-boundary-contracts-v1.mjs   scripts/test-rift-documentation-claims-v1.mjs   scripts/test-rift-proof-obligations-v1.mjs   scripts/test-rift-observer-adversarial-v1.mjs   scripts/test-rift-semantic-impact-v1.mjs   scripts/test-rift-memory-n2-contract-v1.mjs   scripts/test-rift-memory-n2-m1-v1.mjs   scripts/test-rift-memory-n2-m2-v1.mjs   scripts/test-rift-memory-n2-m3-v1.mjs   scripts/test-rift-memory-n2-m4-v1.mjs   scripts/test-riftllm-training-v2.mjs; do
+for source_gate_script in   scripts/validate-rift-wiring.mjs   scripts/validate-rift-transport.mjs   scripts/validate-rift-docs.mjs   scripts/test-rift-cli-push-channel.mjs   scripts/test-rift-cli-batch-v2.mjs   scripts/test-rift-debug-hub.mjs   scripts/test-rift-integrity-v1.mjs   scripts/test-rift-propagation-v1.mjs   scripts/test-rift-cross-boundary-contracts-v1.mjs   scripts/test-rift-documentation-claims-v1.mjs   scripts/test-rift-proof-obligations-v1.mjs   scripts/test-rift-observer-adversarial-v1.mjs   scripts/test-rift-semantic-impact-v1.mjs   scripts/test-rift-memory-n2-contract-v1.mjs   scripts/test-rift-memory-n2-m1-v1.mjs   scripts/test-rift-memory-n2-m2-v1.mjs   scripts/test-rift-memory-n2-m3-v1.mjs   scripts/test-rift-memory-n2-m4-v1.mjs   scripts/test-rift-memory-n2-m5-v1.mjs   scripts/test-riftllm-training-v2.mjs; do
   node --check "$source_gate_script" >>"$LOG_DIR/source-syntax.log" 2>&1 || {
     echo "RiftOS source-gate syntax failed: $source_gate_script" >&2
     exit 1
@@ -190,6 +194,7 @@ node -e '
     "node scripts/test-rift-memory-n2-m2-v1.mjs",
     "node scripts/test-rift-memory-n2-m3-v1.mjs",
     "node scripts/test-rift-memory-n2-m4-v1.mjs",
+    "node scripts/test-rift-memory-n2-m5-v1.mjs",
     "node scripts/test-riftllm-training-v2.mjs",
   ]) {
     if (!transport.includes(required)) {
