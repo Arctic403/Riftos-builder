@@ -127,8 +127,8 @@ node -e '
     ["N2.10", "N2.11"],
   ];
   if (phase?.schema !== "rift-memory-n2-phase-authority-v1" ||
-      phase?.programStatus !== "N2.0-N2.11 PROMOTED / N2-M1 + N2-M2 + N2-M3 + N2-M4 + N2-M5 + N2-M6 PROMOTED; N2.12 SOURCE IMPLEMENTED / FINAL CORRECTNESS GATE PROMOTION PENDING" ||
-      phase?.runtimeStatus !== "N2 CANONICAL MEMORY RUNTIME INACTIVE; N2-M1 + N2-M2 + N2-M3 + N2-M4 + N2-M5 + N2-M6 PROMOTED DIAGNOSTICS; N2.12 SOURCE-IMPLEMENTED FINAL DIAGNOSTIC ONLY" ||
+      phase?.programStatus !== "N2.0-N2.12 PROMOTED / N2-M1 + N2-M2 + N2-M3 + N2-M4 + N2-M5 + N2-M6 PROMOTED; N2 COMPLETE" ||
+      phase?.runtimeStatus !== "N2 CANONICAL MEMORY RUNTIME INACTIVE; N2-M1 + N2-M2 + N2-M3 + N2-M4 + N2-M5 + N2-M6 PROMOTED DIAGNOSTICS; N2.12 FINAL CORRECTNESS GATE PROMOTED" ||
       phase?.n18Prerequisite !== "SATISFIED" ||
       phase?.benchmarkRule !== benchmarkRule ||
       phase?.contractLifecycleSemantics !== "immutable-N2.0-freeze-snapshot; current lifecycle is authoritative only in this phase-authority file" ||
@@ -144,9 +144,9 @@ node -e '
       phase?.phases?.[9]?.promotedSourceSha !== "d650e57dff09a878f02edfef7e175ed02d42f750" ||
       String(phase?.phases?.[9]?.builderRunNumber) !== "370" ||
       phase?.phases?.slice(10, 12).some(row => row.status !== "promoted" || row.promotedSourceSha !== "921d32ff295921be8783ca4ce8395ba5ee029553" || String(row.builderRunNumber) !== "376") ||
-      phase?.phases?.[12]?.status !== "source-implemented" ||
-      phase?.phases?.[12]?.promotedSourceSha !== null ||
-      phase?.phases?.[12]?.builderRunNumber !== null ||
+      phase?.phases?.[12]?.status !== "promoted" ||
+      phase?.phases?.[12]?.promotedSourceSha !== "9e75b0f76fd61ba80ca4c241a41532253bdb4c47" ||
+      String(phase?.phases?.[12]?.builderRunNumber) !== "378" ||
       phase?.macroImplementationPlan?.[0]?.status !== "promoted" ||
       phase?.macroImplementationPlan?.[1]?.status !== "promoted" ||
       phase?.macroImplementationPlan?.[2]?.status !== "promoted" ||
