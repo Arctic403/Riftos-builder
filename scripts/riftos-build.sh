@@ -127,8 +127,8 @@ node -e '
     ["N2.10", "N2.11"],
   ];
   if (phase?.schema !== "rift-memory-n2-phase-authority-v1" ||
-      phase?.programStatus !== "N2.0-N2.11 PROMOTED / N2-M1 + N2-M2 + N2-M3 + N2-M4 + N2-M5 + N2-M6 PROMOTED; N2.12 PENDING" ||
-      phase?.runtimeStatus !== "N2 CANONICAL MEMORY RUNTIME INACTIVE; N2-M1 + N2-M2 + N2-M3 + N2-M4 + N2-M5 + N2-M6 PROMOTED DIAGNOSTICS" ||
+      phase?.programStatus !== "N2.0-N2.11 PROMOTED / N2-M1 + N2-M2 + N2-M3 + N2-M4 + N2-M5 + N2-M6 PROMOTED; N2.12 SOURCE IMPLEMENTED / FINAL CORRECTNESS GATE PROMOTION PENDING" ||
+      phase?.runtimeStatus !== "N2 CANONICAL MEMORY RUNTIME INACTIVE; N2-M1 + N2-M2 + N2-M3 + N2-M4 + N2-M5 + N2-M6 PROMOTED DIAGNOSTICS; N2.12 SOURCE-IMPLEMENTED FINAL DIAGNOSTIC ONLY" ||
       phase?.n18Prerequisite !== "SATISFIED" ||
       phase?.benchmarkRule !== benchmarkRule ||
       phase?.contractLifecycleSemantics !== "immutable-N2.0-freeze-snapshot; current lifecycle is authoritative only in this phase-authority file" ||
@@ -144,7 +144,7 @@ node -e '
       phase?.phases?.[9]?.promotedSourceSha !== "d650e57dff09a878f02edfef7e175ed02d42f750" ||
       String(phase?.phases?.[9]?.builderRunNumber) !== "370" ||
       phase?.phases?.slice(10, 12).some(row => row.status !== "promoted" || row.promotedSourceSha !== "921d32ff295921be8783ca4ce8395ba5ee029553" || String(row.builderRunNumber) !== "376") ||
-      phase?.phases?.[12]?.status !== "pending" ||
+      phase?.phases?.[12]?.status !== "source-implemented" ||
       phase?.phases?.[12]?.promotedSourceSha !== null ||
       phase?.phases?.[12]?.builderRunNumber !== null ||
       phase?.macroImplementationPlan?.[0]?.status !== "promoted" ||
@@ -163,7 +163,7 @@ node -e '
 
 # Builder-owned syntax preflight for the source-gate entrypoints. This runs before the
 # source-owned validator so a malformed validator cannot hide its own parse failure.
-for source_gate_script in   scripts/validate-rift-wiring.mjs   scripts/validate-rift-transport.mjs   scripts/validate-rift-docs.mjs   scripts/test-rift-cli-push-channel.mjs   scripts/test-rift-cli-batch-v2.mjs   scripts/test-rift-debug-hub.mjs   scripts/test-rift-integrity-v1.mjs   scripts/test-rift-propagation-v1.mjs   scripts/test-rift-cross-boundary-contracts-v1.mjs   scripts/test-rift-documentation-claims-v1.mjs   scripts/test-rift-proof-obligations-v1.mjs   scripts/test-rift-observer-adversarial-v1.mjs   scripts/test-rift-semantic-impact-v1.mjs   scripts/test-rift-memory-n2-contract-v1.mjs   scripts/test-rift-memory-n2-m1-v1.mjs   scripts/test-rift-memory-n2-m2-v1.mjs   scripts/test-rift-memory-n2-m3-v1.mjs   scripts/test-rift-memory-n2-m4-v1.mjs   scripts/test-rift-memory-n2-m5-v1.mjs   scripts/test-rift-memory-n2-m6-v1.mjs   scripts/test-riftllm-training-v2.mjs; do
+for source_gate_script in   scripts/validate-rift-wiring.mjs   scripts/validate-rift-transport.mjs   scripts/validate-rift-docs.mjs   scripts/test-rift-cli-push-channel.mjs   scripts/test-rift-cli-batch-v2.mjs   scripts/test-rift-debug-hub.mjs   scripts/test-rift-integrity-v1.mjs   scripts/test-rift-propagation-v1.mjs   scripts/test-rift-cross-boundary-contracts-v1.mjs   scripts/test-rift-documentation-claims-v1.mjs   scripts/test-rift-proof-obligations-v1.mjs   scripts/test-rift-observer-adversarial-v1.mjs   scripts/test-rift-semantic-impact-v1.mjs   scripts/test-rift-memory-n2-contract-v1.mjs   scripts/test-rift-memory-n2-m1-v1.mjs   scripts/test-rift-memory-n2-m2-v1.mjs   scripts/test-rift-memory-n2-m3-v1.mjs   scripts/test-rift-memory-n2-m4-v1.mjs   scripts/test-rift-memory-n2-m5-v1.mjs   scripts/test-rift-memory-n2-m6-v1.mjs   scripts/test-rift-memory-n2-final-v1.mjs   scripts/test-riftllm-training-v2.mjs; do
   node --check "$source_gate_script" >>"$LOG_DIR/source-syntax.log" 2>&1 || {
     echo "RiftOS source-gate syntax failed: $source_gate_script" >&2
     exit 1
@@ -199,6 +199,7 @@ node -e '
     "node scripts/test-rift-memory-n2-m4-v1.mjs",
     "node scripts/test-rift-memory-n2-m5-v1.mjs",
     "node scripts/test-rift-memory-n2-m6-v1.mjs",
+    "node scripts/test-rift-memory-n2-final-v1.mjs",
     "node scripts/test-riftllm-training-v2.mjs",
   ]) {
     if (!transport.includes(required)) {
