@@ -8,7 +8,9 @@ publishes `RiftOS-Android-debug.apk` to a private RiftOS prerelease.
 
 Builds remain `workflow_dispatch` only. The builder does not duplicate RiftOS product tests;
 it runs the validation suite owned by the exact RiftOS source commit and adds artifact-level
-checks that only the builder can perform. The workflow uses Node 24 through `actions/setup-node@v4` and current build actions
+checks that only the builder can perform. Because RiftOS `npm run check` includes
+`scripts/test-rift-workspace-records.mjs`, repo-scoped checkpoint-isolation regressions are
+source-owned and execute in the Builder gate. The workflow uses Node 24 through `actions/setup-node@v4` and current build actions
 (`actions/checkout@v7`, `actions/setup-java@v5`, `gradle/actions/setup-gradle@v6`); the Gradle
 action uses its open-source `basic` cache provider so this maintenance update does not change
 the builder's trust boundary.
