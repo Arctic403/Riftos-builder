@@ -127,8 +127,8 @@ node -e '
     ["N2.10", "N2.11"],
   ];
   if (phase?.schema !== "rift-memory-n2-phase-authority-v1" ||
-      phase?.programStatus !== "N2.0-N2.8 PROMOTED / N2-M1 + N2-M2 + N2-M3 + N2-M4 PROMOTED; N2.9 SOURCE IMPLEMENTED / N2-M5 SOURCE IMPLEMENTED; N2.10-N2.12 PENDING" ||
-      phase?.runtimeStatus !== "N2 CANONICAL MEMORY RUNTIME INACTIVE; N2-M1 + N2-M2 + N2-M3 + N2-M4 PROMOTED DIAGNOSTICS; N2-M5 SOURCE-IMPLEMENTED DIAGNOSTIC ONLY" ||
+      phase?.programStatus !== "N2.0-N2.9 PROMOTED / N2-M1 + N2-M2 + N2-M3 + N2-M4 + N2-M5 PROMOTED; N2.10-N2.12 PENDING" ||
+      phase?.runtimeStatus !== "N2 CANONICAL MEMORY RUNTIME INACTIVE; N2-M1 + N2-M2 + N2-M3 + N2-M4 + N2-M5 PROMOTED DIAGNOSTICS" ||
       phase?.n18Prerequisite !== "SATISFIED" ||
       phase?.benchmarkRule !== benchmarkRule ||
       phase?.contractLifecycleSemantics !== "immutable-N2.0-freeze-snapshot; current lifecycle is authoritative only in this phase-authority file" ||
@@ -140,15 +140,15 @@ node -e '
       phase?.phases?.slice(3, 5).some(row => row.status !== "promoted" || row.promotedSourceSha !== "18f1156075e08cb94573a9392031ac64552313f2" || String(row.builderRunNumber) !== "350") ||
       phase?.phases?.slice(5, 7).some(row => row.status !== "promoted" || row.promotedSourceSha !== "62382a94f50dd6052e1754c1496da2a0f794c0af" || String(row.builderRunNumber) !== "355") ||
       phase?.phases?.slice(7, 9).some(row => row.status !== "promoted" || row.promotedSourceSha !== "d39960832a701311461058670b5b93597ae612c9" || String(row.builderRunNumber) !== "368") ||
-      phase?.phases?.[9]?.status !== "source-implemented" ||
-      phase?.phases?.[9]?.promotedSourceSha !== null ||
-      phase?.phases?.[9]?.builderRunNumber !== null ||
+      phase?.phases?.[9]?.status !== "promoted" ||
+      phase?.phases?.[9]?.promotedSourceSha !== "d650e57dff09a878f02edfef7e175ed02d42f750" ||
+      String(phase?.phases?.[9]?.builderRunNumber) !== "370" ||
       phase?.phases?.slice(10).some(row => row.status !== "pending" || row.promotedSourceSha !== null || row.builderRunNumber !== null) ||
       phase?.macroImplementationPlan?.[0]?.status !== "promoted" ||
       phase?.macroImplementationPlan?.[1]?.status !== "promoted" ||
       phase?.macroImplementationPlan?.[2]?.status !== "promoted" ||
       phase?.macroImplementationPlan?.[3]?.status !== "promoted" ||
-      phase?.macroImplementationPlan?.[4]?.status !== "source-implemented" ||
+      phase?.macroImplementationPlan?.[4]?.status !== "promoted" ||
       phase?.macroImplementationPlan?.[5]?.status !== "pending" ||
       JSON.stringify(phase?.macroImplementationPlan?.map(row => row.phases)) !== JSON.stringify(expectedMacroPhases) ||
       !String(phase?.macroPlanRule || "").includes("execution groupings only") ||
