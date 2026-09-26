@@ -81,6 +81,26 @@ require_dex_string() {
   echo "APK smoke check failed: compiled DEX is missing $label" >&2
   exit 1
 }
+require_native_entry_string() {
+  local entry="$1"
+  local needle="$2"
+  local label="$3"
+  local tmp
+  require_entry "$entry"
+  tmp="$(mktemp)"
+  if ! unzip -p "$APK" "$entry" >"$tmp"; then
+    rm -f "$tmp"
+    echo "APK smoke check failed: could not extract $entry for native-string verification" >&2
+    exit 1
+  fi
+  if ! grep -aFq -- "$needle" "$tmp"; then
+    rm -f "$tmp"
+    echo "APK smoke check failed: native library $entry is missing $label" >&2
+    exit 1
+  fi
+  rm -f "$tmp"
+}
+
 forbid_dex_string() {
   local needle="$1"
   local label="$2"
@@ -249,6 +269,17 @@ for marker in \
   require_dex_string "$marker" "RiftOS push/cancellation hardening marker $marker"
 done
 
+# RiftCLI authority convergence final-artifact proof: public authority-bearing MCP calls
+# must enter Local Agent -> RiftCLI, preserve cancellation/provenance, and consume
+# staged large arguments only after the exact tool identity is authorized.
+for marker in \
+  'mcp-authority:' \
+  'Public MCP may call only RiftCLI trust-kernel controls directly' \
+  'RiftCLI staged payload tool mismatch' \
+  'RiftCLI authority route timed out after'; do
+  require_dex_string "$marker" "RiftCLI authority convergence marker $marker"
+done
+
 # RiftLLM V2 final-artifact proof: class descriptors above prove the mandatory sources compiled,
 # while these stable strings prove the production-data candidate routes/qualification contracts
 # survived into the signed runtime DEX.
@@ -270,6 +301,10 @@ done
 # signed APK contains the exact native library for both supported ARM ABIs.
 require_entry "lib/arm64-v8a/libriftcli.so"
 require_entry "lib/armeabi-v7a/libriftcli.so"
+for abi in arm64-v8a armeabi-v7a; do
+  require_native_entry_string "lib/$abi/libriftcli.so" '--tool-payload-id' "RiftCLI staged payload flag for $abi"
+  require_native_entry_string "lib/$abi/libriftcli.so" 'tool-payload-id and tool-args are mutually exclusive' "RiftCLI staged payload exclusivity guard for $abi"
+done
 forbid_entry '^lib/x86/libriftcli\.so$'
 forbid_entry '^lib/x86_64/libriftcli\.so$'
 

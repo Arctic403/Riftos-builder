@@ -163,7 +163,7 @@ node -e '
 
 # Builder-owned syntax preflight for the source-gate entrypoints. This runs before the
 # source-owned validator so a malformed validator cannot hide its own parse failure.
-for source_gate_script in   scripts/validate-rift-wiring.mjs   scripts/validate-rift-transport.mjs   scripts/validate-rift-docs.mjs   scripts/test-rift-workspace-records.mjs   scripts/test-rift-patch-sessions.mjs   scripts/test-rift-cli-n3-contract-v1.mjs   scripts/test-rift-mcp-cancellation.mjs   scripts/test-rift-shell-git.mjs   scripts/test-rift-cli-push-channel.mjs   scripts/test-rift-cli-batch-v2.mjs   scripts/test-rift-debug-hub.mjs   scripts/test-rift-integrity-v1.mjs   scripts/test-rift-propagation-v1.mjs   scripts/test-rift-cross-boundary-contracts-v1.mjs   scripts/test-rift-documentation-claims-v1.mjs   scripts/test-rift-proof-obligations-v1.mjs   scripts/test-rift-observer-adversarial-v1.mjs   scripts/test-rift-semantic-impact-v1.mjs   scripts/test-rift-memory-n2-contract-v1.mjs   scripts/test-rift-memory-n2-m1-v1.mjs   scripts/test-rift-memory-n2-m2-v1.mjs   scripts/test-rift-memory-n2-m3-v1.mjs   scripts/test-rift-memory-n2-m4-v1.mjs   scripts/test-rift-memory-n2-m5-v1.mjs   scripts/test-rift-memory-n2-m6-v1.mjs   scripts/test-rift-memory-n2-final-v1.mjs   scripts/test-riftllm-training-v2.mjs; do
+for source_gate_script in   scripts/validate-rift-wiring.mjs   scripts/validate-rift-transport.mjs   scripts/validate-rift-docs.mjs   scripts/test-rift-workspace-records.mjs   scripts/test-rift-patch-sessions.mjs   scripts/test-rift-cli-n3-contract-v1.mjs   scripts/test-rift-cli-authority-convergence.mjs   scripts/test-rift-mcp-cancellation.mjs   scripts/test-rift-shell-git.mjs   scripts/test-rift-cli-push-channel.mjs   scripts/test-rift-cli-batch-v2.mjs   scripts/test-rift-debug-hub.mjs   scripts/test-rift-integrity-v1.mjs   scripts/test-rift-propagation-v1.mjs   scripts/test-rift-cross-boundary-contracts-v1.mjs   scripts/test-rift-documentation-claims-v1.mjs   scripts/test-rift-proof-obligations-v1.mjs   scripts/test-rift-observer-adversarial-v1.mjs   scripts/test-rift-semantic-impact-v1.mjs   scripts/test-rift-memory-n2-contract-v1.mjs   scripts/test-rift-memory-n2-m1-v1.mjs   scripts/test-rift-memory-n2-m2-v1.mjs   scripts/test-rift-memory-n2-m3-v1.mjs   scripts/test-rift-memory-n2-m4-v1.mjs   scripts/test-rift-memory-n2-m5-v1.mjs   scripts/test-rift-memory-n2-m6-v1.mjs   scripts/test-rift-memory-n2-final-v1.mjs   scripts/test-riftllm-training-v2.mjs; do
   node --check "$source_gate_script" >>"$LOG_DIR/source-syntax.log" 2>&1 || {
     echo "RiftOS source-gate syntax failed: $source_gate_script" >&2
     exit 1
@@ -185,6 +185,7 @@ node -e '
     "node scripts/test-rift-workspace-records.mjs",
     "node scripts/test-rift-patch-sessions.mjs",
     "node scripts/test-rift-cli-n3-contract-v1.mjs",
+    "node scripts/test-rift-cli-authority-convergence.mjs",
     "node scripts/test-rift-mcp-cancellation.mjs",
     "node scripts/test-rift-shell-git.mjs",
     "node scripts/test-rift-cli-push-channel.mjs",
