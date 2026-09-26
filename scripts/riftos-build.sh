@@ -54,7 +54,7 @@ fi
 
 # Builder-owned syntax preflight for the source-gate entrypoints. This runs before the
 # source-owned validator so a malformed validator cannot hide its own parse failure.
-for source_gate_script in   scripts/validate-rift-wiring.mjs   scripts/validate-rift-transport.mjs   scripts/validate-rift-docs.mjs   scripts/test-rift-cli-push-channel.mjs   scripts/test-rift-cli-batch-v2.mjs   scripts/test-rift-debug-hub.mjs; do
+for source_gate_script in   scripts/validate-rift-wiring.mjs   scripts/validate-rift-transport.mjs   scripts/validate-rift-docs.mjs   scripts/test-rift-cli-push-channel.mjs   scripts/test-rift-cli-batch-v2.mjs   scripts/test-rift-local-agent-batch.mjs   scripts/test-rift-debug-hub.mjs; do
   node --check "$source_gate_script" >>"$LOG_DIR/source-syntax.log" 2>&1 || {
     echo "RiftOS source-gate syntax failed: $source_gate_script" >&2
     exit 1
@@ -75,6 +75,7 @@ node -e '
     "node scripts/validate-rift-docs.mjs",
     "node scripts/test-rift-cli-push-channel.mjs",
     "node scripts/test-rift-cli-batch-v2.mjs",
+    "node scripts/test-rift-local-agent-batch.mjs",
     "node scripts/test-rift-debug-hub.mjs",
   ]) {
     if (!transport.includes(required)) {
