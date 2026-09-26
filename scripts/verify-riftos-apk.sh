@@ -232,6 +232,23 @@ for marker in \
   require_dex_string "$marker" "RiftOS Workspace Records hardening marker $marker"
 done
 
+# RiftGit/AWOL-cancellation final-artifact proof: require stable runtime strings from the
+# human-only push gate, per-repository writer lease, downstream cancellation fence and
+# Patch Session V2 provenance identity. Class descriptors alone are insufficient because an
+# older implementation could still define the same Kotlin classes.
+for marker in \
+  'rift.git-pre-push-observer/1' \
+  'rift.git-push-queue/1' \
+  'awaiting-manual-approval' \
+  'native-android-ui' \
+  'Workspace writer lease is already held' \
+  'originating request was cancelled' \
+  'transportRequestId' \
+  'modelCallId' \
+  'traceId'; do
+  require_dex_string "$marker" "RiftOS push/cancellation hardening marker $marker"
+done
+
 # RiftLLM V2 final-artifact proof: class descriptors above prove the mandatory sources compiled,
 # while these stable strings prove the production-data candidate routes/qualification contracts
 # survived into the signed runtime DEX.
