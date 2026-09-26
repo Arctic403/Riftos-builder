@@ -232,7 +232,9 @@ for marker in \
   'affected-test-evidence-missing' \
   'proofsSha256' \
   'executesVerification' \
-  'project-local-plan-v1'; do
+  'project-local-plan-v1' \
+  'isRepositoryMetadataPath' \
+  '.riftgit.json'; do
   require_dex_string "$marker" "RiftOS N1.8.5 proofs marker $marker"
 done
 

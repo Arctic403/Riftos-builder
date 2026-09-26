@@ -161,6 +161,85 @@ node -e '
   }
 ' "$N2_CONTRACT_FILE" "$N2_PHASE_AUTHORITY_FILE"
 
+# N3 machine phase authority is source, not prose. Freeze the post-run393 / CLI-convergence
+# lifecycle independently so a stale source-owned docs validator cannot be the first gate to
+# discover machine-authority drift. Also require the proof planner to distinguish RiftGit's
+# own metadata from product/source evidence before npm/Gradle run.
+N3_PHASE_AUTHORITY_FILE="riftarchitecture/n3-phase-authority.json"
+[ -f "$N3_PHASE_AUTHORITY_FILE" ] || {
+  echo "RiftOS N3 machine phase authority missing: $N3_PHASE_AUTHORITY_FILE" >&2
+  exit 1
+}
+[ "$(wc -c < "$N3_PHASE_AUTHORITY_FILE")" -le 65536 ] || {
+  echo "RiftOS N3 machine phase authority exceeds 64 KiB: $N3_PHASE_AUTHORITY_FILE" >&2
+  exit 1
+}
+node -e '
+  const fs = require("node:fs");
+  const phase = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+  const docsValidator = fs.readFileSync("scripts/validate-rift-docs.mjs", "utf8");
+  const proof = fs.readFileSync("android/app/src/main/java/com/riftos/app/RiftProofObligationsV1.kt", "utf8");
+  const proofRegression = fs.readFileSync("scripts/test-rift-proof-obligations-v1.mjs", "utf8");
+  const benchmarkRule = "NO_PERFORMANCE_OR_COMPARATIVE_BENCHMARKS_UNTIL_FULL_RIFTCLI_COMPLETE_AND_LIVE";
+  const program = String(phase?.programStatus || "");
+  const runtime = String(phase?.runtimeStatus || "");
+  if (phase?.schema !== "rift-architecture-n3-phase-authority-v1" ||
+      !program.includes("N3.0 PROMOTED") ||
+      !program.includes("hidden PI bridge PROMOTED on run 391") ||
+      !program.includes("N3-M1 (N3.1+N3.2) PROMOTED") ||
+      !program.includes("run 393 exact-cap Batch admission repair + five-kind N3 evidence bridge LIVE-PROVEN") ||
+      !program.includes("universal public MCP -> Local Agent -> RiftCLI authority convergence SOURCE IMPLEMENTED / BUILDER + INSTALL + LIVE PROOF PENDING") ||
+      !program.includes("N3-M2 (N3.3+N3.4) BLOCKED ON CLI AUTHORITY CONVERGENCE") ||
+      !runtime.includes("N3-M2 LOCAL IMPLEMENTATION READY BUT ACTIVATION BLOCKED ON CLI AUTHORITY CONVERGENCE") ||
+      !runtime.includes("N2 CANONICAL MEMORY RUNTIME REMAINS INACTIVE") ||
+      !runtime.includes("N4 PLANNER REMAINS BLOCKED") ||
+      phase?.benchmarkRule !== benchmarkRule ||
+      phase?.prerequisites?.N3MachineAuthorityPrelude !== "SATISFIED" ||
+      phase?.macroImplementationPlan?.[0]?.status !== "promoted" ||
+      phase?.macroImplementationPlan?.[1]?.status !== "blocked-on-cli-authority-convergence" ||
+      phase?.macroImplementationPlan?.[2]?.status !== "queued-after-n3-m2" ||
+      phase?.run393Evidence?.batchExactCapAdmission !== "live-pass" ||
+      phase?.run393Evidence?.publicMcpToolCount !== 24 ||
+      phase?.run393Evidence?.fiveKindBridge?.authorizationBypass !== false ||
+      phase?.run393Evidence?.fiveKindBridge?.perOperationAuthorizationRequired !== true) {
+    console.error("RiftOS N3 phase authority / CLI-convergence lifecycle mismatch");
+    process.exit(1);
+  }
+  for (const marker of [
+    "N3-M2 (N3.3+N3.4) BLOCKED ON CLI AUTHORITY CONVERGENCE",
+    "blocked-on-cli-authority-convergence",
+    "run 393 exact-cap Batch admission repair + five-kind N3 evidence bridge LIVE-PROVEN",
+    "universal public MCP → Local Agent → RiftCLI authority convergence SOURCE IMPLEMENTED / BUILDER + INSTALL + LIVE PROOF PENDING",
+  ]) {
+    if (!docsValidator.includes(marker)) {
+      console.error("RiftOS docs validator is stale against N3 machine authority: missing " + marker);
+      process.exit(1);
+    }
+  }
+  for (const marker of [
+    "private fun isRepositoryMetadataPath(path: String, root: String): Boolean",
+    "val normalizedRoot = root.replace",
+    "normalized == \".riftgit.json\" || normalized == \"$normalizedRoot/.riftgit.json\"",
+    "filterNot { row -> isRepositoryMetadataPath(row.optString(\"path\"), root) }",
+  ]) {
+    if (!proof.includes(marker)) {
+      console.error("RiftOS proof planner is missing exact RiftGit metadata exclusion: " + marker);
+      process.exit(1);
+    }
+  }
+  for (const marker of [
+    "isRepositoryMetadataPath\\(path: String, root: String\\): Boolean",
+    "normalizedRoot",
+    ".riftgit\\.json",
+    "filterNot \\{ row -> isRepositoryMetadataPath",
+  ]) {
+    if (!proofRegression.includes(marker)) {
+      console.error("RiftOS proof-obligations regression is stale for RiftGit metadata exclusion: " + marker);
+      process.exit(1);
+    }
+  }
+' "$N3_PHASE_AUTHORITY_FILE"
+
 # Builder-owned syntax preflight for the source-gate entrypoints. This runs before the
 # source-owned validator so a malformed validator cannot hide its own parse failure.
 for source_gate_script in   scripts/validate-rift-wiring.mjs   scripts/validate-rift-transport.mjs   scripts/validate-rift-docs.mjs   scripts/test-rift-workspace-records.mjs   scripts/test-rift-patch-sessions.mjs   scripts/test-rift-cli-n3-contract-v1.mjs   scripts/test-rift-cli-authority-convergence.mjs   scripts/test-rift-mcp-cancellation.mjs   scripts/test-rift-shell-git.mjs   scripts/test-rift-cli-push-channel.mjs   scripts/test-rift-cli-batch-v2.mjs   scripts/test-rift-debug-hub.mjs   scripts/test-rift-integrity-v1.mjs   scripts/test-rift-propagation-v1.mjs   scripts/test-rift-cross-boundary-contracts-v1.mjs   scripts/test-rift-documentation-claims-v1.mjs   scripts/test-rift-proof-obligations-v1.mjs   scripts/test-rift-observer-adversarial-v1.mjs   scripts/test-rift-semantic-impact-v1.mjs   scripts/test-rift-memory-n2-contract-v1.mjs   scripts/test-rift-memory-n2-m1-v1.mjs   scripts/test-rift-memory-n2-m2-v1.mjs   scripts/test-rift-memory-n2-m3-v1.mjs   scripts/test-rift-memory-n2-m4-v1.mjs   scripts/test-rift-memory-n2-m5-v1.mjs   scripts/test-rift-memory-n2-m6-v1.mjs   scripts/test-rift-memory-n2-final-v1.mjs   scripts/test-riftllm-training-v2.mjs; do
