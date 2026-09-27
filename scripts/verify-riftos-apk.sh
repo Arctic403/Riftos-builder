@@ -184,8 +184,12 @@ require_dex_string 'git-data-mode-preserving' 'RiftGit mode-preserving Git-data 
 require_dex_string 'Unsupported Git blob mode' 'RiftGit guarded Git blob mode validation'
 require_dex_string '.gitignore pattern exceeds' 'RiftGit bounded root .gitignore parser'
 
-# RiftLLM RiftPack qualification bridge final-artifact proof. Require both the shell aliases
-# and exact Provider method identifiers so source-only exposure cannot be mistaken for a live APK.
+# RiftLLM RiftPack qualification bridge final-artifact proof. Require the fixed frozen-B2
+# primer plus both qualification shell aliases and exact Provider method identifiers so source-only
+# exposure cannot be mistaken for a live APK.
+require_dex_string 'text-encoding-prime-b2' 'RiftLLM frozen B2 tokenizer priming shell route'
+require_dex_string 'tokenizer/output/rift-token-b-balanced-v2.riftbpe' 'RiftLLM frozen B2 tokenizer fixed source path'
+require_dex_string '314e3a732d4cc4c31c40c9b0add3fffcec38c8a4b40e0d228bdc4eed1addbbd1' 'RiftLLM frozen B2 tokenizer SHA-256 lock'
 require_dex_string 'riftpack-qualification-start' 'RiftLLM RiftPack qualification start shell route'
 require_dex_string 'riftpack-qualification-status' 'RiftLLM RiftPack qualification status shell route'
 require_dex_string 'riftpack_qualification_start' 'RiftLLM RiftPack qualification start Provider method'
