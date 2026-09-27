@@ -131,6 +131,17 @@ if ! grep -Eq 'android:targetSdkVersion\([^)]*\)=(36|\(type 0x10\)0x24)([[:space
   exit 1
 fi
 
+# The C0 editor compile bridge is a real exported Android surface. Prove that the final
+# compiled manifest retained both the provider class and its fixed authority.
+if ! grep -Fq 'CodynexCompilerProvider' <<<"$manifest_tree"; then
+  echo 'APK smoke check failed: compiled manifest is missing CodynexCompilerProvider.' >&2
+  exit 1
+fi
+if ! grep -Fq 'com.riftos.app.codynexcompiler' <<<"$manifest_tree"; then
+  echo 'APK smoke check failed: compiled manifest is missing Codynex compiler authority.' >&2
+  exit 1
+fi
+
 badging="$($AAPT2 dump badging "$APK")"
 if grep -Fq 'application-debuggable' <<<"$badging"; then
   echo 'APK smoke check failed: release APK is marked debuggable.' >&2
@@ -167,6 +178,32 @@ for source_rel in "${required_native_sources[@]}"; do
   require_dex_string "$descriptor" "required native class $descriptor from $source_rel"
 done
 
+# Codynex C0 editor/provider final-artifact proof. The provider class itself is already
+# covered by the Gradle-derived com.riftos.app loop above; these markers prove the exact
+# compiler authority/identity/bounds path survived compilation, and the mirrored editor
+# payload is present for RiftBuild to extract into the standalone editor APK.
+for marker in \
+  'com.riftos.app.codynexcompiler' \
+  'compile-c0' \
+  'codynex-c0-ref/0.11.0' \
+  'com.codynex.editor' \
+  '9874e844c24fe92c65908ce9b3cfb192f87774984a9e4fc600d883badcbe19b5' \
+  '/workspace/Codynex/external/language/l0/compiler/c0_reference.js' \
+  'C0 0.11.0 via' \
+  'RiftOS QuickJS -> VM1'; do
+  require_dex_string "$marker" "Codynex C0 editor/provider marker $marker"
+done
+
+for editor_descriptor in \
+  'Lcom/codynex/editorapp/MainActivity;' \
+  'Lcom/codynex/editorapp/BootstrapArtifacts;' \
+  'Lcom/codynex/editorapp/Source0SelfHostToolchainPort;' \
+  'Lcom/codynex/editorapp/Vm1Bridge;' \
+  'Lcom/codynex/editorapp/FileWorkspacePort;' \
+  'Lcom/codynex/editor/CodynexEditorController;'; do
+  require_dex_string "$editor_descriptor" "Codynex editor payload class $editor_descriptor"
+done
+
 # N1.5 final-artifact proof: the final signed DEX must contain the passive event/relay
 # diagnostics that distinguish local event creation, device WSS queueing, replay and relay ACK.
 for marker in   'riftcli.event-bus'   'mcp.relay'   'event.created'   'cli.event.send'   'relay.ready'   'cli.replay.request'   'cli.replay.send'   'cli.ack'; do
@@ -185,6 +222,12 @@ forbid_entry '^lib/x86_64/libriftcli\.so$'
 require_entry "lib/armeabi-v7a/libcodynex_mc0_host.so"
 require_entry "lib/armeabi-v7a/libcodynex_mc1a_host.so"
 require_entry "lib/armeabi-v7a/libcodynex_mc1b_host.so"
+
+# The standalone Codynex editor Preview path executes frozen VM1 on ARM32 and RiftBuild
+# extracts this exact library from the installed RiftOS APK.
+require_entry "lib/armeabi-v7a/libcodynex_editor_vm.so"
+forbid_entry '^lib/x86/libcodynex_editor_vm\.so$'
+forbid_entry '^lib/x86_64/libcodynex_editor_vm\.so$'
 
 # RiftDevLabLocalAgent is a private top-level object inside RiftVortexLocalAgent.kt, so it is not
 # represented by a standalone Gradle source filename but is still a required structured-agent
