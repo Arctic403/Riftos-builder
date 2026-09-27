@@ -184,6 +184,13 @@ require_dex_string 'git-data-mode-preserving' 'RiftGit mode-preserving Git-data 
 require_dex_string 'Unsupported Git blob mode' 'RiftGit guarded Git blob mode validation'
 require_dex_string '.gitignore pattern exceeds' 'RiftGit bounded root .gitignore parser'
 
+# RiftLLM RiftPack qualification bridge final-artifact proof. Require both the shell aliases
+# and exact Provider method identifiers so source-only exposure cannot be mistaken for a live APK.
+require_dex_string 'riftpack-qualification-start' 'RiftLLM RiftPack qualification start shell route'
+require_dex_string 'riftpack-qualification-status' 'RiftLLM RiftPack qualification status shell route'
+require_dex_string 'riftpack_qualification_start' 'RiftLLM RiftPack qualification start Provider method'
+require_dex_string 'riftpack_qualification_status' 'RiftLLM RiftPack qualification status Provider method'
+
 # Codynex C0 editor/provider final-artifact proof. The provider class itself is already
 # covered by the Gradle-derived com.riftos.app loop above; these markers prove the exact
 # compiler authority/identity/bounds path survived compilation, and the mirrored editor
