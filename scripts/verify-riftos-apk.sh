@@ -194,6 +194,10 @@ require_dex_string 'riftpack-qualification-start' 'RiftLLM RiftPack qualificatio
 require_dex_string 'riftpack-qualification-status' 'RiftLLM RiftPack qualification status shell route'
 require_dex_string 'riftpack_qualification_start' 'RiftLLM RiftPack qualification start Provider method'
 require_dex_string 'riftpack_qualification_status' 'RiftLLM RiftPack qualification status Provider method'
+require_dex_string 'process-death-start' 'RiftLLM process-death recovery start shell route'
+require_dex_string 'process-death-status' 'RiftLLM process-death recovery status shell route'
+require_dex_string 'rift_micro_process_death_start' 'RiftLLM process-death recovery start Provider method'
+require_dex_string 'rift_micro_process_death_status' 'RiftLLM process-death recovery status Provider method'
 
 # Codynex C0 editor/provider final-artifact proof. The provider class itself is already
 # covered by the Gradle-derived com.riftos.app loop above; these markers prove the exact
