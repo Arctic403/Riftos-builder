@@ -178,6 +178,12 @@ for source_rel in "${required_native_sources[@]}"; do
   require_dex_string "$descriptor" "required native class $descriptor from $source_rel"
 done
 
+# RiftGit mode-preserving push must survive compilation into the release DEX, not only exist
+# in source. These strings are emitted by the executable/symlink fallback path.
+require_dex_string 'git-data-mode-preserving' 'RiftGit mode-preserving Git-data transport'
+require_dex_string 'Unsupported Git blob mode' 'RiftGit guarded Git blob mode validation'
+require_dex_string '.gitignore pattern exceeds' 'RiftGit bounded root .gitignore parser'
+
 # Codynex C0 editor/provider final-artifact proof. The provider class itself is already
 # covered by the Gradle-derived com.riftos.app loop above; these markers prove the exact
 # compiler authority/identity/bounds path survived compilation, and the mirrored editor

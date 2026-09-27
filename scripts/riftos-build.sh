@@ -129,6 +129,38 @@ for source_rel in "${required_native_sources[@]}"; do
   fi
 done
 
+# RiftGit mode-preserving push contract. Ordinary 100644 changes may keep the single-request
+# GraphQL fast path, but modified executable blobs must fall back to Git-data objects
+# so tracked Git modes survive the commit.
+riftgit_source="android/app/src/main/java/com/riftos/app/RiftNativeGit.kt"
+test -f "$riftgit_source" || {
+  echo 'Builder RiftGit contract is missing RiftNativeGit.kt.' >&2
+  exit 1
+}
+for required_riftgit_contract in \
+  'needsModePreservingTransport' \
+  'atomicPushGitData(' \
+  'checkedBlobMode(' \
+  '"git-data-mode-preserving"' \
+  'mode == "100755"' \
+  '.put("force", false)' \
+  '"graphql-createCommitOnBranch"' \
+  'MAX_GITIGNORE_BYTES = 256L * 1024L' \
+  'MAX_GITIGNORE_RULES = 4096' \
+  'gitIgnoreRules(repoRoot)' \
+  'gitIgnored(relative, ignoreRules)' \
+  'ignoredByRules(parent)' \
+  'isTracked || !gitIgnored'; do
+  grep -Fq "$required_riftgit_contract" "$riftgit_source" || {
+    echo "Builder RiftGit mode-preserving contract missing: $required_riftgit_contract" >&2
+    exit 1
+  }
+done
+if grep -Fq 'Single-request GitHub push cannot safely preserve mode' "$riftgit_source"; then
+  echo 'Builder RiftGit contract regressed to the old 100644-only push rejection.' >&2
+  exit 1
+fi
+
 # Codynex C0 editor/provider contract. This surface spans RiftOS plus mirrored editor payload,
 # so validate it explicitly before source tests or Gradle rather than waiting for Kotlin/AAPT.
 manifest_contract="android/app/src/main/AndroidManifest.xml"
