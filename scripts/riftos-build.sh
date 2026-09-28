@@ -94,7 +94,16 @@ node -e '
 
 # Semnexis self-hosting source contract. Product semantics remain owned by RiftOS,
 # but Builder must fail early if the promoted source fixtures or gate wiring disappear.
+semnexis_bootstrap_gate="scripts/test-semnexis-bootstrap.mjs"
 semnexis_arm_gate="scripts/test-semnexis-arm32-exec.mjs"
+test -f "$semnexis_bootstrap_gate" || {
+  echo "Builder Semnexis contract is missing bootstrap gate: $semnexis_bootstrap_gate" >&2
+  exit 1
+}
+grep -Fq 'ARM32 runtime must accept more than 256 functions when real artifact bounds are satisfied' "$semnexis_bootstrap_gate" || {
+  echo "Builder Semnexis contract is stale: >256-function ARM32 regression marker is missing" >&2
+  exit 1
+}
 for semnexis_fixture in \
   scripts/fixtures/semnexis-selfhost-frontend-v18.snx \
   scripts/fixtures/semnexis-selfhost-semantic-v19.snx \

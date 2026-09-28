@@ -155,4 +155,4 @@ Whenever RiftOS promotes a new Semnexis self-hosting fixture or changes the Semn
 5. run Builder shell syntax validation and source-contract preflight;
 6. only then push/dispatch a build.
 
-Do not raise runtime/compiler safety bounds solely to make a larger self-host compiler fixture fit. The v26 pressure work already demonstrated the preferred response: split independently bounded native stages rather than weakening the existing 256-function ARM32 runtime limit.
+Do not weaken real runtime/compiler safety bounds solely to make a larger self-host compiler fixture fit. The historical 256-function ARM32 limit was a local bootstrap policy cap, not an ARM32 ISA/encoding limit, and RiftOS has retired it. Builder must preserve the source regression that emits and canonically verifies an ARM32 artifact with more than 256 functions. Real bounds such as compiler function budget, artifact size, argument ABI, SSA/frame limits, recursion depth, relocation validity, and canonical verification remain authoritative; compiler staging must not be required solely by the retired 256-function policy.

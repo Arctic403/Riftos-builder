@@ -59,7 +59,7 @@ the half-created release/tag before the private failure bundle is returned.
 
 Builder now has an explicit source-contract document for the Semnexis self-hosting frontier: `SEMNEXIS_SELFHOSTING.md`.
 
-The current RiftOS-promoted source fixtures are v18 frontend, v19 semantic graph, and v25 full canonical graph/verifier/effect/plan/Native-IR parity. The installed `semx` promotion remains `/17` until a newer APK is actually installed and proved. Local Semnexis v26 serializer work is intentionally not claimed by Builder until it is deliberately promoted into RiftOS.
+The current RiftOS-promoted source fixtures are v18 frontend, v19 semantic graph, and v25 full canonical graph/verifier/effect/plan/Native-IR parity. The installed `semx` promotion remains `/17` until a newer APK is actually installed and proved. Builder also enforces the current RiftOS runtime-boundary regression: ARM32 must emit and canonically verify a source program with more than 256 functions, proving the retired 256-function bootstrap policy cap has not returned. Real artifact/runtime bounds remain mandatory. Local Semnexis work beyond the promoted fixtures is not claimed by Builder until it is deliberately promoted into RiftOS.
 
 ## Required secret
 
