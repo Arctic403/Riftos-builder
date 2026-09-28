@@ -252,6 +252,12 @@ require_entry "lib/armeabi-v7a/libcodynex_mc0_host.so"
 require_entry "lib/armeabi-v7a/libcodynex_mc1a_host.so"
 require_entry "lib/armeabi-v7a/libcodynex_mc1b_host.so"
 
+# Rift++ App0 extracts its bounded generic NativeActivity host from RiftOS's own APK.
+# Application semantics remain in compiler-emitted program.bin, not this library.
+require_entry "lib/armeabi-v7a/libriftpp_app0_host.so"
+forbid_entry '^lib/x86/libriftpp_app0_host\.so$'
+forbid_entry '^lib/x86_64/libriftpp_app0_host\.so$'
+
 # The standalone Codynex editor Preview path executes frozen VM1 on ARM32 and RiftBuild
 # extracts this exact library from the installed RiftOS APK.
 require_entry "lib/armeabi-v7a/libcodynex_editor_vm.so"

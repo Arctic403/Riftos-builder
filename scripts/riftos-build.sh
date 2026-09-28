@@ -310,6 +310,7 @@ for native_source in \
   android/app/src/main/cpp/mc0/codynex_mc0_host.cpp \
   android/app/src/main/cpp/mc1/codynex_mc1a_host.cpp \
   android/app/src/main/cpp/mc1/codynex_mc1b_host.cpp \
+  android/app/src/main/cpp/riftpp/riftpp_app0_host.cpp \
   android/app/src/main/cpp/editor/editor_vm_bridge.cpp \
   android/app/src/main/java/com/riftos/app/RiftCliHost.kt; do
   test -f "$native_source" || {
@@ -339,6 +340,14 @@ grep -Fq 'codynex_mc1b_host' android/app/src/main/cpp/CMakeLists.txt || {
 }
 grep -Fq 'codynex_editor_vm' android/app/src/main/cpp/CMakeLists.txt || {
   echo 'Builder contract is stale: CMake must build libcodynex_editor_vm for Codynex editor Preview packaging.' >&2
+  exit 1
+}
+grep -Fq 'riftpp_app0_host' android/app/src/main/cpp/CMakeLists.txt || {
+  echo 'Builder contract is stale: CMake must build libriftpp_app0_host for generated-runtime App0 packaging.' >&2
+  exit 1
+}
+grep -Fq '"prepare-riftpp-app0" -> prepareRiftppApp0(' "$riftbuild_source" || {
+  echo 'Builder contract is stale: RiftBuild must expose the bounded Rift++ App0 preparation lane.' >&2
   exit 1
 }
 
