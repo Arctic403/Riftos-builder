@@ -202,6 +202,10 @@ require_dex_string 'train-v2-adversarial-start' 'RiftLLM RiftTrainData V2 advers
 require_dex_string 'train-v2-adversarial-status' 'RiftLLM RiftTrainData V2 adversarial status shell route'
 require_dex_string 'train_v2_adversarial_start' 'RiftLLM RiftTrainData V2 adversarial start Provider method'
 require_dex_string 'train_v2_adversarial_status' 'RiftLLM RiftTrainData V2 adversarial status Provider method'
+require_dex_string 'train-v2-builder-start' 'RiftLLM RiftTrainData V2 builder qualification start shell route'
+require_dex_string 'train-v2-builder-status' 'RiftLLM RiftTrainData V2 builder qualification status shell route'
+require_dex_string 'train_v2_builder_start' 'RiftLLM RiftTrainData V2 builder qualification start Provider method'
+require_dex_string 'train_v2_builder_status' 'RiftLLM RiftTrainData V2 builder qualification status Provider method'
 
 # Codynex C0 editor/provider final-artifact proof. The provider class itself is already
 # covered by the Gradle-derived com.riftos.app loop above; these markers prove the exact
