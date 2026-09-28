@@ -252,8 +252,10 @@ require_entry "lib/armeabi-v7a/libcodynex_mc0_host.so"
 require_entry "lib/armeabi-v7a/libcodynex_mc1a_host.so"
 require_entry "lib/armeabi-v7a/libcodynex_mc1b_host.so"
 
-# Rift++ App0 extracts its bounded generic NativeActivity host from RiftOS's own APK.
-# Application semantics remain in compiler-emitted program.bin, not this library.
+# Rift++ U0 extracts both ABI builds of one bounded generic NativeActivity/VM1
+# runtime source from RiftOS's own APK. ARM64 is canonical/default; ARM32 is
+# compatibility. Application semantics remain in compiler-emitted program.bin.
+require_entry "lib/arm64-v8a/libriftpp_app0_host.so"
 require_entry "lib/armeabi-v7a/libriftpp_app0_host.so"
 forbid_entry '^lib/x86/libriftpp_app0_host\.so$'
 forbid_entry '^lib/x86_64/libriftpp_app0_host\.so$'
