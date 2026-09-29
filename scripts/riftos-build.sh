@@ -215,6 +215,8 @@ editor_bootstrap="android/app/src/main/java/com/codynex/editorapp/BootstrapArtif
 editor_vm_bridge_kt="android/app/src/main/java/com/codynex/editorapp/Vm1Bridge.kt"
 editor_vm_bridge_cpp="android/app/src/main/cpp/editor/editor_vm_bridge.cpp"
 riftbuild_source="android/app/src/main/java/com/riftos/app/RiftBuildLocalExecutor.kt"
+riftbuild_toolchain_source="android/app/src/main/java/com/riftos/app/RiftBuildNativeToolchain.kt"
+riftbuild_native_app_source="android/app/src/main/java/com/riftos/app/RiftBuildNativeApp.kt"
 
 for editor_contract_file in \
   "$manifest_contract" \
@@ -224,7 +226,9 @@ for editor_contract_file in \
   "$editor_bootstrap" \
   "$editor_vm_bridge_kt" \
   "$editor_vm_bridge_cpp" \
-  "$riftbuild_source"; do
+  "$riftbuild_source" \
+  "$riftbuild_toolchain_source" \
+  "$riftbuild_native_app_source"; do
   test -f "$editor_contract_file" || {
     echo "Builder Codynex C0 editor contract is missing: $editor_contract_file" >&2
     exit 1
@@ -289,6 +293,59 @@ for required_editor_toolchain in \
   'MAX_CANDIDATE_BYTES = 64 * 1024'; do
   grep -Fq "$required_editor_toolchain" "$editor_toolchain" || {
     echo "Builder Codynex editor toolchain contract missing: $required_editor_toolchain" >&2
+    exit 1
+  }
+done
+
+for required_riftbuild_native_contract in \
+  '"toolchain-status" -> nativeToolchain.status()' \
+  '"compile-native" -> compileNative(' \
+  '"prepare-native-app" -> prepareNativeApp(' \
+  'structuredCompilerProcessExecution' \
+  'downloadedToolchainsAllowed'; do
+  grep -Fq "$required_riftbuild_native_contract" "$riftbuild_source" || {
+    echo "Builder RiftBuild Native Compile V1 controller contract missing: $required_riftbuild_native_contract" >&2
+    exit 1
+  }
+done
+for required_riftbuild_toolchain_contract in \
+  'class RiftBuildNativeToolchain' \
+  'riftbuild-android-clang-toolchain/1' \
+  'riftbuild-native-project/1' \
+  'ProcessBuilder(argv)' \
+  'structured-argv' \
+  'downloadedToolchainsAllowed' \
+  'MAX_TOOLCHAIN_ARGS = 128' \
+  'MAX_LIBRARIES = 64' \
+  '.replace("%TOOLCHAIN%", toolchainRoot.absolutePath)' \
+  '.replace("%SYSROOT%", sysroot.absolutePath)' \
+  'verifyElf'; do
+  grep -Fq "$required_riftbuild_toolchain_contract" "$riftbuild_toolchain_source" || {
+    echo "Builder RiftBuild Native Compile V1 toolchain contract missing: $required_riftbuild_toolchain_contract" >&2
+    exit 1
+  }
+done
+if grep -Fq '/system/bin/sh' "$riftbuild_toolchain_source"; then
+  echo 'Builder RiftBuild Native Compile V1 contract regressed to shell-string execution.' >&2
+  exit 1
+fi
+for required_riftbuild_native_app_contract in \
+  'class RiftBuildNativeApp' \
+  'riftbuild-native-app/1' \
+  'android.app.NativeActivity' \
+  'android.app.lib_name' \
+  'build/riftbuild/prepared/AndroidManifest.xml' \
+  'Native app assetsDir must not point inside build/riftbuild'; do
+  grep -Fq "$required_riftbuild_native_app_contract" "$riftbuild_native_app_source" || {
+    echo "Builder RiftBuild generic native-app contract missing: $required_riftbuild_native_app_contract" >&2
+    exit 1
+  }
+done
+for required_riftbuild_gradle_source in \
+  '"src/main/java/com/riftos/app/RiftBuildNativeToolchain.kt"' \
+  '"src/main/java/com/riftos/app/RiftBuildNativeApp.kt"'; do
+  grep -Fq "$required_riftbuild_gradle_source" "$gradle_contract" || {
+    echo "Builder contract is stale: RiftBuild native source is not mandatory in verifyRiftOsAndroidSources: $required_riftbuild_gradle_source" >&2
     exit 1
   }
 done

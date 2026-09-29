@@ -178,6 +178,22 @@ for source_rel in "${required_native_sources[@]}"; do
   require_dex_string "$descriptor" "required native class $descriptor from $source_rel"
 done
 
+# RiftBuild Native Compile V1 and generic native-app preparation must survive compilation into
+# the final release DEX, not merely pass source tests. The mandatory class loop above proves both
+# owners exist; these markers prove the new command/contract surfaces survived Kotlin compilation.
+require_dex_string 'compile-native' 'RiftBuild Native Compile V1 command'
+require_dex_string 'toolchain-status' 'RiftBuild Native Compile V1 toolchain status command'
+require_dex_string 'prepare-native-app' 'RiftBuild generic native-app preparation command'
+require_dex_string 'riftbuild-native-toolchain-status-v1' 'RiftBuild native toolchain status schema'
+require_dex_string 'riftbuild-native-compile-v1' 'RiftBuild native compile result schema'
+require_dex_string 'riftbuild-native-app-prepare-v1' 'RiftBuild generic native-app prepare schema'
+require_dex_string 'riftbuild-android-clang-toolchain/1' 'RiftBuild Android-host toolchain contract'
+require_dex_string 'riftbuild-native-project/1' 'RiftBuild native project contract'
+require_dex_string 'riftbuild-native-app/1' 'RiftBuild native app contract'
+require_dex_string 'structured-argv' 'RiftBuild structured compiler process mode'
+require_dex_string '%TOOLCHAIN%' 'RiftBuild toolchain-root argv expansion'
+require_dex_string '%SYSROOT%' 'RiftBuild sysroot argv expansion'
+
 # RiftGit mode-preserving push must survive compilation into the release DEX, not only exist
 # in source. These strings are emitted by the executable/symlink fallback path.
 require_dex_string 'git-data-mode-preserving' 'RiftGit mode-preserving Git-data transport'
