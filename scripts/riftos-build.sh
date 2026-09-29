@@ -214,6 +214,7 @@ fi
 # so validate it explicitly before source tests or Gradle rather than waiting for Kotlin/AAPT.
 manifest_contract="android/app/src/main/AndroidManifest.xml"
 provider_source="android/app/src/main/java/com/riftos/app/CodynexCompilerProvider.kt"
+codynex_shell_services="android/app/src/main/java/com/riftos/app/RiftNativeShellServices.kt"
 editor_activity="android/app/src/main/java/com/codynex/editorapp/MainActivity.kt"
 editor_toolchain="android/app/src/main/java/com/codynex/editorapp/Source0SelfHostToolchainPort.kt"
 editor_bootstrap="android/app/src/main/java/com/codynex/editorapp/BootstrapArtifacts.kt"
@@ -226,6 +227,7 @@ riftbuild_native_app_source="android/app/src/main/java/com/riftos/app/RiftBuildN
 for editor_contract_file in \
   "$manifest_contract" \
   "$provider_source" \
+  "$codynex_shell_services" \
   "$editor_activity" \
   "$editor_toolchain" \
   "$editor_bootstrap" \
@@ -275,6 +277,20 @@ for required_provider_contract in \
   '/workspace/Codynex/external/language/l0/compiler/c0_reference.js'; do
   grep -Fq "$required_provider_contract" "$provider_source" || {
     echo "Builder Codynex provider source contract missing: $required_provider_contract" >&2
+    exit 1
+  }
+done
+
+for required_riftosplus_host_contract in \
+  'c0-run-host' \
+  'codynex-c0-project-host-run/1' \
+  'riftosplus-host-snapshot/1' \
+  'buildCodynexC0HostSnapshot' \
+  'SystemClock.elapsedRealtime()' \
+  'source = if (hostRun)' \
+  'putCodynexC0U32Le(snapshot, 12, 7)'; do
+  grep -Fq "$required_riftosplus_host_contract" "$codynex_shell_services" || {
+    echo "Builder RiftOs+ R1 host source contract missing: $required_riftosplus_host_contract" >&2
     exit 1
   }
 done
