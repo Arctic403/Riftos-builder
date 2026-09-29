@@ -564,3 +564,72 @@ fi
 sha256sum "$FINAL" >"$LOG_DIR/apk-sha256.log"
 
 echo "RiftOS Android APK built, packaged, signed and verified."
+
+echo "Building standalone Rift++ Editor bootstrap APK."
+RIFTPP_EDITOR_PROJECT="$SOURCE_DIR/bootstrap/riftpp-editor/android"
+test -d "$RIFTPP_EDITOR_PROJECT" || { echo "Rift++ Editor bootstrap project missing: $RIFTPP_EDITOR_PROJECT" >&2; exit 1; }
+
+for required_editor_file in \
+  app/src/main/AndroidManifest.xml \
+  app/src/main/java/com/riftpp/editor/MainActivity.kt \
+  app/src/main/java/com/riftpp/editor/RiftppPipeline.kt \
+  app/src/main/java/com/riftpp/editor/HexAssets.kt \
+  app/src/main/java/com/riftpp/editor/RiftppNativeBridge.kt \
+  app/src/main/cpp/riftpp_editor_bridge.cpp \
+  app/src/main/assets/riftpp/s3/compiler.arm32.native.hex \
+  app/src/main/assets/riftpp/s3/compiler.arm64.native.hex \
+  app/src/main/assets/riftpp/frontend/frontend.arm32.r4.hex \
+  app/src/main/assets/riftpp/frontend/frontend.arm64.r4.hex \
+  app/src/main/assets/riftpp/runtime/preview.arm32.r4.hex \
+  app/src/main/assets/riftpp/runtime/preview.arm64.r4.hex; do
+  test -f "$RIFTPP_EDITOR_PROJECT/$required_editor_file" || {
+    echo "Rift++ Editor bootstrap source missing: $required_editor_file" >&2
+    exit 1
+  }
+done
+
+grep -Fq 'applicationId = "com.riftpp.editor"' "$RIFTPP_EDITOR_PROJECT/app/build.gradle.kts" || {
+  echo 'Rift++ Editor bootstrap package id drifted.' >&2
+  exit 1
+}
+if grep -R -n -E 'com\.riftos|com\.codynex' \
+    "$RIFTPP_EDITOR_PROJECT/app/src/main/java" \
+    "$RIFTPP_EDITOR_PROJECT/app/src/main/cpp" \
+    "$RIFTPP_EDITOR_PROJECT/app/src/main/AndroidManifest.xml" >/dev/null 2>&1; then
+  echo 'Rift++ Editor bootstrap project contains a forbidden RiftOS/Codynex runtime reference.' >&2
+  exit 1
+fi
+
+if ! timeout --signal=TERM --kill-after=30s "$GRADLE_BUILD_TIMEOUT" \
+    gradle -p "$RIFTPP_EDITOR_PROJECT" --stacktrace --no-build-cache :app:assembleRelease --no-daemon \
+    >"$LOG_DIR/riftpp-editor-build.log" 2>&1; then
+  echo "Rift++ Editor bootstrap compilation/packaging failed or exceeded $GRADLE_BUILD_TIMEOUT. Detailed log will be returned privately." >&2
+  exit 1
+fi
+
+RIFTPP_EDITOR_UNSIGNED="$RIFTPP_EDITOR_PROJECT/app/build/outputs/apk/release/app-release-unsigned.apk"
+RIFTPP_EDITOR_ALIGNED="$RUNNER_TEMP/RiftppEditor-aligned.apk"
+RIFTPP_EDITOR_FINAL="$OUT_DIR/RiftppEditor-debug.apk"
+
+test -f "$RIFTPP_EDITOR_UNSIGNED" || {
+  echo "Gradle did not produce $RIFTPP_EDITOR_UNSIGNED" >&2
+  exit 1
+}
+"$BUILD_TOOLS/zipalign" -p -f 4 "$RIFTPP_EDITOR_UNSIGNED" "$RIFTPP_EDITOR_ALIGNED"
+"$BUILD_TOOLS/apksigner" sign \
+  --ks "${RIFT_SIGN_STORE:?}" \
+  --ks-key-alias "${RIFT_SIGN_ALIAS:?}" \
+  --ks-pass "env:RIFT_SIGN_STORE_PASS" \
+  --key-pass "env:RIFT_SIGN_KEY_PASS" \
+  --v1-signing-enabled true \
+  --v2-signing-enabled true \
+  --v3-signing-enabled false \
+  --v4-signing-enabled false \
+  --out "$RIFTPP_EDITOR_FINAL" "$RIFTPP_EDITOR_ALIGNED"
+
+"$BUILD_TOOLS/zipalign" -c -v 4 "$RIFTPP_EDITOR_FINAL" >"$LOG_DIR/riftpp-editor-alignment.log" 2>&1
+"$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$RIFTPP_EDITOR_FINAL" >"$LOG_DIR/riftpp-editor-signature.log" 2>&1
+sha256sum "$RIFTPP_EDITOR_FINAL" >"$LOG_DIR/riftpp-editor-sha256.log"
+
+echo "Standalone Rift++ Editor APK built, signed and verified."
+
