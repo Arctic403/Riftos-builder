@@ -243,12 +243,17 @@ require_dex_string 'train_v2_builder_status' 'RiftLLM RiftTrainData V2 builder q
 
 # Codynex C0 editor/provider final-artifact proof. The provider class itself is already
 # covered by the Gradle-derived com.riftos.app loop above; these markers prove the exact
-# compiler authority/identity/bounds path survived compilation, and the mirrored editor
-# payload is present for RiftBuild to extract into the standalone editor APK.
+# compiler authority/identity/bounds path survived compilation, the RiftOs+ C0 project
+# compile/run host survived into DEX, and the mirrored editor/native VM payload is present.
 for marker in \
   'com.riftos.app.codynexcompiler' \
   'compile-c0' \
+  'c0-compile' \
+  'c0-run' \
+  'codynex-c0-project-compile/1' \
+  'codynex-c0-project-run/1' \
   'codynex-c0-ref/0.11.0' \
+  '7d7b33d2796ab2ddbca1519e00f254c2e6c8417af3ee9317ab45929a593b7df5' \
   'com.codynex.editor' \
   '9874e844c24fe92c65908ce9b3cfb192f87774984a9e4fc600d883badcbe19b5' \
   '/workspace/Codynex/external/language/l0/compiler/c0_reference.js' \
