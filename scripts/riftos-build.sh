@@ -395,6 +395,7 @@ for native_source in \
   android/app/src/main/cpp/mc1/codynex_mc1a_host.cpp \
   android/app/src/main/cpp/mc1/codynex_mc1b_host.cpp \
   android/app/src/main/cpp/riftpp/riftpp_app0_host.cpp \
+  android/app/src/main/cpp/riftpp/riftpp_compiler_host.cpp \
   android/app/src/main/cpp/editor/editor_vm_bridge.cpp \
   android/app/src/main/java/com/riftos/app/RiftCliHost.kt; do
   test -f "$native_source" || {
@@ -428,6 +429,10 @@ grep -Fq 'codynex_editor_vm' android/app/src/main/cpp/CMakeLists.txt || {
 }
 grep -Fq 'riftpp_app0_host' android/app/src/main/cpp/CMakeLists.txt || {
   echo 'Builder contract is stale: CMake must build libriftpp_app0_host for generated-runtime App0 packaging.' >&2
+  exit 1
+}
+grep -Fq 'riftpp_compiler_host' android/app/src/main/cpp/CMakeLists.txt || {
+  echo 'Builder contract is stale: CMake must build libriftpp_compiler_host for S2 self-host proof execution.' >&2
   exit 1
 }
 grep -Fq '"prepare-riftpp-app0" -> prepareRiftppApp0(' "$riftbuild_source" || {
@@ -464,6 +469,16 @@ for generated_toolchain_file in \
   }
 done
 
+# Native proof/compiler hosts must be rebuilt from the checked-out source. Keep
+# the generated RiftBuild toolchain payload, but discard CMake/native packaging
+# intermediates that can survive worker reuse across source revisions.
+rm -rf \
+  android/app/.cxx \
+  android/.cxx \
+  android/app/build/intermediates/cxx \
+  android/app/build/intermediates/merged_native_libs \
+  android/app/build/intermediates/stripped_native_libs
+
 if ! timeout --signal=TERM --kill-after=30s "$GRADLE_VALIDATE_TIMEOUT" \
     gradle -p android --stacktrace \
       :app:verifyRiftOsAndroidSources \
@@ -474,7 +489,7 @@ if ! timeout --signal=TERM --kill-after=30s "$GRADLE_VALIDATE_TIMEOUT" \
 fi
 
 if ! timeout --signal=TERM --kill-after=30s "$GRADLE_BUILD_TIMEOUT" \
-    gradle -p android --stacktrace --build-cache :app:assembleRelease --no-daemon \
+    gradle -p android --stacktrace --no-build-cache :app:assembleRelease --no-daemon \
     >"$LOG_DIR/android-build.log" 2>&1; then
   echo "RiftOS Android compilation/packaging failed or exceeded $GRADLE_BUILD_TIMEOUT. Detailed log will be returned privately." >&2
   exit 1

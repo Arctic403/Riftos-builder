@@ -300,6 +300,14 @@ require_entry "lib/armeabi-v7a/libriftpp_app0_host.so"
 forbid_entry '^lib/x86/libriftpp_app0_host\.so$'
 forbid_entry '^lib/x86_64/libriftpp_app0_host\.so$'
 
+# S2 self-host evidence executes the dedicated compiler host. Both supported ARM
+# ABIs must be present in the signed APK so source identity cannot drift from the
+# native proof implementation through stale worker/native intermediates.
+require_entry "lib/arm64-v8a/libriftpp_compiler_host.so"
+require_entry "lib/armeabi-v7a/libriftpp_compiler_host.so"
+forbid_entry '^lib/x86/libriftpp_compiler_host\.so$'
+forbid_entry '^lib/x86_64/libriftpp_compiler_host\.so$'
+
 # The standalone Codynex editor Preview path executes frozen VM1 on ARM32 and RiftBuild
 # extracts this exact library from the installed RiftOS APK.
 require_entry "lib/armeabi-v7a/libcodynex_editor_vm.so"
