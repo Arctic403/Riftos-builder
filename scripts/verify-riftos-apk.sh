@@ -267,6 +267,7 @@ for marker in \
   'workspace-probe' \
   'vm1AuthorityBytes' \
   'codynex-c0-ref/0.11.0' \
+  'codynex-c0-ref/0.12.0' \
   '7d7b33d2796ab2ddbca1519e00f254c2e6c8417af3ee9317ab45929a593b7df5' \
   'com.codynex.editor' \
   '9874e844c24fe92c65908ce9b3cfb192f87774984a9e4fc600d883badcbe19b5' \

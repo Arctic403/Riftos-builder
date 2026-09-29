@@ -59,7 +59,7 @@ fi
 
 # Builder-owned syntax preflight for the source-gate entrypoints. This runs before the
 # source-owned validator so a malformed validator cannot hide its own parse failure.
-for source_gate_script in   scripts/validate-rift-wiring.mjs   scripts/validate-rift-transport.mjs   scripts/validate-rift-docs.mjs   scripts/test-rift-cli-push-channel.mjs   scripts/test-rift-cli-batch-v2.mjs   scripts/test-rift-local-agent-batch.mjs   scripts/test-rift-mcp-operation-journal.mjs   scripts/test-rift-debug-hub.mjs   scripts/test-riftbuild-native.mjs   scripts/test-riftllm-bridge.mjs   scripts/test-semnexis-bootstrap.mjs   scripts/test-semnexis-arm32-exec.mjs   scripts/test-semnexis-shell.mjs; do
+for source_gate_script in   scripts/validate-rift-wiring.mjs   scripts/validate-rift-transport.mjs   scripts/validate-rift-docs.mjs   scripts/test-rift-cli-push-channel.mjs   scripts/test-rift-cli-batch-v2.mjs   scripts/test-rift-local-agent-batch.mjs   scripts/test-rift-mcp-operation-journal.mjs   scripts/test-rift-debug-hub.mjs   scripts/test-riftbuild-native.mjs   scripts/test-rift-shell-bridge.mjs   scripts/test-riftllm-bridge.mjs   scripts/test-semnexis-bootstrap.mjs   scripts/test-semnexis-arm32-exec.mjs   scripts/test-semnexis-shell.mjs; do
   node --check "$source_gate_script" >>"$LOG_DIR/source-syntax.log" 2>&1 || {
     echo "RiftOS source-gate syntax failed: $source_gate_script" >&2
     exit 1
@@ -84,6 +84,7 @@ node -e '
     "node scripts/test-rift-mcp-operation-journal.mjs",
     "node scripts/test-rift-debug-hub.mjs",
     "node scripts/test-riftbuild-native.mjs",
+    "node scripts/test-rift-shell-bridge.mjs",
     "node scripts/test-riftllm-bridge.mjs",
     "node scripts/test-semnexis-bootstrap.mjs",
     "node scripts/test-semnexis-arm32-exec.mjs",
@@ -269,8 +270,11 @@ for required_provider_contract in \
   'EDITOR_PACKAGE = "com.codynex.editor"' \
   'EDITOR_CERT_SHA256 =' \
   '9874e844c24fe92c65908ce9b3cfb192f87774984a9e4fc600d883badcbe19b5' \
-  'COMPILER_VERSION =' \
+  'COMPILER_VERSION_PREVIOUS =' \
+  'COMPILER_VERSION_CURRENT =' \
+  'SUPPORTED_COMPILER_VERSIONS' \
   'codynex-c0-ref/0.11.0' \
+  'codynex-c0-ref/0.12.0' \
   'MAX_SOURCE_BYTES = 256 * 1024' \
   'MAX_PROJECT_BYTES = 1024 * 1024' \
   'MAX_PROJECT_MODULES = 64' \
@@ -390,6 +394,7 @@ for required_riftbuild_gradle_source in \
   '"src/main/java/com/riftos/app/RiftBuildNativeToolchain.kt"' \
   '"src/main/java/com/riftos/app/RiftBuildNativeApp.kt"' \
   'sourceSets["main"].jniLibs.directories.add("build/generated/riftosJniLibs")' \
+  'validateCodynexCompilerTransition' \
   'jniLibs.useLegacyPackaging = true'; do
   grep -Fq "$required_riftbuild_gradle_source" "$gradle_contract" || {
     echo "Builder contract is stale: RiftBuild native source is not mandatory in verifyRiftOsAndroidSources: $required_riftbuild_gradle_source" >&2
@@ -516,6 +521,7 @@ rm -rf \
 if ! timeout --signal=TERM --kill-after=30s "$GRADLE_VALIDATE_TIMEOUT" \
     gradle -p android --stacktrace \
       :app:verifyRiftOsAndroidSources \
+      :app:validateCodynexCompilerTransition \
       :app:validateRiftBrowserWebViewOwnership \
       --no-daemon >"$LOG_DIR/gradle-validation.log" 2>&1; then
   echo "RiftOS Gradle validation failed or exceeded $GRADLE_VALIDATE_TIMEOUT before compilation. Detailed log will be returned privately." >&2
