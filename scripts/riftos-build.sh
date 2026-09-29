@@ -8,7 +8,7 @@ LOG_DIR="${RUNNER_TEMP:?}/riftos-private-logs"
 OUT_DIR="${RUNNER_TEMP:?}/riftos-output"
 mkdir -p "$LOG_DIR" "$OUT_DIR"
 
-for required_command in timeout node npm gradle git grep sed sha256sum; do
+for required_command in timeout node npm gradle git grep sed sha256sum python3 dpkg-deb readelf patchelf; do
   command -v "$required_command" >/dev/null 2>&1 || {
     echo "Builder runtime is missing required command: $required_command" >&2
     exit 1
@@ -21,12 +21,14 @@ NODE_MAJOR="$(node -p 'Number(process.versions.node.split(".")[0])')"
 }
 
 SOURCE_CHECK_TIMEOUT="${SOURCE_CHECK_TIMEOUT:-12m}"
+RIFTBUILD_TOOLCHAIN_TIMEOUT="${RIFTBUILD_TOOLCHAIN_TIMEOUT:-10m}"
 GRADLE_VALIDATE_TIMEOUT="${GRADLE_VALIDATE_TIMEOUT:-6m}"
 GRADLE_BUILD_TIMEOUT="${GRADLE_BUILD_TIMEOUT:-20m}"
 APK_VERIFY_TIMEOUT="${APK_VERIFY_TIMEOUT:-3m}"
 
-# Fail before the expensive Android build if the builder-side smoke gate itself is malformed.
+# Fail before the expensive Android build if Builder-owned gates/generators are malformed.
 bash -n "$SCRIPT_DIR/verify-riftos-apk.sh"
+python3 -m py_compile "$SCRIPT_DIR/prepare-riftbuild-toolchain.py"
 
 cd "$SOURCE_DIR"
 echo "Building RiftOS ${SOURCE_SHA:-unknown}."
@@ -299,6 +301,7 @@ done
 
 for required_riftbuild_native_contract in \
   '"toolchain-status" -> nativeToolchain.status()' \
+  '"toolchain-install-bundled" -> nativeToolchain.installBundled()' \
   '"compile-native" -> compileNative(' \
   '"prepare-native-app" -> prepareNativeApp(' \
   'structuredCompilerProcessExecution' \
@@ -317,8 +320,13 @@ for required_riftbuild_toolchain_contract in \
   'downloadedToolchainsAllowed' \
   'MAX_TOOLCHAIN_ARGS = 128' \
   'MAX_LIBRARIES = 64' \
+  'BUNDLED_TOOLCHAIN_ASSET = "riftbuild/android-clang-v1.zip"' \
+  'riftbuild-native-toolchain-install-v1' \
+  'ZipInputStream' \
+  'LD_LIBRARY_PATH' \
   '.replace("%TOOLCHAIN%", toolchainRoot.absolutePath)' \
   '.replace("%SYSROOT%", sysroot.absolutePath)' \
+  '.replace("%COMPILER_DIR%", compiler.parentFile?.absolutePath.orEmpty())' \
   'verifyElf'; do
   grep -Fq "$required_riftbuild_toolchain_contract" "$riftbuild_toolchain_source" || {
     echo "Builder RiftBuild Native Compile V1 toolchain contract missing: $required_riftbuild_toolchain_contract" >&2
@@ -343,7 +351,9 @@ for required_riftbuild_native_app_contract in \
 done
 for required_riftbuild_gradle_source in \
   '"src/main/java/com/riftos/app/RiftBuildNativeToolchain.kt"' \
-  '"src/main/java/com/riftos/app/RiftBuildNativeApp.kt"'; do
+  '"src/main/java/com/riftos/app/RiftBuildNativeApp.kt"' \
+  'sourceSets["main"].jniLibs.directories.add("build/generated/riftosJniLibs")' \
+  'jniLibs.useLegacyPackaging = true'; do
   grep -Fq "$required_riftbuild_gradle_source" "$gradle_contract" || {
     echo "Builder contract is stale: RiftBuild native source is not mandatory in verifyRiftOsAndroidSources: $required_riftbuild_gradle_source" >&2
     exit 1
@@ -360,6 +370,11 @@ for required_editor_packer_contract in \
     exit 1
   }
 done
+
+grep -Fq 'android:extractNativeLibs="true"' "$manifest_contract" || {
+  echo 'Builder RiftBuild bundled toolchain contract requires android:extractNativeLibs=true.' >&2
+  exit 1
+}
 
 if grep -Eq 'compilerA|selfhost_compiler|compiler\.cx0|Fixed-point preview' \
     "$editor_activity" "$editor_toolchain" "$editor_bootstrap"; then
@@ -427,6 +442,24 @@ if ! timeout --signal=TERM --kill-after=30s "$SOURCE_CHECK_TIMEOUT" \
   echo "Source checks failed or exceeded $SOURCE_CHECK_TIMEOUT; APK build stopped." >&2
   exit 1
 fi
+
+if ! timeout --signal=TERM --kill-after=30s "$RIFTBUILD_TOOLCHAIN_TIMEOUT" \
+    python3 "$SCRIPT_DIR/prepare-riftbuild-toolchain.py" "$SOURCE_DIR" \
+    >"$LOG_DIR/riftbuild-toolchain.log" 2>&1; then
+  echo "RiftBuild Android-host toolchain generation failed or exceeded $RIFTBUILD_TOOLCHAIN_TIMEOUT. Detailed log will be returned privately." >&2
+  exit 1
+fi
+for generated_toolchain_file in \
+  android/app/build/generated/riftosAssets/riftbuild/android-clang-v1.zip \
+  android/app/build/generated/riftosJniLibs/arm64-v8a/libclang_exec.so \
+  android/app/build/generated/riftosJniLibs/arm64-v8a/libld_lld_exec.so \
+  android/app/build/generated/riftosJniLibs/armeabi-v7a/libclang_exec.so \
+  android/app/build/generated/riftosJniLibs/armeabi-v7a/libld_lld_exec.so; do
+  test -s "$generated_toolchain_file" || {
+    echo "RiftBuild generated toolchain payload missing or empty: $generated_toolchain_file" >&2
+    exit 1
+  }
+done
 
 if ! timeout --signal=TERM --kill-after=30s "$GRADLE_VALIDATE_TIMEOUT" \
     gradle -p android --stacktrace \

@@ -71,6 +71,7 @@ jobs:
           set -euo pipefail
           bash -n worker/scripts/riftos-build.sh
           bash -n worker/scripts/verify-riftos-apk.sh
+          python3 -m py_compile worker/scripts/prepare-riftbuild-toolchain.py
 
       - name: Set up Node 24
         uses: actions/setup-node@v4
@@ -86,6 +87,10 @@ jobs:
       - name: Set up Android SDK
         run: |
           set -euo pipefail
+          if ! command -v patchelf >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y patchelf
+          fi
           SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
           echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"

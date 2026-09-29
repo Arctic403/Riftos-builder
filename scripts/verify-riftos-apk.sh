@@ -141,12 +141,26 @@ if ! grep -Fq 'com.riftos.app.codynexcompiler' <<<"$manifest_tree"; then
   echo 'APK smoke check failed: compiled manifest is missing Codynex compiler authority.' >&2
   exit 1
 fi
+extract_native_line="$(grep -F 'android:extractNativeLibs' <<<"$manifest_tree" || true)"
+if [ -z "$extract_native_line" ] || ! grep -Eq '(0xffffffff|true)' <<<"$extract_native_line"; then
+  echo 'APK smoke check failed: compiled manifest does not retain extractNativeLibs=true for RiftBuild host compiler execution.' >&2
+  printf '%s\n' "$extract_native_line" >&2
+  exit 1
+fi
 
 badging="$($AAPT2 dump badging "$APK")"
 if grep -Fq 'application-debuggable' <<<"$badging"; then
   echo 'APK smoke check failed: release APK is marked debuggable.' >&2
   exit 1
 fi
+
+# RiftBuild bundled Android-host compiler payload must survive final packaging for both supported host ABIs.
+require_entry 'assets/riftbuild/android-clang-v1.zip'
+for abi in arm64-v8a armeabi-v7a; do
+  require_entry "lib/$abi/libclang_exec.so"
+  require_entry "lib/$abi/libld_lld_exec.so"
+done
+forbid_entry '^lib/(x86|x86_64)/lib(clang_exec|ld_lld_exec)\.so$'
 
 # Source, VCS and signing-key material must never leak into the APK ZIP.
 forbid_entry '\.(kt|java)$'
@@ -183,6 +197,10 @@ done
 # owners exist; these markers prove the new command/contract surfaces survived Kotlin compilation.
 require_dex_string 'compile-native' 'RiftBuild Native Compile V1 command'
 require_dex_string 'toolchain-status' 'RiftBuild Native Compile V1 toolchain status command'
+require_dex_string 'toolchain-install-bundled' 'RiftBuild bundled toolchain install command'
+require_dex_string 'riftbuild-native-toolchain-install-v1' 'RiftBuild bundled toolchain install result schema'
+require_dex_string 'riftbuild/android-clang-v1.zip' 'RiftBuild bundled toolchain asset path'
+require_dex_string '%COMPILER_DIR%' 'RiftBuild compiler-directory argv expansion'
 require_dex_string 'prepare-native-app' 'RiftBuild generic native-app preparation command'
 require_dex_string 'riftbuild-native-toolchain-status-v1' 'RiftBuild native toolchain status schema'
 require_dex_string 'riftbuild-native-compile-v1' 'RiftBuild native compile result schema'
