@@ -252,6 +252,7 @@ for marker in \
   'c0-run' \
   'codynex-c0-project-compile/1' \
   'codynex-c0-project-run/1' \
+  'vm1AuthorityBytes' \
   'codynex-c0-ref/0.11.0' \
   '7d7b33d2796ab2ddbca1519e00f254c2e6c8417af3ee9317ab45929a593b7df5' \
   'com.codynex.editor' \
