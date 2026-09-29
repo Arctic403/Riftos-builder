@@ -251,12 +251,20 @@ for marker in \
   'c0-compile' \
   'c0-run' \
   'c0-run-host' \
+  'c0-run-host-call' \
   'codynex-c0-project-compile/1' \
   'codynex-c0-project-run/1' \
   'codynex-c0-project-host-run/1' \
+  'codynex-c0-project-host-call-run/1' \
   'riftosplus-host-snapshot/1' \
+  'riftosplus-host-call/1' \
+  'riftosplus-host-request/1' \
+  'riftosplus-host-response/1' \
   'hostSnapshotBytes' \
   'hostSnapshotCapabilities' \
+  'hostCallTurns' \
+  'hostOperation' \
+  'workspace-probe' \
   'vm1AuthorityBytes' \
   'codynex-c0-ref/0.11.0' \
   '7d7b33d2796ab2ddbca1519e00f254c2e6c8417af3ee9317ab45929a593b7df5' \

@@ -283,11 +283,21 @@ done
 
 for required_riftosplus_host_contract in \
   'c0-run-host' \
+  'c0-run-host-call' \
   'codynex-c0-project-host-run/1' \
+  'codynex-c0-project-host-call-run/1' \
   'riftosplus-host-snapshot/1' \
+  'riftosplus-host-call/1' \
+  'riftosplus-host-request/1' \
+  'riftosplus-host-response/1' \
   'buildCodynexC0HostSnapshot' \
+  'requireCodynexC0WorkspaceProbeRequest' \
+  'buildCodynexC0WorkspaceProbeResponse' \
   'SystemClock.elapsedRealtime()' \
-  'source = if (hostRun)' \
+  'val initialSource = if (hostRun)' \
+  'requestBytes == 8L' \
+  'resolveFile("/D:/Workspace").isDirectory' \
+  '.put("hostCallTurns", 2)' \
   'putCodynexC0U32Le(snapshot, 12, 7)'; do
   grep -Fq "$required_riftosplus_host_contract" "$codynex_shell_services" || {
     echo "Builder RiftOs+ R1 host source contract missing: $required_riftosplus_host_contract" >&2
