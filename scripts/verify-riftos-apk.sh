@@ -271,8 +271,10 @@ for marker in \
   'com.codynex.editor' \
   '9874e844c24fe92c65908ce9b3cfb192f87774984a9e4fc600d883badcbe19b5' \
   '/workspace/Codynex/external/language/l0/compiler/c0_reference.js' \
-  'C0 0.11.0 via' \
-  'RiftOS QuickJS -> VM1'; do
+  'TEMP LIVE-PROOF SCAFFOLD' \
+  'Set Entry' \
+  'Save All' \
+  'compile-c0-project'; do
   require_dex_string "$marker" "Codynex C0 editor/provider marker $marker"
 done
 

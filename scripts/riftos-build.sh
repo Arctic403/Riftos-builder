@@ -272,7 +272,11 @@ for required_provider_contract in \
   'COMPILER_VERSION =' \
   'codynex-c0-ref/0.11.0' \
   'MAX_SOURCE_BYTES = 256 * 1024' \
+  'MAX_PROJECT_BYTES = 1024 * 1024' \
+  'MAX_PROJECT_MODULES = 64' \
   'MAX_VM1_BYTES = 64 * 1024' \
+  'METHOD_COMPILE_PROJECT = "compile-c0-project"' \
+  'compileCodynexC0Project' \
   'runtime.executeQuickJs' \
   '/workspace/Codynex/external/language/l0/compiler/c0_reference.js'; do
   grep -Fq "$required_provider_contract" "$provider_source" || {
@@ -307,8 +311,9 @@ done
 
 for required_editor_contract in \
   'File(workspaceRoot, "main.cx")' \
-  'C0 0.11.0 via' \
-  'RiftOS QuickJS -> VM1'; do
+  'TEMP LIVE-PROOF SCAFFOLD' \
+  'Set Entry' \
+  'Save All'; do
   grep -Fq "$required_editor_contract" "$editor_activity" || {
     echo "Builder Codynex editor activity contract missing: $required_editor_contract" >&2
     exit 1
@@ -318,9 +323,12 @@ done
 for required_editor_toolchain in \
   'com.riftos.app.codynexcompiler' \
   'COMPILE_METHOD = "compile-c0"' \
+  'COMPILE_PROJECT_METHOD = "compile-c0-project"' \
   'contentResolver.call' \
   'Vm1Bridge.run' \
   'MAX_SOURCE_BYTES = 256 * 1024' \
+  'MAX_PROJECT_BYTES = 1024 * 1024' \
+  'MAX_PROJECT_MODULES = 64' \
   'MAX_CANDIDATE_BYTES = 64 * 1024'; do
   grep -Fq "$required_editor_toolchain" "$editor_toolchain" || {
     echo "Builder Codynex editor toolchain contract missing: $required_editor_toolchain" >&2
