@@ -139,24 +139,56 @@ def download_package(record, cache_dir):
     print(f"downloaded {filename} from {source}", file=sys.stderr)
     return target
 
+def termux_prefix(root):
+    packaged = root / "data" / "data" / "com.termux" / "files" / "usr"
+    flat = root / "usr"
+    present = [path for path in (packaged, flat) if path.is_dir()]
+    if len(present) == 1:
+        return present[0]
+    if len(present) > 1:
+        populated = [
+            path for path in present
+            if (path / "bin").is_dir() or (path / "lib").is_dir()
+        ]
+        if len(populated) == 1:
+            return populated[0]
+        die(
+            "ambiguous Termux prefix layout: " +
+            ", ".join(str(path.relative_to(root)) for path in present)
+        )
+    die("Termux prefix missing after package extraction")
+
+
 def resolve_termux_symlink(path, root):
+    prefix_root = termux_prefix(root)
     path = path
     for _ in range(16):
         if not path.is_symlink():
             return path
         target = os.readlink(path)
         if os.path.isabs(target):
-            prefix = "/data/data/com.termux/files/usr/"
-            if not target.startswith(prefix):
+            prefix = "/data/data/com.termux/files/usr"
+            if target == prefix:
+                path = prefix_root
+            elif target.startswith(prefix + "/"):
+                path = prefix_root / target[len(prefix) + 1:]
+            else:
                 die(f"unsupported absolute Termux symlink: {path} -> {target}")
-            path = root / "usr" / target[len(prefix):]
         else:
             path = (path.parent / target).resolve(strict=False)
+        resolved = path.resolve(strict=False)
+        prefix_resolved = prefix_root.resolve(strict=False)
+        try:
+            resolved.relative_to(prefix_resolved)
+        except ValueError:
+            die(f"Termux symlink escapes extracted prefix: {path} -> {resolved}")
+        path = resolved
     die(f"Termux symlink depth exceeded: {path}")
 
 def find_binary(root, names):
+    prefix_root = termux_prefix(root)
     for name in names:
-        candidate = root / "usr" / "bin" / name
+        candidate = prefix_root / "bin" / name
         if candidate.exists() or candidate.is_symlink():
             resolved = resolve_termux_symlink(candidate, root)
             if resolved.is_file():
@@ -172,7 +204,7 @@ def needed(path):
 
 def library_index(root):
     out = {}
-    libroot = root / "usr" / "lib"
+    libroot = termux_prefix(root) / "lib"
     if not libroot.is_dir():
         return out
     for path in libroot.rglob("lib*.so*"):

@@ -71,7 +71,8 @@ jobs:
           set -euo pipefail
           bash -n worker/scripts/riftos-build.sh
           bash -n worker/scripts/verify-riftos-apk.sh
-          python3 -m py_compile worker/scripts/prepare-riftbuild-toolchain.py
+          python3 -m py_compile worker/scripts/prepare-riftbuild-toolchain.py worker/scripts/test-prepare-riftbuild-toolchain.py
+          python3 worker/scripts/test-prepare-riftbuild-toolchain.py
 
       - name: Set up Node 24
         uses: actions/setup-node@v4

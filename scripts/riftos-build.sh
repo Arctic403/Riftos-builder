@@ -28,7 +28,10 @@ APK_VERIFY_TIMEOUT="${APK_VERIFY_TIMEOUT:-3m}"
 
 # Fail before the expensive Android build if Builder-owned gates/generators are malformed.
 bash -n "$SCRIPT_DIR/verify-riftos-apk.sh"
-python3 -m py_compile "$SCRIPT_DIR/prepare-riftbuild-toolchain.py"
+python3 -m py_compile \
+  "$SCRIPT_DIR/prepare-riftbuild-toolchain.py" \
+  "$SCRIPT_DIR/test-prepare-riftbuild-toolchain.py"
+python3 "$SCRIPT_DIR/test-prepare-riftbuild-toolchain.py"
 
 cd "$SOURCE_DIR"
 echo "Building RiftOS ${SOURCE_SHA:-unknown}."
