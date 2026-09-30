@@ -159,8 +159,9 @@ require_entry 'assets/riftbuild/android-clang-v1.zip'
 for abi in arm64-v8a armeabi-v7a; do
   require_entry "lib/$abi/libclang_exec.so"
   require_entry "lib/$abi/libld_lld_exec.so"
+  require_entry "lib/$abi/libld_lld_shim.so"
 done
-forbid_entry '^lib/(x86|x86_64)/lib(clang_exec|ld_lld_exec)\.so$'
+forbid_entry '^lib/(x86|x86_64)/lib(clang_exec|ld_lld_exec|ld_lld_shim)\.so$'
 
 # Source, VCS and signing-key material must never leak into the APK ZIP.
 forbid_entry '\.(kt|java)$'

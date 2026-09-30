@@ -261,6 +261,64 @@ def patch_elf(path, rename_map, original_needed, soname=None):
     if soname:
         subprocess.run(["patchelf", "--set-soname", soname, str(path)], check=True)
 
+def build_linker_shim(abi, out):
+    sdk = os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT")
+    if not sdk:
+        die("ANDROID_HOME/ANDROID_SDK_ROOT is required for RiftBuild linker shim")
+    ndk_bin = pathlib.Path(sdk) / "ndk" / NDK_VERSION / "toolchains" / "llvm" / "prebuilt" / "linux-x86_64" / "bin"
+    driver_name = "armv7a-linux-androideabi26-clang" if abi == "armeabi-v7a" else "aarch64-linux-android26-clang"
+    driver = ndk_bin / driver_name
+    if not driver.is_file():
+        die(f"Android NDK linker-shim compiler missing: {driver}")
+
+    source = out / "riftbuild-linker-shim.c"
+    output = out / "libld_lld_shim.so"
+    source.write_text(r"""#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+int main(int argc, char **argv) {
+    char self[4096];
+    ssize_t n = readlink("/proc/self/exe", self, sizeof(self) - 1);
+    if (n <= 0 || n >= (ssize_t)sizeof(self)) return 126;
+    self[n] = '\0';
+    char *slash = strrchr(self, '/');
+    if (!slash) return 126;
+    *slash = '\0';
+
+    char linker[4096];
+    int written = snprintf(linker, sizeof(linker), "%s/libld_lld_exec.so", self);
+    if (written <= 0 || written >= (int)sizeof(linker)) return 126;
+
+    char **next = (char **)calloc((size_t)argc + 1u, sizeof(char *));
+    if (!next) return 126;
+    next[0] = (char *)"ld.lld";
+    for (int i = 1; i < argc; ++i) next[i] = argv[i];
+    next[argc] = NULL;
+    execv(linker, next);
+    perror("RiftBuild ld.lld exec");
+    return 127;
+}
+""", encoding="utf-8")
+    subprocess.run(
+        [
+            str(driver),
+            "-O2",
+            "-fPIE",
+            "-pie",
+            "-Wl,--build-id=none",
+            "-o",
+            str(output),
+            str(source),
+        ],
+        check=True,
+    )
+    source.unlink()
+    if not output.is_file() or output.stat().st_size <= 0:
+        die(f"generated linker shim missing: {output}")
+    return output
+
 def prepare_host_arch(arch, abi, jni_root, work):
     index, index_source = package_index(arch)
     selected = resolve_packages(index)
@@ -298,6 +356,7 @@ def prepare_host_arch(arch, abi, jni_root, work):
     shutil.copy2(lld, linker_out)
     patch_elf(compiler_out, rename_map, needed(clang))
     patch_elf(linker_out, rename_map, needed(lld))
+    linker_shim_out = build_linker_shim(abi, out)
 
     copied = {}
     for old_name, source in sorted(closure.items()):
@@ -307,7 +366,7 @@ def prepare_host_arch(arch, abi, jni_root, work):
         patch_elf(target, rename_map, needed(source), soname=new_name)
         copied[old_name] = new_name
 
-    for executable in (compiler_out, linker_out):
+    for executable in (compiler_out, linker_out, linker_shim_out):
         if not executable.is_file() or executable.stat().st_size <= 0:
             die(f"generated host executable missing: {executable}")
     print(f"{abi}: packaged clang/lld + {len(copied)} private runtime libraries", file=sys.stderr)
@@ -318,6 +377,7 @@ def prepare_host_arch(arch, abi, jni_root, work):
         "packages": package_meta,
         "compilerSha256": sha256_file(compiler_out),
         "linkerSha256": sha256_file(linker_out),
+        "linkerShimSha256": sha256_file(linker_shim_out),
         "runtimeLibraries": copied,
     }
 
@@ -364,8 +424,8 @@ def prepare_data_archive(source_dir, metadata):
         "args": [
             "--driver-mode=g++",
             "-stdlib=libc++",
-            "--resource-dir=%TOOLCHAIN%/resource",
-            "--ld-path=%COMPILER_DIR%/libld_lld_exec.so",
+            "-resource-dir=%TOOLCHAIN%/resource",
+            "--ld-path=%COMPILER_DIR%/libld_lld_shim.so",
         ],
         "host": metadata,
         "ndkVersion": NDK_VERSION,
