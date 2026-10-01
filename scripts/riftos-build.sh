@@ -165,7 +165,7 @@ for required_gradle_contract in \
   }
 done
 mapfile -t required_native_sources < <(
-  sed -nE 's/.*"(src\/main\/java\/com\/riftos\/app\/[A-Za-z0-9_]+\.kt)".*/\1/p' "$gradle_contract"
+  sed -nE 's/.*"(src\/main\/java\/(com\/riftos\/app|com\/riftpp\/editor)\/[A-Za-z0-9_]+\.kt)".*/\1/p' "$gradle_contract"
 )
 test "${#required_native_sources[@]}" -gt 0 || { echo 'Builder contract preflight found no mandatory Kotlin sources.' >&2; exit 1; }
 for source_rel in "${required_native_sources[@]}"; do
@@ -401,6 +401,78 @@ for required_riftbuild_gradle_source in \
     exit 1
   }
 done
+
+# Rift++ legacy-editor native bootstrap contract. This is the one-time bridge that lets
+# future Rift++ native-editor work compile/preflight/package inside the installed editor
+# instead of requiring a RiftOS rebuild for every patch.
+riftpp_editor_service="android/app/src/main/java/com/riftpp/editor/RiftppEditorBridgeService.kt"
+riftpp_editor_pipeline="android/app/src/main/java/com/riftpp/editor/RiftppPipeline.kt"
+riftpp_editor_hex="android/app/src/main/java/com/riftpp/editor/HexAssets.kt"
+riftpp_editor_apk_builder="android/app/src/main/java/com/riftpp/editor/RiftppApkBuilder.kt"
+riftpp_editor_elf_preflight="android/app/src/main/java/com/riftpp/editor/RiftppNativeElfPreflight.kt"
+riftpp_editor_shell="android/app/src/main/java/com/riftos/app/RiftNativeShell.kt"
+
+for riftpp_editor_file in   "$riftpp_editor_service"   "$riftpp_editor_pipeline"   "$riftpp_editor_hex"   "$riftpp_editor_apk_builder"   "$riftpp_editor_elf_preflight"   "$riftpp_editor_shell"; do
+  test -f "$riftpp_editor_file" || {
+    echo "Builder Rift++ native editor bootstrap contract is missing: $riftpp_editor_file" >&2
+    exit 1
+  }
+done
+
+for required_riftpp_editor_service_contract in   '"native-compile" ->'   '"native-run" ->'   '"native-preflight" ->'   '"native-build-debug" ->'   'riftpp-editor-native-compile/1'   'riftpp-editor-native-run/1'   'riftpp-editor-native-preflight/1'   'riftpp-editor-native-build/1'; do
+  grep -Fq "$required_riftpp_editor_service_contract" "$riftpp_editor_service" || {
+    echo "Builder Rift++ native editor bridge contract missing: $required_riftpp_editor_service_contract" >&2
+    exit 1
+  }
+done
+
+for required_riftpp_editor_pipeline_contract in   'compileRecordHex('   'compileRecordSource('   'runNativeProgram('   'bootstrapCompilerForDevelopment()'; do
+  grep -Fq "$required_riftpp_editor_pipeline_contract" "$riftpp_editor_pipeline" || {
+    echo "Builder Rift++ native editor pipeline contract missing: $required_riftpp_editor_pipeline_contract" >&2
+    exit 1
+  }
+done
+
+for required_riftpp_editor_hex_contract in   'decodeContinuousHex('   'decodeLineHex('; do
+  grep -Fq "$required_riftpp_editor_hex_contract" "$riftpp_editor_hex" || {
+    echo "Builder Rift++ native editor hex contract missing: $required_riftpp_editor_hex_contract" >&2
+    exit 1
+  }
+done
+
+for required_riftpp_editor_apk_contract in   'fun buildNativeDebug('   'android.app.NativeActivity'   'android.app.lib_name'   'nativeLibraryName ='   'riftpp-editor-native-apk-v1'; do
+  grep -Fq "$required_riftpp_editor_apk_contract" "$riftpp_editor_apk_builder" || {
+    echo "Builder Rift++ native editor APK contract missing: $required_riftpp_editor_apk_contract" >&2
+    exit 1
+  }
+done
+
+for required_riftpp_editor_elf_contract in   'EM_ARM = 40'   'PT_LOAD'   'section-header table'   'writable and executable'   'executable PT_LOAD crosses writable PT_LOAD'; do
+  grep -Fq "$required_riftpp_editor_elf_contract" "$riftpp_editor_elf_preflight" || {
+    echo "Builder Rift++ native editor ELF preflight contract missing: $required_riftpp_editor_elf_contract" >&2
+    exit 1
+  }
+done
+
+for required_riftpp_editor_shell_contract in   'riftpp-editor native-compile'   'riftpp-editor native-run'   'riftpp-editor native-preflight'   'riftpp-editor native-build-debug'; do
+  grep -Fq "$required_riftpp_editor_shell_contract" "$riftpp_editor_shell" || {
+    echo "Builder Rift++ native editor shell transport contract missing: $required_riftpp_editor_shell_contract" >&2
+    exit 1
+  }
+done
+
+grep -Fq '"src/main/java/com/riftpp/editor/RiftppNativeElfPreflight.kt"' "$gradle_contract" || {
+  echo 'Builder contract is stale: RiftppNativeElfPreflight.kt is not mandatory in verifyRiftppEditorPayload.' >&2
+  exit 1
+}
+grep -Fq 'developmentCompilerAuthority", "workspace-supplied Rift++ S3 Next"' "$riftbuild_source" || {
+  echo 'Builder Rift++ authority receipt is stale: S3 Next is not recorded as the development compiler authority.' >&2
+  exit 1
+}
+grep -Fq 'bootstrapCompilerAuthority", "frozen Rift++ S3 ARM32 recovery root"' "$riftbuild_source" || {
+  echo 'Builder Rift++ authority receipt is stale: frozen S3 is not retained as the recovery root.' >&2
+  exit 1
+}
 
 for required_editor_packer_contract in \
   '"prepare-codynex-editor" -> prepareCodynexEditor(' \

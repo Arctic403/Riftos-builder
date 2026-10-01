@@ -178,7 +178,7 @@ forbid_entry '\.keystore$'
 gradle_contract="$SOURCE_DIR/android/app/build.gradle.kts"
 test -f "$gradle_contract" || { echo 'APK smoke check failed: RiftOS Gradle source contract is missing.' >&2; exit 1; }
 mapfile -t required_native_sources < <(
-  sed -nE 's/.*"(src\/main\/java\/com\/riftos\/app\/[A-Za-z0-9_]+\.kt)".*/\1/p' "$gradle_contract"
+  sed -nE 's/.*"(src\/main\/java\/(com\/riftos\/app|com\/riftpp\/editor)\/[A-Za-z0-9_]+\.kt)".*/\1/p' "$gradle_contract"
 )
 if [ "${#required_native_sources[@]}" -eq 0 ]; then
   echo 'APK smoke check failed: RiftOS Gradle source contract declared no mandatory native sources.' >&2
@@ -187,9 +187,9 @@ fi
 for source_rel in "${required_native_sources[@]}"; do
   source="$SOURCE_DIR/android/app/$source_rel"
   test -f "$source" || { echo "APK smoke check failed: mandatory native source is missing: $source_rel" >&2; exit 1; }
-  class_name="${source_rel##*/}"
-  class_name="${class_name%.kt}"
-  descriptor="Lcom/riftos/app/${class_name};"
+  descriptor_path="${source_rel#src/main/java/}"
+  descriptor_path="${descriptor_path%.kt}"
+  descriptor="L${descriptor_path};"
   require_dex_string "$descriptor" "required native class $descriptor from $source_rel"
 done
 
@@ -212,6 +212,13 @@ require_dex_string 'riftbuild-native-app/1' 'RiftBuild native app contract'
 require_dex_string 'structured-argv' 'RiftBuild structured compiler process mode'
 require_dex_string '%TOOLCHAIN%' 'RiftBuild toolchain-root argv expansion'
 require_dex_string '%SYSROOT%' 'RiftBuild sysroot argv expansion'
+
+# Rift++ legacy-editor native bootstrap final-artifact proof. Class descriptors above prove
+# the mirrored editor owners survived DEX compilation; these unique markers prove the actual
+# native compile/run/preflight/debug-APK lane and S3 authority split survived too.
+for marker in   'riftpp-editor native-compile'   'riftpp-editor native-run'   'riftpp-editor native-preflight'   'riftpp-editor native-build-debug'   'riftpp-editor-native-compile/1'   'riftpp-editor-native-run/1'   'riftpp-editor-native-preflight/1'   'riftpp-editor-native-build/1'   'riftpp-editor-native-apk-v1'   'workspace-supplied Rift++ S3 Next'   'frozen Rift++ S3 ARM32 recovery root'; do
+  require_dex_string "$marker" "Rift++ legacy-editor native bootstrap marker $marker"
+done
 
 # RiftGit mode-preserving push must survive compilation into the release DEX, not only exist
 # in source. These strings are emitted by the executable/symlink fallback path.
