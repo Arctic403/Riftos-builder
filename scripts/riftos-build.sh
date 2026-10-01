@@ -456,7 +456,7 @@ for required_riftpp_editor_apk_contract in   'fun buildNativeDebug('   'android.
   }
 done
 
-for required_riftpp_editor_elf_contract in   'EM_ARM = 40'   'PT_LOAD'   'section-header table'   'writable and executable'   'executable PT_LOAD crosses writable PT_LOAD'; do
+for required_riftpp_editor_elf_contract in   'EM_ARM = 40'   'PT_LOAD'   'section-header table'   'writable and executable'   'PT_LOAD virtual ranges overlap'; do
   grep -Fq "$required_riftpp_editor_elf_contract" "$riftpp_editor_elf_preflight" || {
     echo "Builder Rift++ native editor ELF preflight contract missing: $required_riftpp_editor_elf_contract" >&2
     exit 1
