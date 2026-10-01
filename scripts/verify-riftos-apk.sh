@@ -172,9 +172,10 @@ forbid_entry '\.keystore$'
 # Native-only RiftOS patches must be proven in the final signed artifact too, not merely in
 # the checked-out source. RiftOS owns the mandatory native-source contract in
 # android/app/build.gradle.kts::verifyRiftOsAndroidSources; consume that contract here so a new
-# required Kotlin runtime class automatically becomes a final-APK DEX requirement without a
-# second hard-coded Builder list drifting behind it. Minification is disabled, so each top-level
-# class descriptor must remain in one of the APK's DEX files.
+# required Kotlin source automatically becomes a final-APK DEX requirement without a
+# second hard-coded Builder list drifting behind it. Package names and real column-zero top-level
+# declarations are parsed from source; filenames are not treated as class names. Minification is
+# disabled, so each derived top-level class descriptor must remain in one of the APK's DEX files.
 gradle_contract="$SOURCE_DIR/android/app/build.gradle.kts"
 test -f "$gradle_contract" || { echo 'APK smoke check failed: RiftOS Gradle source contract is missing.' >&2; exit 1; }
 mapfile -t required_native_sources < <(
@@ -187,10 +188,26 @@ fi
 for source_rel in "${required_native_sources[@]}"; do
   source="$SOURCE_DIR/android/app/$source_rel"
   test -f "$source" || { echo "APK smoke check failed: mandatory native source is missing: $source_rel" >&2; exit 1; }
-  descriptor_path="${source_rel#src/main/java/}"
-  descriptor_path="${descriptor_path%.kt}"
-  descriptor="L${descriptor_path};"
-  require_dex_string "$descriptor" "required native class $descriptor from $source_rel"
+
+  source_package="$(sed -nE 's/^[[:space:]]*package[[:space:]]+([A-Za-z_][A-Za-z0-9_.]*).*/\1/p' "$source" | head -n 1)"
+  test -n "$source_package" || {
+    echo "APK smoke check failed: mandatory Kotlin source has no package declaration: $source_rel" >&2
+    exit 1
+  }
+
+  mapfile -t top_level_declarations < <(
+    sed -nE 's/^((public|private|internal|protected|abstract|open|final|sealed|data|enum|annotation|value|fun)[[:space:]]+)*(class|object|interface)[[:space:]]+([A-Za-z_][A-Za-z0-9_]*).*/\4/p' "$source"
+  )
+  if [ "${#top_level_declarations[@]}" -eq 0 ]; then
+    echo "APK smoke check failed: mandatory Kotlin source has no top-level class/object/interface: $source_rel" >&2
+    exit 1
+  fi
+
+  descriptor_package="${source_package//./\/}"
+  for declaration in "${top_level_declarations[@]}"; do
+    descriptor="L${descriptor_package}/${declaration};"
+    require_dex_string "$descriptor" "required native class $descriptor from $source_rel"
+  done
 done
 
 # RiftBuild Native Compile V1 and generic native-app preparation must survive compilation into

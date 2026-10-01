@@ -137,8 +137,9 @@ for semnexis_contract_marker in \
 done
 
 # Validate the Builder's DEX-verifier assumption against the exact source contract before
-# source tests/Gradle: every mandatory Kotlin filename must declare a matching top-level
-# class/object/interface because verify-riftos-apk.sh derives that DEX descriptor from the file name.
+# source tests/Gradle: every mandatory Kotlin source must expose a package plus at least one
+# real column-zero top-level class/object/interface. Final DEX verification derives descriptors
+# from those declarations rather than assuming a Kotlin filename equals a class name.
 root_gradle_contract="android/build.gradle.kts"
 gradle_contract="android/app/build.gradle.kts"
 grep -Fq 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.10' "$root_gradle_contract" || {
@@ -171,12 +172,20 @@ test "${#required_native_sources[@]}" -gt 0 || { echo 'Builder contract prefligh
 for source_rel in "${required_native_sources[@]}"; do
   source="android/app/$source_rel"
   test -f "$source" || { echo "Builder contract preflight missing mandatory Kotlin source: $source_rel" >&2; exit 1; }
-  class_name="${source_rel##*/}"
-  class_name="${class_name%.kt}"
-  if ! grep -Eq "^[[:space:]]*((public|private|internal|protected)[[:space:]]+)?((data|sealed|enum|annotation|value)[[:space:]]+)?(class|object|interface)[[:space:]]+${class_name}([[:space:]<(::{]|$)" "$source"; then
-    echo "Builder DEX verifier assumption is stale: $source_rel does not declare top-level $class_name." >&2
+
+  source_package="$(sed -nE 's/^[[:space:]]*package[[:space:]]+([A-Za-z_][A-Za-z0-9_.]*).*/\1/p' "$source" | head -n 1)"
+  test -n "$source_package" || {
+    echo "Builder Kotlin declaration preflight found no package declaration: $source_rel" >&2
     exit 1
-  fi
+  }
+
+  mapfile -t top_level_declarations < <(
+    sed -nE 's/^((public|private|internal|protected|abstract|open|final|sealed|data|enum|annotation|value|fun)[[:space:]]+)*(class|object|interface)[[:space:]]+([A-Za-z_][A-Za-z0-9_]*).*/\4/p' "$source"
+  )
+  test "${#top_level_declarations[@]}" -gt 0 || {
+    echo "Builder Kotlin declaration preflight found no top-level class/object/interface: $source_rel" >&2
+    exit 1
+  }
 done
 
 # RiftGit mode-preserving push contract. Ordinary 100644 changes may keep the single-request
