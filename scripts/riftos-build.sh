@@ -424,6 +424,7 @@ for required_riftbuild_native_contract in \
   '"toolchain-install-bundled" -> nativeToolchain.installBundled()' \
   '"compile-native" -> compileNative(' \
   '"prepare-native-app" -> prepareNativeApp(' \
+  'riftbuild-native-app-prepare-v2' \
   'structuredCompilerProcessExecution' \
   'downloadedToolchainsAllowed'; do
   grep -Fq "$required_riftbuild_native_contract" "$riftbuild_source" || {

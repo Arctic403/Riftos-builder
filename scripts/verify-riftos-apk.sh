@@ -222,7 +222,7 @@ require_dex_string '%COMPILER_DIR%' 'RiftBuild compiler-directory argv expansion
 require_dex_string 'prepare-native-app' 'RiftBuild generic native-app preparation command'
 require_dex_string 'riftbuild-native-toolchain-status-v1' 'RiftBuild native toolchain status schema'
 require_dex_string 'riftbuild-native-compile-v1' 'RiftBuild native compile result schema'
-require_dex_string 'riftbuild-native-app-prepare-v1' 'RiftBuild generic native-app prepare schema'
+require_dex_string 'riftbuild-native-app-prepare-v2' 'RiftBuild generic native-app prepare schema'
 require_dex_string 'riftbuild-android-clang-toolchain/1' 'RiftBuild Android-host toolchain contract'
 require_dex_string 'riftbuild-native-project/1' 'RiftBuild native project contract'
 require_dex_string 'riftbuild-native-app/1' 'RiftBuild native app contract'
