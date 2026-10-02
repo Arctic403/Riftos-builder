@@ -435,6 +435,8 @@ for required_riftbuild_toolchain_contract in \
   'class RiftBuildNativeToolchain' \
   'riftbuild-android-clang-toolchain/1' \
   'riftbuild-native-project/1' \
+  'riftbuild-native-project-validation-v1' \
+  'fun validateProject(projectRoot: File)' \
   'ProcessBuilder(argv)' \
   'structured-argv' \
   'downloadedToolchainsAllowed' \
@@ -462,6 +464,8 @@ for required_riftbuild_native_app_contract in \
   'riftbuild-native-app/1' \
   'riftbuild-native-app/2' \
   'riftbuild-native-app-prepare-v2' \
+  'riftbuild-native-app-validation-v1' \
+  'fun validateProject(projectRoot: File)' \
   'RIFTPP_ADAPTER_PROFILE' \
   'RIFTPP_ADAPTER_RUNTIME' \
   'materializeManagedRuntime' \
@@ -506,7 +510,7 @@ for riftpp_editor_file in   "$riftpp_editor_service"   "$riftpp_editor_pipeline"
   }
 done
 
-for required_riftpp_editor_service_contract in   '"native-compile" ->'   '"native-run" ->'   '"native-preflight" ->'   '"native-build-debug" ->'   'riftpp-editor-native-compile/1'   'riftpp-editor-native-run/1'   'riftpp-editor-native-preflight/1'   'riftpp-editor-native-build/1'; do
+for required_riftpp_editor_service_contract in   '"native-compile" ->'   '"native-run" ->'   '"native-preflight" ->'   '"native-build-debug" ->'   'requiredSymbol'   'native-preflight required symbol is invalid'   'riftpp-editor-native-compile/1'   'riftpp-editor-native-run/1'   'riftpp-editor-native-preflight/1'   'riftpp-editor-native-build/1'; do
   grep -Fq "$required_riftpp_editor_service_contract" "$riftpp_editor_service" || {
     echo "Builder Rift++ native editor bridge contract missing: $required_riftpp_editor_service_contract" >&2
     exit 1
@@ -541,7 +545,7 @@ for required_riftpp_editor_elf_contract in   'EM_ARM = 40'   'PT_LOAD'   'sectio
   }
 done
 
-for required_riftpp_editor_shell_contract in   'riftpp-editor native-compile'   'riftpp-editor native-run'   'riftpp-editor native-preflight'   'riftpp-editor native-build-debug'; do
+for required_riftpp_editor_shell_contract in   'riftpp-editor native-compile'   'riftpp-editor native-run'   'riftpp-editor native-preflight'   '[required-symbol]'   'riftpp-editor native-build-debug'; do
   grep -Fq "$required_riftpp_editor_shell_contract" "$riftpp_editor_shell" || {
     echo "Builder Rift++ native editor shell transport contract missing: $required_riftpp_editor_shell_contract" >&2
     exit 1
