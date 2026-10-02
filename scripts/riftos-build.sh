@@ -424,7 +424,6 @@ for required_riftbuild_native_contract in \
   '"toolchain-install-bundled" -> nativeToolchain.installBundled()' \
   '"compile-native" -> compileNative(' \
   '"prepare-native-app" -> prepareNativeApp(' \
-  'riftbuild-native-app-prepare-v2' \
   'structuredCompilerProcessExecution' \
   'downloadedToolchainsAllowed'; do
   grep -Fq "$required_riftbuild_native_contract" "$riftbuild_source" || {
@@ -461,6 +460,7 @@ fi
 for required_riftbuild_native_app_contract in \
   'class RiftBuildNativeApp' \
   'riftbuild-native-app/1' \
+  'riftbuild-native-app-prepare-v2' \
   'android.app.NativeActivity' \
   'android.app.lib_name' \
   'build/riftbuild/prepared/AndroidManifest.xml' \
