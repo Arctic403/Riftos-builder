@@ -227,6 +227,9 @@ provider_source="android/app/src/main/java/com/riftos/app/CodynexCompilerProvide
 codynex_shell_services="android/app/src/main/java/com/riftos/app/RiftNativeShellServices.kt"
 editor_activity="android/app/src/main/java/com/codynex/editorapp/MainActivity.kt"
 editor_toolchain="android/app/src/main/java/com/codynex/editorapp/Source0SelfHostToolchainPort.kt"
+editor_bridge_service="android/app/src/main/java/com/codynex/editorapp/CodynexEditorBridgeService.kt"
+editor_bridge_client="android/app/src/main/java/com/riftos/app/RiftCodynexEditorBridgeClient.kt"
+native_shell="android/app/src/main/java/com/riftos/app/RiftNativeShell.kt"
 editor_bootstrap="android/app/src/main/java/com/codynex/editorapp/BootstrapArtifacts.kt"
 editor_vm_bridge_kt="android/app/src/main/java/com/codynex/editorapp/Vm1Bridge.kt"
 editor_vm_bridge_cpp="android/app/src/main/cpp/editor/editor_vm_bridge.cpp"
@@ -240,6 +243,9 @@ for editor_contract_file in \
   "$codynex_shell_services" \
   "$editor_activity" \
   "$editor_toolchain" \
+  "$editor_bridge_service" \
+  "$editor_bridge_client" \
+  "$native_shell" \
   "$editor_bootstrap" \
   "$editor_vm_bridge_kt" \
   "$editor_vm_bridge_cpp" \
@@ -254,6 +260,14 @@ done
 
 grep -Fq '"src/main/java/com/riftos/app/CodynexCompilerProvider.kt"' "$gradle_contract" || {
   echo 'Builder contract is stale: CodynexCompilerProvider.kt is not mandatory in verifyRiftOsAndroidSources.' >&2
+  exit 1
+}
+grep -Fq '"src/main/java/com/riftos/app/RiftCodynexEditorBridgeClient.kt"' "$gradle_contract" || {
+  echo 'Builder contract is stale: RiftCodynexEditorBridgeClient.kt is not mandatory in verifyRiftOsAndroidSources.' >&2
+  exit 1
+}
+grep -Fq '"src/main/java/com/codynex/editorapp/CodynexEditorBridgeService.kt"' "$gradle_contract" || {
+  echo 'Builder contract is stale: CodynexEditorBridgeService.kt is not pinned in verifyCodynexEditorPayload.' >&2
   exit 1
 }
 node -e '
@@ -329,6 +343,62 @@ for required_editor_contract in \
   'Save All'; do
   grep -Fq "$required_editor_contract" "$editor_activity" || {
     echo "Builder Codynex editor activity contract missing: $required_editor_contract" >&2
+    exit 1
+  }
+done
+
+for required_editor_bridge_client in \
+  'class RiftCodynexEditorBridgeClient' \
+  'EDITOR_PACKAGE = "com.codynex.editor"' \
+  'com.codynex.editorapp.CodynexEditorBridgeService' \
+  'DESCRIPTOR = "com.codynex.editor.bridge.v1"' \
+  'MAX_TREE_ENTRIES = 4096' \
+  'MAX_TREE_DEPTH = 32' \
+  'fun pushDirectory' \
+  'fun pullDirectory'; do
+  grep -Fq "$required_editor_bridge_client" "$editor_bridge_client" || {
+    echo "Builder Codynex editor bridge client contract missing: $required_editor_bridge_client" >&2
+    exit 1
+  }
+done
+
+for required_editor_bridge_service in \
+  'class CodynexEditorBridgeService' \
+  'DESCRIPTOR = "com.codynex.editor.bridge.v1"' \
+  'RIFTOS_PACKAGE = "com.riftos.app"' \
+  '.put("folderTransport", true)' \
+  '"codynex-editor-bridge-compile/1"' \
+  '"codynex-editor-bridge-preview/1"' \
+  '"codynex-editor-bridge-native-proof/1"' \
+  '"codynex-editor-bridge-build-apk/1"' \
+  'compileFresh(entry)' \
+  'CodynexApkBuilder(this).build'; do
+  grep -Fq "$required_editor_bridge_service" "$editor_bridge_service" || {
+    echo "Builder Codynex editor bridge service contract missing: $required_editor_bridge_service" >&2
+    exit 1
+  }
+done
+
+for required_editor_shell_contract in \
+  '"codynex-editor" -> executeCodynexEditorCommand(cwd, args)' \
+  '"push-dir" -> {' \
+  '"pull-dir" -> {' \
+  '"compile" -> {' \
+  '"preview" -> {' \
+  '"native-proof" -> {' \
+  '"build-apk" -> {'; do
+  grep -Fq "$required_editor_shell_contract" "$native_shell" || {
+    echo "Builder Codynex editor shell transport missing: $required_editor_shell_contract" >&2
+    exit 1
+  }
+done
+
+for required_editor_packaging_contract in \
+  'EDITOR_BRIDGE_SERVICE =' \
+  'com.codynex.editorapp.CodynexEditorBridgeService' \
+  'editorManifestStringAttr("name", EDITOR_BRIDGE_SERVICE)'; do
+  grep -Fq "$required_editor_packaging_contract" "$riftbuild_source" || {
+    echo "Builder Codynex editor bridge packaging contract missing: $required_editor_packaging_contract" >&2
     exit 1
   }
 done

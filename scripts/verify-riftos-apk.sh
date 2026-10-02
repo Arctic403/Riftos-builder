@@ -304,7 +304,24 @@ for marker in \
   require_dex_string "$marker" "Codynex C0 editor/provider marker $marker"
 done
 
+for bridge_marker in \
+  'com.codynex.editor.bridge.v1' \
+  'codynex-editor' \
+  'push-dir' \
+  'pull-dir' \
+  'codynex-editor-folder-push/1' \
+  'codynex-editor-folder-pull/1' \
+  'codynex-editor-bridge-status/1' \
+  'codynex-editor-bridge-compile/1' \
+  'codynex-editor-bridge-preview/1' \
+  'codynex-editor-bridge-native-proof/1' \
+  'codynex-editor-bridge-build-apk/1' \
+  'folderTransport'; do
+  require_dex_string "$bridge_marker" "Codynex Editor bridge marker $bridge_marker"
+done
+
 for editor_descriptor in \
+  'Lcom/codynex/editorapp/CodynexEditorBridgeService;' \
   'Lcom/codynex/editorapp/MainActivity;' \
   'Lcom/codynex/editorapp/BootstrapArtifacts;' \
   'Lcom/codynex/editorapp/Source0SelfHostToolchainPort;' \
