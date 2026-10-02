@@ -109,18 +109,38 @@ forbid_dex_string() {
 require_entry "AndroidManifest.xml"
 require_entry "classes.dex"
 require_entry "resources.arsc"
-adapter_dex_entry="assets/riftbuild/managed-runtimes/riftpp-adapter-v1/classes.dex"
-require_entry "$adapter_dex_entry"
-adapter_dex_tmp="$(mktemp)"
-if ! unzip -p "$APK" "$adapter_dex_entry" >"$adapter_dex_tmp"; then
-  rm -f "$adapter_dex_tmp"
-  echo 'APK smoke check failed: could not extract Rift++ adapter DEX asset.' >&2
+adapter_dex_prefix="assets/riftbuild/managed-runtimes/riftpp-adapter-v1"
+require_entry "$adapter_dex_prefix/classes.dex"
+adapter_dex_entries="$(
+  unzip -Z1 "$APK" |
+    grep -E "^$adapter_dex_prefix/classes([2-9]|[1-9][0-9]+)?\\.dex$" || true
+)"
+adapter_dex_count="$(
+  printf '%s\n' "$adapter_dex_entries" |
+    sed '/^$/d' |
+    wc -l |
+    tr -d '[:space:]'
+)"
+if [[ -z "$adapter_dex_entries" || "$adapter_dex_count" -lt 1 || "$adapter_dex_count" -gt 8 ]]; then
+  echo "APK smoke check failed: Rift++ adapter DEX set is missing or out of bounds: $adapter_dex_count" >&2
   exit 1
 fi
+
+adapter_dex_tmp="$(mktemp)"
+: >"$adapter_dex_tmp"
+while IFS= read -r adapter_dex_entry; do
+  [[ -z "$adapter_dex_entry" ]] && continue
+  if ! unzip -p "$APK" "$adapter_dex_entry" >>"$adapter_dex_tmp"; then
+    rm -f "$adapter_dex_tmp"
+    echo "APK smoke check failed: could not extract Rift++ adapter DEX asset: $adapter_dex_entry" >&2
+    exit 1
+  fi
+done <<<"$adapter_dex_entries"
+
 for marker in 'Lcom/riftpp/android/RiftppActivity;' 'nativeLifecycle' 'nativeSurface'; do
   if ! grep -aFq -- "$marker" "$adapter_dex_tmp"; then
     rm -f "$adapter_dex_tmp"
-    echo "APK smoke check failed: Rift++ adapter DEX is missing $marker" >&2
+    echo "APK smoke check failed: Rift++ adapter DEX set is missing $marker" >&2
     exit 1
   fi
 done
