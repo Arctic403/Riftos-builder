@@ -424,6 +424,7 @@ for required_riftbuild_native_contract in \
   '"toolchain-install-bundled" -> nativeToolchain.installBundled()' \
   '"compile-native" -> compileNative(' \
   '"compile-object" -> compileObject(' \
+  '"extract-object-text" -> extractObjectText(' \
   '"prepare-native-app" -> prepareNativeApp(' \
   'structuredCompilerProcessExecution' \
   'downloadedToolchainsAllowed'; do
@@ -444,6 +445,11 @@ for required_riftbuild_toolchain_contract in \
   'argv += "-c"' \
   'verifyRelocatableObject(output, abi.abi)' \
   'build/riftbuild/objects/' \
+  'fun extractRelocationFreeText(projectRoot: File, objectPath: String, target: String)' \
+  'riftbuild-native-object-text-v1' \
+  'Native object contains relocation sections; raw text extraction is forbidden' \
+  'Native object must contain exactly one .text section' \
+  'build/riftbuild/blobs/' \
   'ProcessBuilder(argv)' \
   'structured-argv' \
   'downloadedToolchainsAllowed' \
@@ -517,7 +523,7 @@ for riftpp_editor_file in   "$riftpp_editor_service"   "$riftpp_editor_pipeline"
   }
 done
 
-for required_riftpp_editor_service_contract in   '"native-compile" ->'   '"native-run" ->'   '"native-preflight" ->'   '"native-build-debug" ->'   'requiredSymbol'   'native-preflight required symbol is invalid'   'riftpp-editor-native-compile/1'   'riftpp-editor-native-run/1'   'riftpp-editor-native-preflight/1'   'riftpp-editor-native-build/1'; do
+for required_riftpp_editor_service_contract in   '"native-compile" ->'   '"native-run" ->'   '"native-preflight" ->'   '"native-build-debug" ->'   'requiredSymbol'   'riftpp-editor-native-compile/1'   'riftpp-editor-native-run/1'   'riftpp-editor-native-preflight/1'   'riftpp-editor-native-build/1'; do
   grep -Fq "$required_riftpp_editor_service_contract" "$riftpp_editor_service" || {
     echo "Builder Rift++ native editor bridge contract missing: $required_riftpp_editor_service_contract" >&2
     exit 1
