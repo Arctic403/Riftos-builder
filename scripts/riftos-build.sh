@@ -423,6 +423,7 @@ for required_riftbuild_native_contract in \
   '"toolchain-status" -> nativeToolchain.status()' \
   '"toolchain-install-bundled" -> nativeToolchain.installBundled()' \
   '"compile-native" -> compileNative(' \
+  '"compile-object" -> compileObject(' \
   '"prepare-native-app" -> prepareNativeApp(' \
   'structuredCompilerProcessExecution' \
   'downloadedToolchainsAllowed'; do
@@ -437,6 +438,12 @@ for required_riftbuild_toolchain_contract in \
   'riftbuild-native-project/1' \
   'riftbuild-native-project-validation-v1' \
   'fun validateProject(projectRoot: File)' \
+  'fun compileAssemblyObject(projectRoot: File, sourcePath: String, target: String)' \
+  'riftbuild-native-object-compile-v1' \
+  'Assembly object source must end in .S or .s' \
+  'argv += "-c"' \
+  'verifyRelocatableObject(output, abi.abi)' \
+  'build/riftbuild/objects/' \
   'ProcessBuilder(argv)' \
   'structured-argv' \
   'downloadedToolchainsAllowed' \
