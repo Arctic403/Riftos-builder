@@ -460,7 +460,12 @@ fi
 for required_riftbuild_native_app_contract in \
   'class RiftBuildNativeApp' \
   'riftbuild-native-app/1' \
+  'riftbuild-native-app/2' \
   'riftbuild-native-app-prepare-v2' \
+  'RIFTPP_ADAPTER_PROFILE' \
+  'RIFTPP_ADAPTER_RUNTIME' \
+  'materializeManagedRuntime' \
+  'com.riftpp.android.RiftppActivity' \
   'android.app.NativeActivity' \
   'android.app.lib_name' \
   'build/riftbuild/prepared/AndroidManifest.xml' \
@@ -474,6 +479,8 @@ for required_riftbuild_gradle_source in \
   '"src/main/java/com/riftos/app/RiftBuildNativeToolchain.kt"' \
   '"src/main/java/com/riftos/app/RiftBuildNativeApp.kt"' \
   'sourceSets["main"].jniLibs.directories.add("build/generated/riftosJniLibs")' \
+  'syncRiftBuildRiftppAdapterRuntime' \
+  'generated/riftosAssets/riftbuild/managed-runtimes/riftpp-adapter-v1' \
   'validateCodynexCompilerTransition' \
   'jniLibs.useLegacyPackaging = true'; do
   grep -Fq "$required_riftbuild_gradle_source" "$gradle_contract" || {

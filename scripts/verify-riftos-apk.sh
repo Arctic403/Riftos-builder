@@ -109,6 +109,22 @@ forbid_dex_string() {
 require_entry "AndroidManifest.xml"
 require_entry "classes.dex"
 require_entry "resources.arsc"
+adapter_dex_entry="assets/riftbuild/managed-runtimes/riftpp-adapter-v1/classes.dex"
+require_entry "$adapter_dex_entry"
+adapter_dex_tmp="$(mktemp)"
+if ! unzip -p "$APK" "$adapter_dex_entry" >"$adapter_dex_tmp"; then
+  rm -f "$adapter_dex_tmp"
+  echo 'APK smoke check failed: could not extract Rift++ adapter DEX asset.' >&2
+  exit 1
+fi
+for marker in 'Lcom/riftpp/android/RiftppActivity;' 'nativeLifecycle' 'nativeSurface'; do
+  if ! grep -aFq -- "$marker" "$adapter_dex_tmp"; then
+    rm -f "$adapter_dex_tmp"
+    echo "APK smoke check failed: Rift++ adapter DEX is missing $marker" >&2
+    exit 1
+  fi
+done
+rm -f "$adapter_dex_tmp"
 
 package_name="$($AAPT2 dump packagename "$APK" | tr -d '\r\n')"
 if [ "$package_name" != 'com.riftos.app' ]; then
@@ -226,6 +242,9 @@ require_dex_string 'riftbuild-native-app-prepare-v2' 'RiftBuild generic native-a
 require_dex_string 'riftbuild-android-clang-toolchain/1' 'RiftBuild Android-host toolchain contract'
 require_dex_string 'riftbuild-native-project/1' 'RiftBuild native project contract'
 require_dex_string 'riftbuild-native-app/1' 'RiftBuild native app contract'
+require_dex_string 'riftbuild-native-app/2' 'RiftBuild native app v2 contract'
+require_dex_string 'riftpp-android-adapter/1' 'Rift++ Android adapter runtime contract'
+require_dex_string 'com.riftpp.android.RiftppActivity' 'Rift++ Android adapter activity class'
 require_dex_string 'structured-argv' 'RiftBuild structured compiler process mode'
 require_dex_string '%TOOLCHAIN%' 'RiftBuild toolchain-root argv expansion'
 require_dex_string '%SYSROOT%' 'RiftBuild sysroot argv expansion'
