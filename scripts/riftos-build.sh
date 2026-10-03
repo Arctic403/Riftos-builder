@@ -159,7 +159,9 @@ for required_gradle_contract in \
   'path = file("src/main/cpp/CMakeLists.txt")' \
   'version = "3.22.1"' \
   'io.github.dokar3:quickjs-kt:1.0.14' \
-  'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0'; do
+  'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0' \
+  'org.jetbrains.kotlin:kotlin-compiler-embeddable:2.4.10' \
+  'com.android.tools:r8:8.13.23'; do
   grep -Fq "$required_gradle_contract" "$gradle_contract" || {
     echo "Builder contract is stale: expected Gradle contract missing: $required_gradle_contract" >&2
     exit 1
@@ -490,6 +492,8 @@ for required_riftbuild_native_app_contract in \
   'RIFTPP_ADAPTER_PROFILE' \
   'RIFTPP_ADAPTER_RUNTIME' \
   'materializeManagedRuntime' \
+  'build/riftbuild/hot-dex' \
+  'run riftbuild kotlin-compile first' \
   'com.riftpp.android.RiftppActivity' \
   'android.app.NativeActivity' \
   'android.app.lib_name' \
@@ -503,9 +507,16 @@ done
 for required_riftbuild_gradle_source in \
   '"src/main/java/com/riftos/app/RiftBuildNativeToolchain.kt"' \
   '"src/main/java/com/riftos/app/RiftBuildNativeApp.kt"' \
+  '"src/main/java/com/riftos/app/RiftBuildKotlinCompiler.kt"' \
+  '"src/main/java/com/riftos/app/RiftBuildManagedToolchains.kt"' \
+  '"src/main/java/com/riftos/app/RiftppDynamicCompilerService.kt"' \
   'sourceSets["main"].jniLibs.directories.add("build/generated/riftosJniLibs")' \
   'syncRiftBuildRiftppAdapterRuntime' \
   'generated/riftosAssets/riftbuild/managed-runtimes/riftpp-adapter-v1' \
+  'syncRiftBuildKotlinToolchain' \
+  'generated/riftosAssets/riftbuild/kotlin-toolchain' \
+  'dependsOn(syncRiftBuildKotlinToolchain)' \
+  'isTransitive = false' \
   'validateCodynexCompilerTransition' \
   'jniLibs.useLegacyPackaging = true'; do
   grep -Fq "$required_riftbuild_gradle_source" "$gradle_contract" || {
@@ -513,6 +524,10 @@ for required_riftbuild_gradle_source in \
     exit 1
   }
 done
+if grep -Fq 'dependsOn(syncRiftBuildRiftppAdapterRuntime)' "$gradle_contract"; then
+  echo 'Builder contract is stale: legacy Rift++ adapter DEX sync must not be active preBuild authority.' >&2
+  exit 1
+fi
 
 # Rift++ legacy-editor native bootstrap contract. This is the one-time bridge that lets
 # future Rift++ native-editor work compile/preflight/package inside the installed editor
@@ -619,6 +634,7 @@ for native_source in \
   android/app/src/main/cpp/mc1/codynex_mc1b_host.cpp \
   android/app/src/main/cpp/riftpp/riftpp_app0_host.cpp \
   android/app/src/main/cpp/riftpp/riftpp_compiler_host.cpp \
+  android/app/src/main/cpp/riftpp/riftpp_dynamic_compiler_host.cpp \
   android/app/src/main/cpp/editor/editor_vm_bridge.cpp \
   android/app/src/main/java/com/riftos/app/RiftCliHost.kt; do
   test -f "$native_source" || {
@@ -658,6 +674,20 @@ grep -Fq 'riftpp_compiler_host' android/app/src/main/cpp/CMakeLists.txt || {
   echo 'Builder contract is stale: CMake must build libriftpp_compiler_host for S2 self-host proof execution.' >&2
   exit 1
 }
+grep -Fq 'riftpp_dynamic_compiler_host' android/app/src/main/cpp/CMakeLists.txt || {
+  echo 'Builder contract is stale: CMake must build libriftpp_dynamic_compiler_host for hot Rift++ compiler execution.' >&2
+  exit 1
+}
+for required_hot_command in \
+  '"managed-status" -> managedStatus(' \
+  '"managed-copy" -> managedCopy(' \
+  '"kotlin-compile" -> kotlinCompile(' \
+  '"riftpp-compile-hot" -> riftppCompileHot('; do
+  grep -Fq "$required_hot_command" "$riftbuild_source" || {
+    echo "Builder contract is stale: RiftBuild hot-swap command missing: $required_hot_command" >&2
+    exit 1
+  }
+done
 grep -Fq '"prepare-riftpp-app0" -> prepareRiftppApp0(' "$riftbuild_source" || {
   echo 'Builder contract is stale: RiftBuild must expose the bounded Rift++ App0 preparation lane.' >&2
   exit 1

@@ -109,43 +109,32 @@ forbid_dex_string() {
 require_entry "AndroidManifest.xml"
 require_entry "classes.dex"
 require_entry "resources.arsc"
-adapter_dex_prefix="assets/riftbuild/managed-runtimes/riftpp-adapter-v1"
-require_entry "$adapter_dex_prefix/classes.dex"
-adapter_dex_entries="$(
-  unzip -Z1 "$APK" |
-    grep -E "^$adapter_dex_prefix/classes([2-9]|[1-9][0-9]+)?\\.dex$" || true
-)"
-adapter_dex_count="$(
-  printf '%s\n' "$adapter_dex_entries" |
-    sed '/^$/d' |
-    wc -l |
-    tr -d '[:space:]'
-)"
-if [[ -z "$adapter_dex_entries" || "$adapter_dex_count" -lt 1 || "$adapter_dex_count" -gt 8 ]]; then
-  echo "APK smoke check failed: Rift++ adapter DEX set is missing or out of bounds: $adapter_dex_count" >&2
-  exit 1
-fi
+kotlin_toolchain_prefix="assets/riftbuild/kotlin-toolchain"
+require_entry "$kotlin_toolchain_prefix/android.jar"
+require_entry "$kotlin_toolchain_prefix/kotlin-stdlib.jar"
+forbid_entry '^assets/riftbuild/managed-runtimes/riftpp-adapter-v1/classes([2-9]|[1-9][0-9]+)?\.dex$'
 
-adapter_dex_tmp="$(mktemp)"
-: >"$adapter_dex_tmp"
-while IFS= read -r adapter_dex_entry; do
-  [[ -z "$adapter_dex_entry" ]] && continue
-  if ! unzip -p "$APK" "$adapter_dex_entry" >>"$adapter_dex_tmp"; then
-    rm -f "$adapter_dex_tmp"
-    echo "APK smoke check failed: could not extract Rift++ adapter DEX asset: $adapter_dex_entry" >&2
+for toolchain_asset in \
+  "$kotlin_toolchain_prefix/android.jar" \
+  "$kotlin_toolchain_prefix/kotlin-stdlib.jar"; do
+  toolchain_tmp="$(mktemp)"
+  if ! unzip -p "$APK" "$toolchain_asset" >"$toolchain_tmp"; then
+    rm -f "$toolchain_tmp"
+    echo "APK smoke check failed: could not extract Kotlin toolchain asset: $toolchain_asset" >&2
     exit 1
   fi
-done <<<"$adapter_dex_entries"
-
-for marker in 'Lcom/riftpp/android/RiftppActivity;' 'nativeLifecycle' 'nativeSurface'; do
-  if ! grep -aFq -- "$marker" "$adapter_dex_tmp"; then
-    rm -f "$adapter_dex_tmp"
-    echo "APK smoke check failed: Rift++ adapter DEX set is missing $marker" >&2
+  if [ ! -s "$toolchain_tmp" ]; then
+    rm -f "$toolchain_tmp"
+    echo "APK smoke check failed: Kotlin toolchain asset is empty: $toolchain_asset" >&2
     exit 1
   fi
+  if ! unzip -tqq "$toolchain_tmp" >/dev/null 2>&1; then
+    rm -f "$toolchain_tmp"
+    echo "APK smoke check failed: Kotlin toolchain asset is not a valid JAR: $toolchain_asset" >&2
+    exit 1
+  fi
+  rm -f "$toolchain_tmp"
 done
-rm -f "$adapter_dex_tmp"
-
 package_name="$($AAPT2 dump packagename "$APK" | tr -d '\r\n')"
 if [ "$package_name" != 'com.riftos.app' ]; then
   echo "APK smoke check failed: packaged application ID is '$package_name', expected com.riftos.app." >&2
@@ -181,6 +170,14 @@ extract_native_line="$(grep -F 'android:extractNativeLibs' <<<"$manifest_tree" |
 if [ -z "$extract_native_line" ] || ! grep -Eq '(0xffffffff|true)' <<<"$extract_native_line"; then
   echo 'APK smoke check failed: compiled manifest does not retain extractNativeLibs=true for RiftBuild host compiler execution.' >&2
   printf '%s\n' "$extract_native_line" >&2
+  exit 1
+fi
+if ! grep -Fq 'RiftppDynamicCompilerService' <<<"$manifest_tree"; then
+  echo 'APK smoke check failed: compiled manifest is missing RiftppDynamicCompilerService.' >&2
+  exit 1
+fi
+if ! grep -Fq ':riftppCompilerHot' <<<"$manifest_tree"; then
+  echo 'APK smoke check failed: RiftppDynamicCompilerService is not isolated in :riftppCompilerHot.' >&2
   exit 1
 fi
 
@@ -410,6 +407,13 @@ require_entry "lib/arm64-v8a/libriftpp_compiler_host.so"
 require_entry "lib/armeabi-v7a/libriftpp_compiler_host.so"
 forbid_entry '^lib/x86/libriftpp_compiler_host\.so$'
 forbid_entry '^lib/x86_64/libriftpp_compiler_host\.so$'
+
+# Hot-swappable Rift++ compiler payloads execute through a separate crash-contained host.
+# Both supported ARM ABIs must be packaged; x86 variants are forbidden.
+require_entry "lib/arm64-v8a/libriftpp_dynamic_compiler_host.so"
+require_entry "lib/armeabi-v7a/libriftpp_dynamic_compiler_host.so"
+forbid_entry '^lib/x86/libriftpp_dynamic_compiler_host\.so$'
+forbid_entry '^lib/x86_64/libriftpp_dynamic_compiler_host\.so$'
 
 # The standalone Codynex editor Preview path executes frozen VM1 on ARM32 and RiftBuild
 # extracts this exact library from the installed RiftOS APK.
