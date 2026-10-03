@@ -517,7 +517,14 @@ for required_riftbuild_gradle_source in \
   'generated/riftosAssets/riftbuild/kotlin-toolchain' \
   'dependsOn(syncRiftBuildKotlinToolchain)' \
   'isTransitive = false' \
-  'pickFirsts += "kotlin/internal/internal.kotlin_builtins"' \
+  'pickFirsts += setOf(' \
+  '"kotlin/annotation/annotation.kotlin_builtins"' \
+  '"kotlin/collections/collections.kotlin_builtins"' \
+  '"kotlin/coroutines/coroutines.kotlin_builtins"' \
+  '"kotlin/internal/internal.kotlin_builtins"' \
+  '"kotlin/kotlin.kotlin_builtins"' \
+  '"kotlin/ranges/ranges.kotlin_builtins"' \
+  '"kotlin/reflect/reflect.kotlin_builtins"' \
   'validateCodynexCompilerTransition' \
   'jniLibs.useLegacyPackaging = true'; do
   grep -Fq "$required_riftbuild_gradle_source" "$gradle_contract" || {
