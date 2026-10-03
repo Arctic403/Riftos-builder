@@ -405,8 +405,12 @@ done
 
 for required_editor_toolchain in \
   'com.riftos.app.codynexcompiler' \
-  'COMPILE_METHOD = "compile-c0"' \
-  'COMPILE_PROJECT_METHOD = "compile-c0-project"' \
+  'COMPILE_METHOD_VM1 = "compile-c0"' \
+  'COMPILE_PROJECT_METHOD_VM1 = "compile-c0-project"' \
+  'COMPILE_METHOD_VM2 = "compile-c0-vm2"' \
+  'COMPILE_PROJECT_METHOD_VM2 = "compile-c0-project-vm2"' \
+  'EditorVmTarget.VM1' \
+  'EditorVmTarget.VM2' \
   'contentResolver.call' \
   'Vm1Bridge.run' \
   'MAX_SOURCE_BYTES = 256 * 1024' \
