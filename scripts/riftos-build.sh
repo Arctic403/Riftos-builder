@@ -340,7 +340,8 @@ for required_editor_contract in \
   'File(workspaceRoot, "main.cx")' \
   'TEMP LIVE-PROOF SCAFFOLD' \
   'Set Entry' \
-  'Save All'; do
+  'Save All' \
+  'target = EditorVmTarget.VM1'; do
   grep -Fq "$required_editor_contract" "$editor_activity" || {
     echo "Builder Codynex editor activity contract missing: $required_editor_contract" >&2
     exit 1
@@ -372,7 +373,8 @@ for required_editor_bridge_service in \
   '"codynex-editor-bridge-native-proof/1"' \
   '"codynex-editor-bridge-build-apk/1"' \
   'compileFresh(entry)' \
-  'CodynexApkBuilder(this).build'; do
+  'CodynexApkBuilder(this).build' \
+  'target = EditorVmTarget.VM1'; do
   grep -Fq "$required_editor_bridge_service" "$editor_bridge_service" || {
     echo "Builder Codynex editor bridge service contract missing: $required_editor_bridge_service" >&2
     exit 1
@@ -409,7 +411,6 @@ for required_editor_toolchain in \
   'COMPILE_PROJECT_METHOD_VM1 = "compile-c0-project"' \
   'COMPILE_METHOD_VM2 = "compile-c0-vm2"' \
   'COMPILE_PROJECT_METHOD_VM2 = "compile-c0-project-vm2"' \
-  'EditorVmTarget.VM1' \
   'EditorVmTarget.VM2' \
   'contentResolver.call' \
   'Vm1Bridge.run' \
