@@ -169,6 +169,10 @@ grep -Fq 'com.github.PranavPurwar:kotlinc-android:2.4.0' "$managed_kotlin_gradle
   echo 'Builder contract is stale: Android-compatible Kotlin compiler payload dependency is not pinned.' >&2
   exit 1
 }
+grep -Fq 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0' "$managed_kotlin_gradle" || {
+  echo 'Builder contract is stale: managed Kotlin compiler payload is missing its coroutines runtime.' >&2
+  exit 1
+}
 grep -Fq 'object KotlinCompilerTool' "$managed_kotlin_source" || {
   echo 'Builder contract is stale: managed Kotlin compiler JSON adapter is missing.' >&2
   exit 1

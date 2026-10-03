@@ -1,0 +1,157 @@
+name: Managed Compiler Payload Worker
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Exact RiftOS branch, tag, or commit containing the compiler payload module
+        required: true
+        default: main
+        type: string
+      module:
+        description: Managed Android compiler payload module (rift-managed-*-tool)
+        required: true
+        default: rift-managed-kotlin-tool
+        type: string
+      compiler_id:
+        description: Output compiler id / artifact basename
+        required: true
+        default: kotlin-android
+        type: string
+      publish:
+        description: Publish payload to private RiftOS prerelease
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: managed-compiler-payload-${{ inputs.module }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SOURCE_SHA: ""
+      MODULE: ${{ inputs.module }}
+      COMPILER_ID: ${{ inputs.compiler_id }}
+      PUBLISH: ${{ inputs.publish }}
+    steps:
+      - name: Resolve exact private RiftOS source
+        id: source
+        env:
+          GH_TOKEN: ${{ secrets.RIFTOS_PRIVATE_TOKEN }}
+          SOURCE_REF: ${{ inputs.source_ref }}
+        run: |
+          set -euo pipefail
+          test -n "${GH_TOKEN:-}" || { echo "RIFTOS_PRIVATE_TOKEN is required." >&2; exit 1; }
+          SOURCE_SHA="$(gh api "repos/Arctic403/RiftOS/commits/${SOURCE_REF:-main}" --jq ".sha")"
+          echo "source_sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+          echo "SOURCE_SHA=$SOURCE_SHA" >> "$GITHUB_ENV"
+
+      - name: Validate payload request
+        run: |
+          set -euo pipefail
+          [[ "$MODULE" =~ ^rift-managed-[A-Za-z0-9._+-]+-tool$ ]] || { echo "Invalid managed compiler module." >&2; exit 1; }
+          [[ "$COMPILER_ID" =~ ^[A-Za-z0-9._+-]{1,80}$ ]] || { echo "Invalid compiler id." >&2; exit 1; }
+
+      - name: Check out builder
+        uses: actions/checkout@v7
+        with:
+          path: worker
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Check out RiftOS
+        uses: actions/checkout@v7
+        with:
+          repository: Arctic403/RiftOS
+          ref: ${{ steps.source.outputs.source_sha }}
+          token: ${{ secrets.RIFTOS_PRIVATE_TOKEN }}
+          path: source
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Validate requested compiler module
+        run: |
+          set -euo pipefail
+          test -f "source/android/$MODULE/build.gradle.kts" || { echo "Managed compiler module is missing." >&2; exit 1; }
+          test -f "source/android/$MODULE/src/main/AndroidManifest.xml" || { echo "Managed compiler manifest is missing." >&2; exit 1; }
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "$SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" >/dev/null
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "9.5.0"
+          cache-provider: basic
+          cache-read-only: false
+          cache-cleanup: on-success
+
+      - name: Build managed compiler payload only
+        run: |
+          set -euo pipefail
+          gradle -p source/android ":${MODULE}:assembleRelease" --no-daemon
+
+      - name: Validate and stage compiler payload
+        run: |
+          set -euo pipefail
+          RELEASE_DIR="source/android/$MODULE/build/outputs/apk/release"
+          mapfile -t APKS < <(find "$RELEASE_DIR" -maxdepth 1 -type f -name "*.apk" | sort)
+          [ "${#APKS[@]}" -eq 1 ] || { echo "Expected exactly one compiler payload APK." >&2; printf "%s\n" "${APKS[@]}" >&2; exit 1; }
+          INPUT="${APKS[0]}"
+          unzip -tqq "$INPUT" >/dev/null
+          unzip -Z1 "$INPUT" | grep -Fxq "classes.dex" || { echo "Compiler payload has no classes.dex." >&2; exit 1; }
+          mkdir -p "$RUNNER_TEMP/managed-compiler-output"
+          OUTPUT="$RUNNER_TEMP/managed-compiler-output/${COMPILER_ID}.apk"
+          cp "$INPUT" "$OUTPUT"
+          SHA="$(sha256sum "$OUTPUT" | awk '{print $1}')"
+          BYTES="$(wc -c <"$OUTPUT" | tr -d "[:space:]")"
+          printf "%s  %s\n" "$SHA" "${COMPILER_ID}.apk" > "$RUNNER_TEMP/managed-compiler-output/${COMPILER_ID}.sha256"
+          printf '{"schema":"riftbuild-managed-compiler-artifact/1","compilerId":"%s","module":"%s","sourceSha":"%s","bytes":%s,"sha256":"%s"}\n' "$COMPILER_ID" "$MODULE" "$SOURCE_SHA" "$BYTES" "$SHA" > "$RUNNER_TEMP/managed-compiler-output/${COMPILER_ID}.json"
+
+      - name: Upload compiler payload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: managed-compiler-${{ inputs.compiler_id }}-${{ steps.source.outputs.source_sha }}
+          path: |
+            ${{ runner.temp }}/managed-compiler-output/${{ inputs.compiler_id }}.apk
+            ${{ runner.temp }}/managed-compiler-output/${{ inputs.compiler_id }}.sha256
+            ${{ runner.temp }}/managed-compiler-output/${{ inputs.compiler_id }}.json
+          if-no-files-found: error
+
+      - name: Publish compiler payload to private RiftOS prerelease
+        if: ${{ success() && env.PUBLISH == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.RIFTOS_PRIVATE_TOKEN }}
+        run: |
+          set -euo pipefail
+          SHORT_SHA="${SOURCE_SHA:0:8}"
+          TAG="rift-compiler-${COMPILER_ID}-${GITHUB_RUN_ID}-${SHORT_SHA}"
+          gh release create "$TAG" "$RUNNER_TEMP/managed-compiler-output/${COMPILER_ID}.apk" "$RUNNER_TEMP/managed-compiler-output/${COMPILER_ID}.sha256" "$RUNNER_TEMP/managed-compiler-output/${COMPILER_ID}.json" \
+            --repo Arctic403/RiftOS \
+            --target "$SOURCE_SHA" \
+            --prerelease \
+            --title "Managed compiler ${COMPILER_ID} ${SHORT_SHA}" \
+            --notes "Standalone managed compiler payload. Module ${MODULE}. Source ${SOURCE_SHA}. No RiftOS APK rebuild/install required."
+
+      - name: Remove private source
+        if: ${{ always() }}
+        run: rm -rf source
