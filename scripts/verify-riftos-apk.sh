@@ -135,6 +135,37 @@ for toolchain_asset in \
   fi
   rm -f "$toolchain_tmp"
 done
+
+compiler_seed_prefix="assets/riftbuild/compiler-seeds"
+require_entry "$compiler_seed_prefix/kotlin-android-2.4.0.apk"
+require_entry "$compiler_seed_prefix/manifest.txt"
+compiler_seed_tmp="$(mktemp)"
+if ! unzip -p "$APK" "$compiler_seed_prefix/kotlin-android-2.4.0.apk" >"$compiler_seed_tmp"; then
+  rm -f "$compiler_seed_tmp"
+  echo 'APK smoke check failed: could not extract managed Kotlin compiler seed APK.' >&2
+  exit 1
+fi
+if [ ! -s "$compiler_seed_tmp" ] || ! unzip -tqq "$compiler_seed_tmp" >/dev/null 2>&1; then
+  rm -f "$compiler_seed_tmp"
+  echo 'APK smoke check failed: managed Kotlin compiler seed is not a valid non-empty APK/ZIP.' >&2
+  exit 1
+fi
+if ! unzip -Z1 "$compiler_seed_tmp" | grep -Fxq 'classes.dex'; then
+  rm -f "$compiler_seed_tmp"
+  echo 'APK smoke check failed: managed Kotlin compiler seed has no classes.dex.' >&2
+  exit 1
+fi
+compiler_seed_bytes="$(wc -c <"$compiler_seed_tmp" | tr -d '[:space:]')"
+compiler_seed_sha="$(sha256sum "$compiler_seed_tmp" | awk '{print $1}')"
+compiler_seed_manifest="$(unzip -p "$APK" "$compiler_seed_prefix/manifest.txt" | tr -d '\r')"
+compiler_seed_expected="kotlin-android-2.4.0.apk=${compiler_seed_bytes}:${compiler_seed_sha}"
+if ! grep -Fxq "$compiler_seed_expected" <<<"$compiler_seed_manifest"; then
+  rm -f "$compiler_seed_tmp"
+  echo 'APK smoke check failed: managed Kotlin compiler seed identity manifest does not match packaged APK.' >&2
+  exit 1
+fi
+rm -f "$compiler_seed_tmp"
+
 package_name="$($AAPT2 dump packagename "$APK" | tr -d '\r\n')"
 if [ "$package_name" != 'com.riftos.app' ]; then
   echo "APK smoke check failed: packaged application ID is '$package_name', expected com.riftos.app." >&2
@@ -178,6 +209,14 @@ if ! grep -Fq 'RiftppDynamicCompilerService' <<<"$manifest_tree"; then
 fi
 if ! grep -Fq ':riftppCompilerHot' <<<"$manifest_tree"; then
   echo 'APK smoke check failed: RiftppDynamicCompilerService is not isolated in :riftppCompilerHot.' >&2
+  exit 1
+fi
+if ! grep -Fq 'RiftManagedJvmToolService' <<<"$manifest_tree"; then
+  echo 'APK smoke check failed: compiled manifest is missing RiftManagedJvmToolService.' >&2
+  exit 1
+fi
+if ! grep -Fq ':riftJvmToolHot' <<<"$manifest_tree"; then
+  echo 'APK smoke check failed: RiftManagedJvmToolService is not isolated in :riftJvmToolHot.' >&2
   exit 1
 fi
 

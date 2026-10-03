@@ -141,11 +141,42 @@ done
 # real column-zero top-level class/object/interface. Final DEX verification derives descriptors
 # from those declarations rather than assuming a Kotlin filename equals a class name.
 root_gradle_contract="android/build.gradle.kts"
+settings_gradle_contract="android/settings.gradle.kts"
 gradle_contract="android/app/build.gradle.kts"
 grep -Fq 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.10' "$root_gradle_contract" || {
   echo 'Builder contract is stale: RiftOS root Gradle must pin Kotlin Gradle plugin 2.4.10 for QuickJS 1.0.14 metadata compatibility.' >&2
   exit 1
 }
+grep -Fq 'maven("https://jitpack.io")' "$settings_gradle_contract" || {
+  echo 'Builder contract is stale: managed compiler payload repository is missing from Android settings.' >&2
+  exit 1
+}
+grep -Fq 'include(":rift-managed-kotlin-tool")' "$settings_gradle_contract" || {
+  echo 'Builder contract is stale: managed Kotlin compiler payload module is not included.' >&2
+  exit 1
+}
+managed_kotlin_gradle="android/rift-managed-kotlin-tool/build.gradle.kts"
+managed_kotlin_source="android/rift-managed-kotlin-tool/src/main/java/com/riftbuild/tools/kotlinc/KotlinCompilerTool.kt"
+test -f "$managed_kotlin_gradle" || {
+  echo 'Builder contract is stale: managed Kotlin compiler payload Gradle file is missing.' >&2
+  exit 1
+}
+test -f "$managed_kotlin_source" || {
+  echo 'Builder contract is stale: managed Kotlin compiler adapter source is missing.' >&2
+  exit 1
+}
+grep -Fq 'com.github.PranavPurwar:kotlinc-android:2.4.0' "$managed_kotlin_gradle" || {
+  echo 'Builder contract is stale: Android-compatible Kotlin compiler payload dependency is not pinned.' >&2
+  exit 1
+}
+grep -Fq 'object KotlinCompilerTool' "$managed_kotlin_source" || {
+  echo 'Builder contract is stale: managed Kotlin compiler JSON adapter is missing.' >&2
+  exit 1
+}
+if grep -Fq 'kotlin-compiler-embeddable:2.4.10' "$gradle_contract"; then
+  echo 'Builder contract is stale: RiftOS app must not embed the desktop Kotlin compiler implementation.' >&2
+  exit 1
+fi
 for required_gradle_contract in \
   'namespace = "com.riftos.app"' \
   'applicationId = "com.riftos.app"' \
@@ -160,7 +191,6 @@ for required_gradle_contract in \
   'version = "3.22.1"' \
   'io.github.dokar3:quickjs-kt:1.0.14' \
   'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0' \
-  'org.jetbrains.kotlin:kotlin-compiler-embeddable:2.4.10' \
   'com.android.tools:r8:8.13.23'; do
   grep -Fq "$required_gradle_contract" "$gradle_contract" || {
     echo "Builder contract is stale: expected Gradle contract missing: $required_gradle_contract" >&2
@@ -509,6 +539,7 @@ for required_riftbuild_gradle_source in \
   '"src/main/java/com/riftos/app/RiftBuildNativeApp.kt"' \
   '"src/main/java/com/riftos/app/RiftBuildKotlinCompiler.kt"' \
   '"src/main/java/com/riftos/app/RiftBuildManagedToolchains.kt"' \
+  '"src/main/java/com/riftos/app/RiftManagedJvmToolService.kt"' \
   '"src/main/java/com/riftos/app/RiftppDynamicCompilerService.kt"' \
   'sourceSets["main"].jniLibs.directories.add("build/generated/riftosJniLibs")' \
   'syncRiftBuildRiftppAdapterRuntime' \
@@ -516,16 +547,11 @@ for required_riftbuild_gradle_source in \
   'syncRiftBuildKotlinToolchain' \
   'generated/riftosAssets/riftbuild/kotlin-toolchain' \
   'dependsOn(syncRiftBuildKotlinToolchain)' \
+  'syncRiftBuildCompilerSeeds' \
+  'generated/riftosAssets/riftbuild/compiler-seeds' \
+  'kotlin-android-2.4.0.apk' \
+  'dependsOn(syncRiftBuildCompilerSeeds)' \
   'isTransitive = false' \
-  'pickFirsts += setOf(' \
-  '"kotlin/annotation/annotation.kotlin_builtins"' \
-  '"kotlin/collections/collections.kotlin_builtins"' \
-  '"kotlin/concurrent/atomics/atomics.kotlin_builtins"' \
-  '"kotlin/coroutines/coroutines.kotlin_builtins"' \
-  '"kotlin/internal/internal.kotlin_builtins"' \
-  '"kotlin/kotlin.kotlin_builtins"' \
-  '"kotlin/ranges/ranges.kotlin_builtins"' \
-  '"kotlin/reflect/reflect.kotlin_builtins"' \
   'validateCodynexCompilerTransition' \
   'jniLibs.useLegacyPackaging = true'; do
   grep -Fq "$required_riftbuild_gradle_source" "$gradle_contract" || {
@@ -690,6 +716,8 @@ grep -Fq 'riftpp_dynamic_compiler_host' android/app/src/main/cpp/CMakeLists.txt 
 for required_hot_command in \
   '"managed-status" -> managedStatus(' \
   '"managed-copy" -> managedCopy(' \
+  '"compiler-status" -> compilerStatus(' \
+  '"compiler-run" -> compilerRun(' \
   '"kotlin-compile" -> kotlinCompile(' \
   '"riftpp-compile-hot" -> riftppCompileHot('; do
   grep -Fq "$required_hot_command" "$riftbuild_source" || {
