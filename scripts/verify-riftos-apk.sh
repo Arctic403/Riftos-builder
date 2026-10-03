@@ -370,7 +370,7 @@ for editor_descriptor in \
   'Lcom/codynex/editorapp/MainActivity;' \
   'Lcom/codynex/editorapp/BootstrapArtifacts;' \
   'Lcom/codynex/editorapp/Source0SelfHostToolchainPort;' \
-  'Lcom/codynex/editorapp/Vm1Bridge;' \
+  'Lcom/codynex/editorapp/CodynexRuntimeBridge;' \
   'Lcom/codynex/editorapp/FileWorkspacePort;' \
   'Lcom/codynex/editor/CodynexEditorController;'; do
   require_dex_string "$editor_descriptor" "Codynex editor payload class $editor_descriptor"

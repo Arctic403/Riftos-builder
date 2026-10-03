@@ -231,7 +231,7 @@ editor_bridge_service="android/app/src/main/java/com/codynex/editorapp/CodynexEd
 editor_bridge_client="android/app/src/main/java/com/riftos/app/RiftCodynexEditorBridgeClient.kt"
 native_shell="android/app/src/main/java/com/riftos/app/RiftNativeShell.kt"
 editor_bootstrap="android/app/src/main/java/com/codynex/editorapp/BootstrapArtifacts.kt"
-editor_vm_bridge_kt="android/app/src/main/java/com/codynex/editorapp/Vm1Bridge.kt"
+editor_vm_bridge_kt="android/app/src/main/java/com/codynex/editorapp/CodynexRuntimeBridge.kt"
 editor_vm_bridge_cpp="android/app/src/main/cpp/editor/editor_vm_bridge.cpp"
 riftbuild_source="android/app/src/main/java/com/riftos/app/RiftBuildLocalExecutor.kt"
 riftbuild_toolchain_source="android/app/src/main/java/com/riftos/app/RiftBuildNativeToolchain.kt"
@@ -416,7 +416,7 @@ for required_editor_toolchain in \
   'COMPILE_PROJECT_METHOD_VM2 = "compile-c0-project-vm2"' \
   'EditorVmTarget.VM2' \
   'contentResolver.call' \
-  'Vm1Bridge.run' \
+  'CodynexRuntimeBridge.run' \
   'MAX_SOURCE_BYTES = 256 * 1024' \
   'MAX_PROJECT_BYTES = 1024 * 1024' \
   'MAX_PROJECT_MODULES = 64' \
