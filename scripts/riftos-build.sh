@@ -302,8 +302,11 @@ for required_provider_contract in \
   'MAX_PROJECT_BYTES = 1024 * 1024' \
   'MAX_PROJECT_MODULES = 64' \
   'MAX_VM1_BYTES = 64 * 1024' \
+  'MAX_VM2_BYTES = 64 * 1024' \
   'METHOD_COMPILE_PROJECT = "compile-c0-project"' \
-  'compileCodynexC0Project' \
+  'METHOD_COMPILE_VM2 = "compile-c0-vm2"' \
+  'METHOD_COMPILE_PROJECT_VM2 = "compile-c0-project-vm2"' \
+  'compileCodynexC0ProjectVM2' \
   'runtime.executeQuickJs' \
   '/workspace/Codynex/external/language/l0/compiler/c0_reference.js'; do
   grep -Fq "$required_provider_contract" "$provider_source" || {
