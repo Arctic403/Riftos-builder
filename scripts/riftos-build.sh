@@ -517,6 +517,7 @@ for required_riftbuild_gradle_source in \
   'generated/riftosAssets/riftbuild/kotlin-toolchain' \
   'dependsOn(syncRiftBuildKotlinToolchain)' \
   'isTransitive = false' \
+  'pickFirsts += "kotlin/internal/internal.kotlin_builtins"' \
   'validateCodynexCompilerTransition' \
   'jniLibs.useLegacyPackaging = true'; do
   grep -Fq "$required_riftbuild_gradle_source" "$gradle_contract" || {
