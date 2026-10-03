@@ -203,6 +203,12 @@ if [ -z "$extract_native_line" ] || ! grep -Eq '(0xffffffff|true)' <<<"$extract_
   printf '%s\n' "$extract_native_line" >&2
   exit 1
 fi
+legacy_riftpp_compiler_process="$(grep -F ':riftppCompiler' <<<"$manifest_tree" | grep -Fv ':riftppCompilerHot' || true)"
+if grep -Fq 'RiftppCompilerService' <<<"$manifest_tree" || [ -n "$legacy_riftpp_compiler_process" ]; then
+  echo 'APK smoke check failed: retired legacy Rift++ compiler service/process resurfaced.' >&2
+  printf '%s\n' "$legacy_riftpp_compiler_process" >&2
+  exit 1
+fi
 if ! grep -Fq 'RiftppDynamicCompilerService' <<<"$manifest_tree"; then
   echo 'APK smoke check failed: compiled manifest is missing RiftppDynamicCompilerService.' >&2
   exit 1
@@ -431,21 +437,9 @@ require_entry "lib/armeabi-v7a/libcodynex_mc0_host.so"
 require_entry "lib/armeabi-v7a/libcodynex_mc1a_host.so"
 require_entry "lib/armeabi-v7a/libcodynex_mc1b_host.so"
 
-# Rift++ U0 extracts both ABI builds of one bounded generic NativeActivity/VM1
-# runtime source from RiftOS's own APK. ARM64 is canonical/default; ARM32 is
-# compatibility. Application semantics remain in compiler-emitted program.bin.
-require_entry "lib/arm64-v8a/libriftpp_app0_host.so"
-require_entry "lib/armeabi-v7a/libriftpp_app0_host.so"
-forbid_entry '^lib/x86/libriftpp_app0_host\.so$'
-forbid_entry '^lib/x86_64/libriftpp_app0_host\.so$'
-
-# S2 self-host evidence executes the dedicated compiler host. Both supported ARM
-# ABIs must be present in the signed APK so source identity cannot drift from the
-# native proof implementation through stale worker/native intermediates.
-require_entry "lib/arm64-v8a/libriftpp_compiler_host.so"
-require_entry "lib/armeabi-v7a/libriftpp_compiler_host.so"
-forbid_entry '^lib/x86/libriftpp_compiler_host\.so$'
-forbid_entry '^lib/x86_64/libriftpp_compiler_host\.so$'
+# Retired Rift++ App0 and legacy compiler-host libraries must not re-enter any APK ABI.
+forbid_entry '^lib/[^/]+/libriftpp_app0_host\.so$'
+forbid_entry '^lib/[^/]+/libriftpp_compiler_host\.so$'
 
 # Hot-swappable Rift++ compiler payloads execute through a separate crash-contained host.
 # Both supported ARM ABIs must be packaged; x86 variants are forbidden.

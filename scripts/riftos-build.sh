@@ -671,8 +671,6 @@ for native_source in \
   android/app/src/main/cpp/mc0/codynex_mc0_host.cpp \
   android/app/src/main/cpp/mc1/codynex_mc1a_host.cpp \
   android/app/src/main/cpp/mc1/codynex_mc1b_host.cpp \
-  android/app/src/main/cpp/riftpp/riftpp_app0_host.cpp \
-  android/app/src/main/cpp/riftpp/riftpp_compiler_host.cpp \
   android/app/src/main/cpp/riftpp/riftpp_dynamic_compiler_host.cpp \
   android/app/src/main/cpp/editor/editor_vm_bridge.cpp \
   android/app/src/main/java/com/riftos/app/RiftCliHost.kt; do
@@ -705,14 +703,21 @@ grep -Fq 'codynex_editor_vm' android/app/src/main/cpp/CMakeLists.txt || {
   echo 'Builder contract is stale: CMake must build libcodynex_editor_vm for Codynex editor Preview packaging.' >&2
   exit 1
 }
-grep -Fq 'riftpp_app0_host' android/app/src/main/cpp/CMakeLists.txt || {
-  echo 'Builder contract is stale: CMake must build libriftpp_app0_host for generated-runtime App0 packaging.' >&2
-  exit 1
-}
-grep -Fq 'riftpp_compiler_host' android/app/src/main/cpp/CMakeLists.txt || {
-  echo 'Builder contract is stale: CMake must build libriftpp_compiler_host for S2 self-host proof execution.' >&2
-  exit 1
-}
+for retired_riftpp_native in riftpp_app0_host riftpp_compiler_host; do
+  if grep -Fq "$retired_riftpp_native" android/app/src/main/cpp/CMakeLists.txt; then
+    echo "Builder contract is stale: retired Rift++ native target resurfaced: $retired_riftpp_native" >&2
+    exit 1
+  fi
+done
+for retired_riftpp_source in \
+  android/app/src/main/cpp/riftpp/riftpp_app0_host.cpp \
+  android/app/src/main/cpp/riftpp/riftpp_compiler_host.cpp \
+  android/app/src/main/java/com/riftos/app/RiftppCompilerService.kt; do
+  if test -e "$retired_riftpp_source"; then
+    echo "Builder contract is stale: retired Rift++ compiler source resurfaced: $retired_riftpp_source" >&2
+    exit 1
+  fi
+done
 grep -Fq 'riftpp_dynamic_compiler_host' android/app/src/main/cpp/CMakeLists.txt || {
   echo 'Builder contract is stale: CMake must build libriftpp_dynamic_compiler_host for hot Rift++ compiler execution.' >&2
   exit 1
@@ -729,10 +734,20 @@ for required_hot_command in \
     exit 1
   }
 done
-grep -Fq '"prepare-riftpp-app0" -> prepareRiftppApp0(' "$riftbuild_source" || {
-  echo 'Builder contract is stale: RiftBuild must expose the bounded Rift++ App0 preparation lane.' >&2
+for retired_riftpp_route in \
+  'prepare-riftpp-v0' \
+  'prepare-riftpp-seed0-arm64' \
+  'prepare-riftpp-app0' \
+  'prepare-riftpp-editor'; do
+  if grep -Fq "$retired_riftpp_route" "$riftbuild_source"; then
+    echo "Builder contract is stale: retired Rift++ RiftBuild route resurfaced: $retired_riftpp_route" >&2
+    exit 1
+  fi
+done
+if grep -Fq 'riftpp-host' android/app/src/main/java/com/riftos/app/RiftNativeShell.kt; then
+  echo 'Builder contract is stale: retired riftpp-host shell compiler surface resurfaced.' >&2
   exit 1
-}
+fi
 
 : "${RIFT_SIGN_STORE:?Release signing identity required}"
 : "${RIFT_SIGN_ALIAS:?Release key alias required}"
