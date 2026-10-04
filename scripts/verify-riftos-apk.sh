@@ -263,7 +263,7 @@ forbid_entry '\.keystore$'
 gradle_contract="$SOURCE_DIR/android/app/build.gradle.kts"
 test -f "$gradle_contract" || { echo 'APK smoke check failed: RiftOS Gradle source contract is missing.' >&2; exit 1; }
 mapfile -t required_native_sources < <(
-  sed -nE 's/.*"(src\/main\/java\/(com\/riftos\/app|com\/riftpp\/editor)\/[A-Za-z0-9_]+\.kt)".*/\1/p' "$gradle_contract"
+  sed -nE 's/.*"(src\/main\/java\/(com\/riftos\/app|com\/riftpp\/editor|com\/riftpp\/apphost)\/[A-Za-z0-9_]+\.kt)".*/\1/p' "$gradle_contract"
 )
 if [ "${#required_native_sources[@]}" -eq 0 ]; then
   echo 'APK smoke check failed: RiftOS Gradle source contract declared no mandatory native sources.' >&2
@@ -326,11 +326,30 @@ done
 require_dex_string 'structured-argv' 'RiftBuild structured compiler process mode'
 require_dex_string '%TOOLCHAIN%' 'RiftBuild toolchain-root argv expansion'
 require_dex_string '%SYSROOT%' 'RiftBuild sysroot argv expansion'
-# Rift++ legacy-editor native bootstrap final-artifact proof. Class descriptors above prove
-# the mirrored editor owners survived DEX compilation; these unique markers prove the actual
-# editor-owned native compile/run/preflight/debug-APK lane survived too.
+
+# Persistent RiftShell jobs must survive into the signed DEX. These markers prove the new
+# long-command lifecycle is packaged rather than the retired request-bound 60-second behavior.
+for marker in \
+  'rift.shell-job/1' \
+  'rift.shell-jobs/1' \
+  'cancel_requested' \
+  'completed_after_cancel_request' \
+  'completed_result_too_large' \
+  'resubmit as a shell job' \
+  'Managed JVM tool was cancelled'; do
+  require_dex_string "$marker" "persistent RiftShell job marker $marker"
+done
+
+# The single permanent Rift++ editor identity must be current in the packaged shell surface.
+require_dex_string 'Rift++ editor development bridge' 'current Rift++ editor bridge identity'
+forbid_dex_string 'Rift++ legacy editor development bridge' 'legacy Rift++ editor identity'
+forbid_dex_string '[LEGACY EDITOR BINDER BRIDGE]' 'legacy Rift++ editor bridge label'
+
+# Rift++ single-editor native-output final-artifact proof. Class descriptors above prove
+# the permanent Kotlin-hosted editor owners survived DEX compilation; these unique markers prove
+# its editor-owned compile/run/preflight/debug-APK capability lane survived too.
 for marker in   'riftpp-editor native-compile'   'riftpp-editor native-run'   'riftpp-editor native-preflight'   'riftpp-editor native-build-debug'   'riftpp-editor-native-compile/1'   'riftpp-editor-native-run/1'   'riftpp-editor-native-preflight/1'   'riftpp-editor-native-build/1'   'riftpp-editor-native-apk-v1'; do
-  require_dex_string "$marker" "Rift++ legacy-editor native bootstrap marker $marker"
+  require_dex_string "$marker" "Rift++ editor native-output marker $marker"
 done
 
 # RiftGit mode-preserving push must survive compilation into the release DEX, not only exist
@@ -433,6 +452,12 @@ forbid_entry '^lib/[^/]+/libcodynex_mc2a_host\.so$'
 # Retired Rift++ App0 and legacy compiler-host libraries must not re-enter any APK ABI.
 forbid_entry '^lib/[^/]+/libriftpp_app0_host\.so$'
 forbid_entry '^lib/[^/]+/libriftpp_compiler_host\.so$'
+
+# The one permanent Rift++ editor keeps its narrow JNI bridge for both supported ARM ABIs.
+require_entry "lib/arm64-v8a/libriftpp_editor_bridge.so"
+require_entry "lib/armeabi-v7a/libriftpp_editor_bridge.so"
+forbid_entry '^lib/x86/libriftpp_editor_bridge\.so$'
+forbid_entry '^lib/x86_64/libriftpp_editor_bridge\.so$'
 
 # Generic native-buffer compiler payloads execute through a separate crash-contained host.
 # Both supported ARM ABIs must be packaged; x86 variants and retired Rift++ names are forbidden.

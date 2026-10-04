@@ -202,7 +202,7 @@ for required_gradle_contract in \
   }
 done
 mapfile -t required_native_sources < <(
-  sed -nE 's/.*"(src\/main\/java\/(com\/riftos\/app|com\/riftpp\/editor)\/[A-Za-z0-9_]+\.kt)".*/\1/p' "$gradle_contract"
+  sed -nE 's/.*"(src\/main\/java\/(com\/riftos\/app|com\/riftpp\/editor|com\/riftpp\/apphost)\/[A-Za-z0-9_]+\.kt)".*/\1/p' "$gradle_contract"
 )
 test "${#required_native_sources[@]}" -gt 0 || { echo 'Builder contract preflight found no mandatory Kotlin sources.' >&2; exit 1; }
 for source_rel in "${required_native_sources[@]}"; do
@@ -552,9 +552,9 @@ if grep -Fq 'syncRiftBuildRiftppAdapterRuntime' "$gradle_contract"; then
   exit 1
 fi
 
-# Rift++ legacy-editor native bootstrap contract. This is the one-time bridge that lets
-# future Rift++ native-editor work compile/preflight/package inside the installed editor
-# instead of requiring a RiftOS rebuild for every patch.
+# Rift++ single-editor native-output contract. The permanent Kotlin-hosted Rift++ editor
+# owns these generic compile/run/preflight/APK capabilities; they do not imply a second
+# native editor or a future replacement editor.
 riftpp_editor_service="android/app/src/main/java/com/riftpp/editor/RiftppEditorBridgeService.kt"
 riftpp_editor_pipeline="android/app/src/main/java/com/riftpp/editor/RiftppPipeline.kt"
 riftpp_editor_hex="android/app/src/main/java/com/riftpp/editor/HexAssets.kt"
@@ -564,49 +564,49 @@ riftpp_editor_shell="android/app/src/main/java/com/riftos/app/RiftNativeShell.kt
 
 for riftpp_editor_file in   "$riftpp_editor_service"   "$riftpp_editor_pipeline"   "$riftpp_editor_hex"   "$riftpp_editor_apk_builder"   "$riftpp_editor_elf_preflight"   "$riftpp_editor_shell"; do
   test -f "$riftpp_editor_file" || {
-    echo "Builder Rift++ native editor bootstrap contract is missing: $riftpp_editor_file" >&2
+    echo "Builder Rift++ single-editor payload contract is missing: $riftpp_editor_file" >&2
     exit 1
   }
 done
 
 for required_riftpp_editor_service_contract in   '"native-compile" ->'   '"native-run" ->'   '"native-preflight" ->'   '"native-build-debug" ->'   'requiredSymbol'   'riftpp-editor-native-compile/1'   'riftpp-editor-native-run/1'   'riftpp-editor-native-preflight/1'   'riftpp-editor-native-build/1'; do
   grep -Fq "$required_riftpp_editor_service_contract" "$riftpp_editor_service" || {
-    echo "Builder Rift++ native editor bridge contract missing: $required_riftpp_editor_service_contract" >&2
+    echo "Builder Rift++ editor native-output bridge contract missing: $required_riftpp_editor_service_contract" >&2
     exit 1
   }
 done
 
 for required_riftpp_editor_pipeline_contract in   'compileRecordHex('   'compileRecordSource('   'runNativeProgram('   'bootstrapCompilerForDevelopment()'; do
   grep -Fq "$required_riftpp_editor_pipeline_contract" "$riftpp_editor_pipeline" || {
-    echo "Builder Rift++ native editor pipeline contract missing: $required_riftpp_editor_pipeline_contract" >&2
+    echo "Builder Rift++ editor pipeline contract missing: $required_riftpp_editor_pipeline_contract" >&2
     exit 1
   }
 done
 
 for required_riftpp_editor_hex_contract in   'decodeContinuousHex('   'decodeLineHex('; do
   grep -Fq "$required_riftpp_editor_hex_contract" "$riftpp_editor_hex" || {
-    echo "Builder Rift++ native editor hex contract missing: $required_riftpp_editor_hex_contract" >&2
+    echo "Builder Rift++ editor hex contract missing: $required_riftpp_editor_hex_contract" >&2
     exit 1
   }
 done
 
 for required_riftpp_editor_apk_contract in   'fun buildNativeDebug('   'android.app.NativeActivity'   'android.app.lib_name'   'nativeLibraryName ='   'riftpp-editor-native-apk-v1'; do
   grep -Fq "$required_riftpp_editor_apk_contract" "$riftpp_editor_apk_builder" || {
-    echo "Builder Rift++ native editor APK contract missing: $required_riftpp_editor_apk_contract" >&2
+    echo "Builder Rift++ editor native-output APK contract missing: $required_riftpp_editor_apk_contract" >&2
     exit 1
   }
 done
 
 for required_riftpp_editor_elf_contract in   'EM_ARM = 40'   'PT_LOAD'   'section-header table'   'writable and executable'   'PT_LOAD virtual ranges overlap'; do
   grep -Fq "$required_riftpp_editor_elf_contract" "$riftpp_editor_elf_preflight" || {
-    echo "Builder Rift++ native editor ELF preflight contract missing: $required_riftpp_editor_elf_contract" >&2
+    echo "Builder Rift++ editor ELF preflight contract missing: $required_riftpp_editor_elf_contract" >&2
     exit 1
   }
 done
 
 for required_riftpp_editor_shell_contract in   'riftpp-editor native-compile'   'riftpp-editor native-run'   'riftpp-editor native-preflight'   '[required-symbol]'   'riftpp-editor native-build-debug'; do
   grep -Fq "$required_riftpp_editor_shell_contract" "$riftpp_editor_shell" || {
-    echo "Builder Rift++ native editor shell transport contract missing: $required_riftpp_editor_shell_contract" >&2
+    echo "Builder Rift++ editor native-output shell transport contract missing: $required_riftpp_editor_shell_contract" >&2
     exit 1
   }
 done
@@ -691,6 +691,20 @@ grep -Fq 'rift_native_buffer_compiler_host' android/app/src/main/cpp/CMakeLists.
   echo 'Builder contract is stale: CMake must build librift_native_buffer_compiler_host for generic native-buffer compiler execution.' >&2
   exit 1
 }
+grep -Fq 'riftpp_editor_bridge' android/app/src/main/cpp/CMakeLists.txt || {
+  echo 'Builder contract is stale: CMake must build libriftpp_editor_bridge for the permanent Rift++ editor JNI boundary.' >&2
+  exit 1
+}
+for required_riftpp_mirror_contract in \
+  'val verifyRiftppEditorPayload by tasks.registering' \
+  '"src/main/java/com/riftpp/apphost/RiftppAppActivity.kt"' \
+  '"src/main/cpp/editor/riftpp_editor_bridge.cpp"' \
+  'dependsOn(verifyRiftppEditorPayload)'; do
+  grep -Fq "$required_riftpp_mirror_contract" "$gradle_contract" || {
+    echo "Builder Rift++ mirrored editor Gradle contract missing: $required_riftpp_mirror_contract" >&2
+    exit 1
+  }
+done
 if grep -Fq 'riftpp_dynamic_compiler_host' android/app/src/main/cpp/CMakeLists.txt; then
   echo 'Builder contract failed: Rift++-named native-buffer host resurfaced.' >&2
   exit 1
@@ -706,6 +720,64 @@ for required_hot_command in \
     exit 1
   }
 done
+
+# Long RiftShell/RiftBuild work must survive the MCP request window without reviving RiftCLI.
+shell_executor_source="android/app/src/main/java/com/riftos/app/RiftShellExecutor.kt"
+native_shell_source="android/app/src/main/java/com/riftos/app/RiftNativeShell.kt"
+tool_host_source="android/app/src/main/java/com/riftos/app/RiftToolHost.kt"
+managed_jvm_source="android/app/src/main/java/com/riftos/app/RiftManagedJvmToolService.kt"
+for shell_job_source in "$shell_executor_source" "$native_shell_source" "$tool_host_source" "$managed_jvm_source"; do
+  test -f "$shell_job_source" || {
+    echo "Builder persistent RiftShell job contract is missing source: $shell_job_source" >&2
+    exit 1
+  }
+done
+for required_shell_executor_contract in \
+  'fun submit(' \
+  'fun jobStatus(' \
+  'fun jobResult(' \
+  'fun jobCancel(' \
+  'fun jobList('; do
+  grep -Fq "$required_shell_executor_contract" "$shell_executor_source" || {
+    echo "Builder persistent RiftShell executor contract missing: $required_shell_executor_contract" >&2
+    exit 1
+  }
+done
+for required_native_shell_job_contract in \
+  'SYNC_SHELL_TIMEOUT_MS = 10 * 60 * 1000L' \
+  'MAX_SHELL_JOBS = 16' \
+  'SHELL_JOB_RETENTION_MS = 10 * 60 * 1000L' \
+  'MAX_SHELL_JOB_RETAINED_RESULT_BYTES = 2 * 1024 * 1024' \
+  'rift.shell-job/1' \
+  'rift.shell-jobs/1'; do
+  grep -Fq "$required_native_shell_job_contract" "$native_shell_source" || {
+    echo "Builder persistent RiftShell job contract missing: $required_native_shell_job_contract" >&2
+    exit 1
+  }
+done
+for required_shell_tool_contract in \
+  'shouldSubmitShellJob(command)' \
+  '"auto", "exec", "submit", "status", "result", "cancel", "list"' \
+  '"kotlin-compile"'; do
+  grep -Fq "$required_shell_tool_contract" "$tool_host_source" || {
+    echo "Builder MCP RiftShell job routing contract missing: $required_shell_tool_contract" >&2
+    exit 1
+  }
+done
+for required_managed_jvm_contract in \
+  'RUN_TIMEOUT_SECONDS = 10 * 60L' \
+  'putString("status", "cancelled")' \
+  'Process.killProcess(remotePid)'; do
+  grep -Fq "$required_managed_jvm_contract" "$managed_jvm_source" || {
+    echo "Builder managed JVM long-command contract missing: $required_managed_jvm_contract" >&2
+    exit 1
+  }
+done
+if grep -Fq 'SHELL_TIMEOUT_MS = 60_000L' "$native_shell_source" || grep -Fq 'RUN_TIMEOUT_SECONDS = 60L' "$managed_jvm_source"; then
+  echo 'Builder contract failed: retired 60-second shell/compiler timeout resurfaced.' >&2
+  exit 1
+fi
+
 for retired_riftpp_route in \
   'riftpp-compile-hot' \
   'prepare-riftpp-v0' \
@@ -766,6 +838,8 @@ rm -rf \
 if ! timeout --signal=TERM --kill-after=30s "$GRADLE_VALIDATE_TIMEOUT" \
     gradle -p android --stacktrace \
       :app:verifyRiftOsAndroidSources \
+      :app:verifyCodynexEditorPayload \
+      :app:verifyRiftppEditorPayload \
       :app:validateRiftBrowserWebViewOwnership \
       --no-daemon >"$LOG_DIR/gradle-validation.log" 2>&1; then
   echo "RiftOS Gradle validation failed or exceeded $GRADLE_VALIDATE_TIMEOUT before compilation. Detailed log will be returned privately." >&2
