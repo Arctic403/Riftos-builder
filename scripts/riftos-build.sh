@@ -675,7 +675,7 @@ grep -Fq 'rift_native_buffer_compiler_host' android/app/src/main/cpp/CMakeLists.
 if grep -Fq 'riftpp_dynamic_compiler_host' android/app/src/main/cpp/CMakeLists.txt; then
   echo 'Builder contract failed: Rift++-named native-buffer host resurfaced.' >&2
   exit 1
-}
+fi
 for required_hot_command in \
   '"managed-status" -> managedStatus(' \
   '"managed-copy" -> managedCopy(' \
