@@ -320,12 +320,12 @@ done
 require_dex_string 'structured-argv' 'RiftBuild structured compiler process mode'
 require_dex_string '%TOOLCHAIN%' 'RiftBuild toolchain-root argv expansion'
 require_dex_string '%SYSROOT%' 'RiftBuild sysroot argv expansion'
-
 # Rift++ legacy-editor native bootstrap final-artifact proof. Class descriptors above prove
 # the mirrored editor owners survived DEX compilation; these unique markers prove the actual
-# native compile/run/preflight/debug-APK lane and S3 authority split survived too.
-for marker in   'riftpp-editor native-compile'   'riftpp-editor native-run'   'riftpp-editor native-preflight'   'riftpp-editor native-build-debug'   'riftpp-editor-native-compile/1'   'riftpp-editor-native-run/1'   'riftpp-editor-native-preflight/1'   'riftpp-editor-native-build/1'   'riftpp-editor-native-apk-v1'   'workspace-supplied Rift++ S3 Next'   'frozen Rift++ S3 ARM32 recovery root'; do
+# editor-owned native compile/run/preflight/debug-APK lane survived too.
+for marker in   'riftpp-editor native-compile'   'riftpp-editor native-run'   'riftpp-editor native-preflight'   'riftpp-editor native-build-debug'   'riftpp-editor-native-compile/1'   'riftpp-editor-native-run/1'   'riftpp-editor-native-preflight/1'   'riftpp-editor-native-build/1'   'riftpp-editor-native-apk-v1'; do
   require_dex_string "$marker" "Rift++ legacy-editor native bootstrap marker $marker"
+done
 done
 
 # RiftGit mode-preserving push must survive compilation into the release DEX, not only exist

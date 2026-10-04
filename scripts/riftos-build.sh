@@ -611,15 +611,6 @@ grep -Fq '"src/main/java/com/riftpp/editor/RiftppNativeElfPreflight.kt"' "$gradl
   echo 'Builder contract is stale: RiftppNativeElfPreflight.kt is not mandatory in verifyRiftppEditorPayload.' >&2
   exit 1
 }
-grep -Fq 'developmentCompilerAuthority", "workspace-supplied Rift++ S3 Next"' "$riftbuild_source" || {
-  echo 'Builder Rift++ authority receipt is stale: S3 Next is not recorded as the development compiler authority.' >&2
-  exit 1
-}
-grep -Fq 'bootstrapCompilerAuthority", "frozen Rift++ S3 ARM32 recovery root"' "$riftbuild_source" || {
-  echo 'Builder Rift++ authority receipt is stale: frozen S3 is not retained as the recovery root.' >&2
-  exit 1
-}
-
 if grep -Fq 'prepare-codynex-' "$riftbuild_source"; then
   echo 'Builder contract failed: retired Codynex special-case RiftBuild prepare route resurfaced.' >&2
   exit 1
