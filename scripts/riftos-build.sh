@@ -255,14 +255,13 @@ if grep -Fq 'Single-request GitHub push cannot safely preserve mode' "$riftgit_s
   echo 'Builder RiftGit contract regressed to the old 100644-only push rejection.' >&2
   exit 1
 fi
-
-# Codynex C0 editor/provider contract. This surface spans RiftOS plus mirrored editor payload,
-# so validate it explicitly before source tests or Gradle rather than waiting for Kotlin/AAPT.
+# Codynex Editor is the only live Codynex authority reachable from RiftOS.
+# RiftOS owns bounded Binder transport plus the mirrored editor/runtime payload contract;
+# it must not regain compiler generations, C0/LR0 providers, or special RiftBuild prepare routes.
 manifest_contract="android/app/src/main/AndroidManifest.xml"
-provider_source="android/app/src/main/java/com/riftos/app/CodynexCompilerProvider.kt"
-codynex_shell_services="android/app/src/main/java/com/riftos/app/RiftNativeShellServices.kt"
 editor_activity="android/app/src/main/java/com/codynex/editorapp/MainActivity.kt"
-editor_toolchain="android/app/src/main/java/com/codynex/editorapp/Source0SelfHostToolchainPort.kt"
+editor_toolchain="android/app/src/main/java/com/codynex/editorapp/CodynexEditorToolchainPort.kt"
+editor_compiler_runtime="android/app/src/main/java/com/codynex/editorapp/CodynexCompilerRuntime.kt"
 editor_bridge_service="android/app/src/main/java/com/codynex/editorapp/CodynexEditorBridgeService.kt"
 editor_bridge_client="android/app/src/main/java/com/riftos/app/RiftCodynexEditorBridgeClient.kt"
 native_shell="android/app/src/main/java/com/riftos/app/RiftNativeShell.kt"
@@ -275,10 +274,9 @@ riftbuild_native_app_source="android/app/src/main/java/com/riftos/app/RiftBuildN
 
 for editor_contract_file in \
   "$manifest_contract" \
-  "$provider_source" \
-  "$codynex_shell_services" \
   "$editor_activity" \
   "$editor_toolchain" \
+  "$editor_compiler_runtime" \
   "$editor_bridge_service" \
   "$editor_bridge_client" \
   "$native_shell" \
@@ -289,103 +287,44 @@ for editor_contract_file in \
   "$riftbuild_toolchain_source" \
   "$riftbuild_native_app_source"; do
   test -f "$editor_contract_file" || {
-    echo "Builder Codynex C0 editor contract is missing: $editor_contract_file" >&2
+    echo "Builder Codynex editor contract is missing: $editor_contract_file" >&2
     exit 1
   }
 done
 
-grep -Fq '"src/main/java/com/riftos/app/CodynexCompilerProvider.kt"' "$gradle_contract" || {
-  echo 'Builder contract is stale: CodynexCompilerProvider.kt is not mandatory in verifyRiftOsAndroidSources.' >&2
+for retired_codynex_source in \
+  android/app/src/main/java/com/riftos/app/CodynexCompilerProvider.kt \
+  android/app/src/main/java/com/riftos/app/RiftCodynexBridgeClient.kt \
+  android/app/src/main/java/com/codynex/editorapp/Source0SelfHostToolchainPort.kt; do
+  if test -e "$retired_codynex_source"; then
+    echo "Builder contract failed: retired Codynex authority resurfaced: $retired_codynex_source" >&2
+    exit 1
+  fi
+done
+
+if grep -Eq 'CodynexCompilerProvider|com\.riftos\.app\.codynexcompiler|com\.codynex\.lr0lab' "$manifest_contract"; then
+  echo 'Builder contract failed: retired Codynex provider/LR0 manifest authority resurfaced.' >&2
   exit 1
-}
-grep -Fq '"src/main/java/com/riftos/app/RiftCodynexEditorBridgeClient.kt"' "$gradle_contract" || {
-  echo 'Builder contract is stale: RiftCodynexEditorBridgeClient.kt is not mandatory in verifyRiftOsAndroidSources.' >&2
+fi
+if grep -Eq 'prepare-codynex-|compileCodynexC0|codynex-c0-ref|c0_reference\.js' "$riftbuild_source"; then
+  echo 'Builder contract failed: retired Codynex compiler/proof RiftBuild authority resurfaced.' >&2
   exit 1
-}
-grep -Fq '"src/main/java/com/codynex/editorapp/CodynexEditorBridgeService.kt"' "$gradle_contract" || {
-  echo 'Builder contract is stale: CodynexEditorBridgeService.kt is not pinned in verifyCodynexEditorPayload.' >&2
+fi
+
+for required_gradle_editor_source in \
+  '"src/main/java/com/riftos/app/RiftCodynexEditorBridgeClient.kt"' \
+  '"src/main/java/com/codynex/editorapp/CodynexCompilerRuntime.kt"' \
+  '"src/main/java/com/codynex/editorapp/CodynexEditorToolchainPort.kt"' \
+  '"src/main/java/com/codynex/editorapp/CodynexEditorBridgeService.kt"'; do
+  grep -Fq "$required_gradle_editor_source" "$gradle_contract" || {
+    echo "Builder current Codynex editor source contract missing: $required_gradle_editor_source" >&2
+    exit 1
+  }
+done
+if grep -Eq 'CodynexCompilerProvider\.kt|validateCodynexCompilerTransition|Source0SelfHostToolchainPort\.kt' "$gradle_contract"; then
+  echo 'Builder Gradle contract still contains retired Codynex compiler authority.' >&2
   exit 1
-}
-node -e '
-  const fs = require("fs");
-  const xml = fs.readFileSync("android/app/src/main/AndroidManifest.xml", "utf8");
-  const provider = xml.match(/<provider\b[^>]*android:name="\.CodynexCompilerProvider"[^>]*\/>/s)?.[0] || "";
-  for (const required of [
-    "android:name=\".CodynexCompilerProvider\"",
-    "android:authorities=\"com.riftos.app.codynexcompiler\"",
-    "android:exported=\"true\"",
-    "android:grantUriPermissions=\"false\"",
-  ]) {
-    if (!provider.includes(required)) {
-      console.error("Builder Codynex provider manifest element missing: " + required);
-      process.exit(1);
-    }
-  }
-'
-
-for required_provider_contract in \
-  'class CodynexCompilerProvider' \
-  'METHOD_COMPILE = "compile-c0"' \
-  'EDITOR_PACKAGE = "com.codynex.editor"' \
-  'EDITOR_CERT_SHA256 =' \
-  '9874e844c24fe92c65908ce9b3cfb192f87774984a9e4fc600d883badcbe19b5' \
-  'COMPILER_VERSION_PREVIOUS =' \
-  'COMPILER_VERSION_CURRENT =' \
-  'SUPPORTED_COMPILER_VERSIONS' \
-  'codynex-c0-ref/0.11.0' \
-  'codynex-c0-ref/0.12.0' \
-  'MAX_SOURCE_BYTES = 256 * 1024' \
-  'MAX_PROJECT_BYTES = 1024 * 1024' \
-  'MAX_PROJECT_MODULES = 64' \
-  'MAX_VM1_BYTES = 64 * 1024' \
-  'MAX_VM2_BYTES = 64 * 1024' \
-  'METHOD_COMPILE_PROJECT = "compile-c0-project"' \
-  'METHOD_COMPILE_VM2 = "compile-c0-vm2"' \
-  'METHOD_COMPILE_PROJECT_VM2 = "compile-c0-project-vm2"' \
-  'compileCodynexC0ProjectVM2' \
-  'runtime.executeQuickJs' \
-  '/workspace/Codynex/external/language/l0/compiler/c0_reference.js'; do
-  grep -Fq "$required_provider_contract" "$provider_source" || {
-    echo "Builder Codynex provider source contract missing: $required_provider_contract" >&2
-    exit 1
-  }
-done
-
-for required_riftosplus_host_contract in \
-  'c0-run-host' \
-  'c0-run-host-call' \
-  'codynex-c0-project-host-run/1' \
-  'codynex-c0-project-host-call-run/1' \
-  'riftosplus-host-snapshot/1' \
-  'riftosplus-host-call/1' \
-  'riftosplus-host-request/1' \
-  'riftosplus-host-response/1' \
-  'buildCodynexC0HostSnapshot' \
-  'requireCodynexC0WorkspaceProbeRequest' \
-  'buildCodynexC0WorkspaceProbeResponse' \
-  'SystemClock.elapsedRealtime()' \
-  'val initialSource = if (hostRun)' \
-  'requestBytes == 8L' \
-  'resolveFile("/D:/Workspace").isDirectory' \
-  '.put("hostCallTurns", 2)' \
-  'putCodynexC0U32Le(snapshot, 12, 7)'; do
-  grep -Fq "$required_riftosplus_host_contract" "$codynex_shell_services" || {
-    echo "Builder RiftOs+ R1 host source contract missing: $required_riftosplus_host_contract" >&2
-    exit 1
-  }
-done
-
-for required_editor_contract in \
-  'File(workspaceRoot, "main.cx")' \
-  'TEMP LIVE-PROOF SCAFFOLD' \
-  'Set Entry' \
-  'Save All' \
-  'target = EditorVmTarget.VM1'; do
-  grep -Fq "$required_editor_contract" "$editor_activity" || {
-    echo "Builder Codynex editor activity contract missing: $required_editor_contract" >&2
-    exit 1
-  }
-done
+fi
 
 for required_editor_bridge_client in \
   'class RiftCodynexEditorBridgeClient' \
@@ -412,8 +351,7 @@ for required_editor_bridge_service in \
   '"codynex-editor-bridge-native-proof/1"' \
   '"codynex-editor-bridge-build-apk/1"' \
   'compileFresh(entry)' \
-  'CodynexApkBuilder(this).build' \
-  'target = EditorVmTarget.VM1'; do
+  'CodynexApkBuilder(this).build'; do
   grep -Fq "$required_editor_bridge_service" "$editor_bridge_service" || {
     echo "Builder Codynex editor bridge service contract missing: $required_editor_bridge_service" >&2
     exit 1
@@ -433,25 +371,15 @@ for required_editor_shell_contract in \
     exit 1
   }
 done
-
-for required_editor_packaging_contract in \
-  'EDITOR_BRIDGE_SERVICE =' \
-  'com.codynex.editorapp.CodynexEditorBridgeService' \
-  'editorManifestStringAttr("name", EDITOR_BRIDGE_SERVICE)'; do
-  grep -Fq "$required_editor_packaging_contract" "$riftbuild_source" || {
-    echo "Builder Codynex editor bridge packaging contract missing: $required_editor_packaging_contract" >&2
-    exit 1
-  }
-done
+if grep -Eq '"codynex"[[:space:]]*->|RiftCodynexBridgeClient|codynexBridge\(' "$native_shell"; then
+  echo 'Builder contract failed: retired Codynex LR0 shell route resurfaced.' >&2
+  exit 1
+fi
 
 for required_editor_toolchain in \
-  'com.riftos.app.codynexcompiler' \
-  'COMPILE_METHOD_VM1 = "compile-c0"' \
-  'COMPILE_PROJECT_METHOD_VM1 = "compile-c0-project"' \
-  'COMPILE_METHOD_VM2 = "compile-c0-vm2"' \
-  'COMPILE_PROJECT_METHOD_VM2 = "compile-c0-project-vm2"' \
+  'class CodynexEditorToolchainPort' \
+  'CodynexCompilerRuntime(context.applicationContext).compile' \
   'EditorVmTarget.VM2' \
-  'contentResolver.call' \
   'CodynexRuntimeBridge.run' \
   'MAX_SOURCE_BYTES = 256 * 1024' \
   'MAX_PROJECT_BYTES = 1024 * 1024' \
@@ -462,7 +390,30 @@ for required_editor_toolchain in \
     exit 1
   }
 done
+if grep -Eq 'contentResolver\.call|com\.riftos\.app\.codynexcompiler|COMPILE_METHOD_VM' "$editor_toolchain"; then
+  echo 'Builder Codynex editor toolchain regressed to RiftOS provider authority.' >&2
+  exit 1
+fi
 
+for required_editor_compiler_runtime in \
+  'class CodynexCompilerRuntime' \
+  'HOT_COMPILER_WORKSPACE_PATH' \
+  '.codynex/toolchains/compiler.js' \
+  'BUNDLED_COMPILER_ASSET' \
+  'codynex_compiler.js' \
+  'quickJs {' \
+  'globalThis.CodynexC0' \
+  'compiler.compileProjectVM2' \
+  'compiler.compileProject'; do
+  grep -Fq "$required_editor_compiler_runtime" "$editor_compiler_runtime" || {
+    echo "Builder Codynex editor compiler runtime contract missing: $required_editor_compiler_runtime" >&2
+    exit 1
+  }
+done
+if grep -Eq 'codynex-c0-ref/0\.11\.0|codynex-c0-ref/0\.12\.0' "$editor_compiler_runtime"; then
+  echo 'Builder Codynex editor compiler host must remain compiler-version agnostic.' >&2
+  exit 1
+fi
 for required_riftbuild_native_contract in \
   '"toolchain-status" -> nativeToolchain.status()' \
   '"toolchain-install-bundled" -> nativeToolchain.installBundled()' \
@@ -520,15 +471,19 @@ for required_riftbuild_native_app_contract in \
   'class RiftBuildNativeApp' \
   'riftbuild-native-app/1' \
   'riftbuild-native-app/2' \
-  'riftbuild-native-app-prepare-v2' \
-  'riftbuild-native-app-validation-v1' \
+  'riftbuild-native-app/3' \
+  'riftbuild-runtime-profile/1' \
+  'riftbuild-native-app-prepare-v3' \
+  'riftbuild-native-app-validation-v2' \
   'fun validateProject(projectRoot: File)' \
-  'RIFTPP_ADAPTER_PROFILE' \
-  'RIFTPP_ADAPTER_RUNTIME' \
-  'materializeManagedRuntime' \
-  'build/riftbuild/hot-dex' \
-  'run riftbuild kotlin-compile first' \
-  'com.riftpp.android.RiftppActivity' \
+  'readRuntimeProfile' \
+  'materializeRuntimeProfile' \
+  'MAX_RUNTIME_DEX_FILES = 8' \
+  'MAX_RUNTIME_DEX_BYTES = 16L * 1024L * 1024L' \
+  'runtimeProfile' \
+  'activityClass' \
+  'hasCode' \
+  'dexDir' \
   'android.app.NativeActivity' \
   'android.app.lib_name' \
   'build/riftbuild/prepared/AndroidManifest.xml' \
@@ -538,16 +493,18 @@ for required_riftbuild_native_app_contract in \
     exit 1
   }
 done
+if grep -Eq 'RIFTPP_ADAPTER|riftpp-adapter|riftpp-android-adapter|com\.riftpp\.android\.RiftppActivity|materializeManagedRuntime' "$riftbuild_native_app_source"; then
+  echo 'Builder contract failed: generic runtime/profile materializer regained Rift++ identity.' >&2
+  exit 1
+fi
 for required_riftbuild_gradle_source in \
   '"src/main/java/com/riftos/app/RiftBuildNativeToolchain.kt"' \
   '"src/main/java/com/riftos/app/RiftBuildNativeApp.kt"' \
   '"src/main/java/com/riftos/app/RiftBuildKotlinCompiler.kt"' \
   '"src/main/java/com/riftos/app/RiftBuildManagedToolchains.kt"' \
   '"src/main/java/com/riftos/app/RiftManagedJvmToolService.kt"' \
-  '"src/main/java/com/riftos/app/RiftppDynamicCompilerService.kt"' \
+  '"src/main/java/com/riftos/app/RiftNativeBufferCompilerService.kt"' \
   'sourceSets["main"].jniLibs.directories.add("build/generated/riftosJniLibs")' \
-  'syncRiftBuildRiftppAdapterRuntime' \
-  'generated/riftosAssets/riftbuild/managed-runtimes/riftpp-adapter-v1' \
   'syncRiftBuildKotlinToolchain' \
   'generated/riftosAssets/riftbuild/kotlin-toolchain' \
   'dependsOn(syncRiftBuildKotlinToolchain)' \
@@ -556,15 +513,14 @@ for required_riftbuild_gradle_source in \
   'kotlin-android-2.4.0.apk' \
   'dependsOn(syncRiftBuildCompilerSeeds)' \
   'isTransitive = false' \
-  'validateCodynexCompilerTransition' \
   'jniLibs.useLegacyPackaging = true'; do
   grep -Fq "$required_riftbuild_gradle_source" "$gradle_contract" || {
     echo "Builder contract is stale: RiftBuild native source is not mandatory in verifyRiftOsAndroidSources: $required_riftbuild_gradle_source" >&2
     exit 1
   }
 done
-if grep -Fq 'dependsOn(syncRiftBuildRiftppAdapterRuntime)' "$gradle_contract"; then
-  echo 'Builder contract is stale: legacy Rift++ adapter DEX sync must not be active preBuild authority.' >&2
+if grep -Fq 'syncRiftBuildRiftppAdapterRuntime' "$gradle_contract"; then
+  echo 'Builder contract failed: project-specific Rift++ adapter runtime sync resurfaced in RiftOS Gradle.' >&2
   exit 1
 fi
 
@@ -640,16 +596,10 @@ grep -Fq 'bootstrapCompilerAuthority", "frozen Rift++ S3 ARM32 recovery root"' "
   exit 1
 }
 
-for required_editor_packer_contract in \
-  '"prepare-codynex-editor" -> prepareCodynexEditor(' \
-  'EDITOR_HOST_APK_ENTRY = "lib/armeabi-v7a/libcodynex_editor_vm.so"' \
-  'buildEditorManifestStartElement("queries", emptyList())' \
-  'editorManifestStringAttr("name", "com.riftos.app")'; do
-  grep -Fq "$required_editor_packer_contract" "$riftbuild_source" || {
-    echo "Builder Codynex editor packer contract missing: $required_editor_packer_contract" >&2
-    exit 1
-  }
-done
+if grep -Fq 'prepare-codynex-' "$riftbuild_source"; then
+  echo 'Builder contract failed: retired Codynex special-case RiftBuild prepare route resurfaced.' >&2
+  exit 1
+fi
 
 grep -Fq 'android:extractNativeLibs="true"' "$manifest_contract" || {
   echo 'Builder RiftBuild bundled toolchain contract requires android:extractNativeLibs=true.' >&2
@@ -668,10 +618,7 @@ for native_source in \
   android/app/src/main/cpp/riftcli/rift_cli_core.cpp \
   android/app/src/main/cpp/riftcli/rift_cli_core.h \
   android/app/src/main/cpp/riftcli/rift_cli_jni.cpp \
-  android/app/src/main/cpp/mc0/codynex_mc0_host.cpp \
-  android/app/src/main/cpp/mc1/codynex_mc1a_host.cpp \
-  android/app/src/main/cpp/mc1/codynex_mc1b_host.cpp \
-  android/app/src/main/cpp/riftpp/riftpp_dynamic_compiler_host.cpp \
+  android/app/src/main/cpp/compiler/rift_native_buffer_compiler_host.cpp \
   android/app/src/main/cpp/editor/editor_vm_bridge.cpp \
   android/app/src/main/java/com/riftos/app/RiftCliHost.kt; do
   test -f "$native_source" || {
@@ -687,18 +634,18 @@ grep -Fq 'riftcli' android/app/src/main/cpp/CMakeLists.txt || {
   echo 'Builder contract is stale: RiftCLI CMake must build libriftcli.' >&2
   exit 1
 }
-grep -Fq 'codynex_mc0_host' android/app/src/main/cpp/CMakeLists.txt || {
-  echo 'Builder contract is stale: CMake must build libcodynex_mc0_host for RiftBuild MC0 proof packaging.' >&2
-  exit 1
-}
-grep -Fq 'codynex_mc1a_host' android/app/src/main/cpp/CMakeLists.txt || {
-  echo 'Builder contract is stale: CMake must build libcodynex_mc1a_host for RiftBuild MC1-A proof packaging.' >&2
-  exit 1
-}
-grep -Fq 'codynex_mc1b_host' android/app/src/main/cpp/CMakeLists.txt || {
-  echo 'Builder contract is stale: CMake must build libcodynex_mc1b_host for RiftBuild MC1-B proof packaging.' >&2
-  exit 1
-}
+for retired_codynex_native in \
+  codynex_mc0_host \
+  codynex_mc1a_host \
+  codynex_mc1b_host \
+  codynex_m2_vm0_host \
+  codynex_m2b_host \
+  codynex_mc2a_host; do
+  if grep -Fq "$retired_codynex_native" android/app/src/main/cpp/CMakeLists.txt; then
+    echo "Builder contract failed: retired Codynex proof target resurfaced: $retired_codynex_native" >&2
+    exit 1
+  fi
+done
 grep -Fq 'codynex_editor_vm' android/app/src/main/cpp/CMakeLists.txt || {
   echo 'Builder contract is stale: CMake must build libcodynex_editor_vm for Codynex editor Preview packaging.' >&2
   exit 1
@@ -712,14 +659,21 @@ done
 for retired_riftpp_source in \
   android/app/src/main/cpp/riftpp/riftpp_app0_host.cpp \
   android/app/src/main/cpp/riftpp/riftpp_compiler_host.cpp \
-  android/app/src/main/java/com/riftos/app/RiftppCompilerService.kt; do
+  android/app/src/main/cpp/riftpp/riftpp_dynamic_compiler_host.cpp \
+  android/app/src/main/java/com/riftos/app/RiftppCompilerService.kt \
+  android/app/src/main/java/com/riftos/app/RiftppDynamicCompilerService.kt \
+  android/riftpp-adapter-runtime-bundle; do
   if test -e "$retired_riftpp_source"; then
     echo "Builder contract is stale: retired Rift++ compiler source resurfaced: $retired_riftpp_source" >&2
     exit 1
   fi
 done
-grep -Fq 'riftpp_dynamic_compiler_host' android/app/src/main/cpp/CMakeLists.txt || {
-  echo 'Builder contract is stale: CMake must build libriftpp_dynamic_compiler_host for hot Rift++ compiler execution.' >&2
+grep -Fq 'rift_native_buffer_compiler_host' android/app/src/main/cpp/CMakeLists.txt || {
+  echo 'Builder contract is stale: CMake must build librift_native_buffer_compiler_host for generic native-buffer compiler execution.' >&2
+  exit 1
+}
+if grep -Fq 'riftpp_dynamic_compiler_host' android/app/src/main/cpp/CMakeLists.txt; then
+  echo 'Builder contract failed: Rift++-named native-buffer host resurfaced.' >&2
   exit 1
 }
 for required_hot_command in \
@@ -727,14 +681,14 @@ for required_hot_command in \
   '"managed-copy" -> managedCopy(' \
   '"compiler-status" -> compilerStatus(' \
   '"compiler-run" -> compilerRun(' \
-  '"kotlin-compile" -> kotlinCompile(' \
-  '"riftpp-compile-hot" -> riftppCompileHot('; do
+  '"kotlin-compile" -> kotlinCompile('; do
   grep -Fq "$required_hot_command" "$riftbuild_source" || {
     echo "Builder contract is stale: RiftBuild hot-swap command missing: $required_hot_command" >&2
     exit 1
   }
 done
 for retired_riftpp_route in \
+  'riftpp-compile-hot' \
   'prepare-riftpp-v0' \
   'prepare-riftpp-seed0-arm64' \
   'prepare-riftpp-app0' \
@@ -793,7 +747,6 @@ rm -rf \
 if ! timeout --signal=TERM --kill-after=30s "$GRADLE_VALIDATE_TIMEOUT" \
     gradle -p android --stacktrace \
       :app:verifyRiftOsAndroidSources \
-      :app:validateCodynexCompilerTransition \
       :app:validateRiftBrowserWebViewOwnership \
       --no-daemon >"$LOG_DIR/gradle-validation.log" 2>&1; then
   echo "RiftOS Gradle validation failed or exceeded $GRADLE_VALIDATE_TIMEOUT before compilation. Detailed log will be returned privately." >&2

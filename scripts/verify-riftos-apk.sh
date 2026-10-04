@@ -187,14 +187,10 @@ if ! grep -Eq 'android:targetSdkVersion\([^)]*\)=(36|\(type 0x10\)0x24)([[:space
   exit 1
 fi
 
-# The C0 editor compile bridge is a real exported Android surface. Prove that the final
-# compiled manifest retained both the provider class and its fixed authority.
-if ! grep -Fq 'CodynexCompilerProvider' <<<"$manifest_tree"; then
-  echo 'APK smoke check failed: compiled manifest is missing CodynexCompilerProvider.' >&2
-  exit 1
-fi
-if ! grep -Fq 'com.riftos.app.codynexcompiler' <<<"$manifest_tree"; then
-  echo 'APK smoke check failed: compiled manifest is missing Codynex compiler authority.' >&2
+# Codynex compiler authority lives in the standalone Codynex Editor. The final
+# RiftOS manifest must not restore the retired provider/LR0 surfaces.
+if grep -Eq 'CodynexCompilerProvider|com\.riftos\.app\.codynexcompiler|com\.codynex\.lr0lab' <<<"$manifest_tree"; then
+  echo 'APK smoke check failed: retired Codynex provider/LR0 manifest authority resurfaced.' >&2
   exit 1
 fi
 extract_native_line="$(grep -F 'android:extractNativeLibs' <<<"$manifest_tree" || true)"
@@ -203,18 +199,18 @@ if [ -z "$extract_native_line" ] || ! grep -Eq '(0xffffffff|true)' <<<"$extract_
   printf '%s\n' "$extract_native_line" >&2
   exit 1
 fi
-legacy_riftpp_compiler_process="$(grep -F ':riftppCompiler' <<<"$manifest_tree" | grep -Fv ':riftppCompilerHot' || true)"
-if grep -Fq 'RiftppCompilerService' <<<"$manifest_tree" || [ -n "$legacy_riftpp_compiler_process" ]; then
-  echo 'APK smoke check failed: retired legacy Rift++ compiler service/process resurfaced.' >&2
+legacy_riftpp_compiler_process="$(grep -F ':riftppCompiler' <<<"$manifest_tree" || true)"
+if grep -Eq 'RiftppCompilerService|RiftppDynamicCompilerService' <<<"$manifest_tree" || [ -n "$legacy_riftpp_compiler_process" ]; then
+  echo 'APK smoke check failed: Rift++-named compiler service/process resurfaced.' >&2
   printf '%s\n' "$legacy_riftpp_compiler_process" >&2
   exit 1
 fi
-if ! grep -Fq 'RiftppDynamicCompilerService' <<<"$manifest_tree"; then
-  echo 'APK smoke check failed: compiled manifest is missing RiftppDynamicCompilerService.' >&2
+if ! grep -Fq 'RiftNativeBufferCompilerService' <<<"$manifest_tree"; then
+  echo 'APK smoke check failed: compiled manifest is missing RiftNativeBufferCompilerService.' >&2
   exit 1
 fi
-if ! grep -Fq ':riftppCompilerHot' <<<"$manifest_tree"; then
-  echo 'APK smoke check failed: RiftppDynamicCompilerService is not isolated in :riftppCompilerHot.' >&2
+if ! grep -Fq ':riftNativeBufferCompiler' <<<"$manifest_tree"; then
+  echo 'APK smoke check failed: RiftNativeBufferCompilerService is not process-isolated.' >&2
   exit 1
 fi
 if ! grep -Fq 'RiftManagedJvmToolService' <<<"$manifest_tree"; then
@@ -306,13 +302,17 @@ require_dex_string '%COMPILER_DIR%' 'RiftBuild compiler-directory argv expansion
 require_dex_string 'prepare-native-app' 'RiftBuild generic native-app preparation command'
 require_dex_string 'riftbuild-native-toolchain-status-v1' 'RiftBuild native toolchain status schema'
 require_dex_string 'riftbuild-native-compile-v1' 'RiftBuild native compile result schema'
-require_dex_string 'riftbuild-native-app-prepare-v2' 'RiftBuild generic native-app prepare schema'
+require_dex_string 'riftbuild-native-app-prepare-v3' 'RiftBuild generic native-app prepare schema'
+require_dex_string 'riftbuild-native-app-validation-v2' 'RiftBuild generic native-app validation schema'
+require_dex_string 'riftbuild-runtime-profile/1' 'RiftBuild generic runtime profile contract'
 require_dex_string 'riftbuild-android-clang-toolchain/1' 'RiftBuild Android-host toolchain contract'
 require_dex_string 'riftbuild-native-project/1' 'RiftBuild native project contract'
 require_dex_string 'riftbuild-native-app/1' 'RiftBuild native app contract'
-require_dex_string 'riftbuild-native-app/2' 'RiftBuild native app v2 contract'
-require_dex_string 'riftpp-android-adapter/1' 'Rift++ Android adapter runtime contract'
-require_dex_string 'com.riftpp.android.RiftppActivity' 'Rift++ Android adapter activity class'
+require_dex_string 'riftbuild-native-app/2' 'RiftBuild native app v2 compatibility contract'
+require_dex_string 'riftbuild-native-app/3' 'RiftBuild native app v3 profile contract'
+for retired_marker in 'riftpp-android-adapter/1' 'com.riftpp.android.RiftppActivity' 'riftpp-adapter'; do
+  forbid_dex_string "$retired_marker" "retired Rift++ runtime identity $retired_marker"
+done
 require_dex_string 'structured-argv' 'RiftBuild structured compiler process mode'
 require_dex_string '%TOOLCHAIN%' 'RiftBuild toolchain-root argv expansion'
 require_dex_string '%SYSROOT%' 'RiftBuild sysroot argv expansion'
@@ -353,42 +353,23 @@ require_dex_string 'train-v2-builder-status' 'RiftLLM RiftTrainData V2 builder q
 require_dex_string 'train_v2_builder_start' 'RiftLLM RiftTrainData V2 builder qualification start Provider method'
 require_dex_string 'train_v2_builder_status' 'RiftLLM RiftTrainData V2 builder qualification status Provider method'
 
-# Codynex C0 editor/provider final-artifact proof. The provider class itself is already
-# covered by the Gradle-derived com.riftos.app loop above; these markers prove the exact
-# compiler authority/identity/bounds path survived compilation, the RiftOs+ C0 project
-# compile/run host plus the R1 versioned host-snapshot HAL survived into DEX, and the mirrored editor/native VM payload is present.
+# Codynex final-artifact proof: RiftOS carries only the editor bridge and generic
+# editor runtime/toolchain payload. Compiler generations and C0/LR0 authority stay retired.
 for marker in \
+  'com.codynex.editor' \
+  'com.codynex.editor.bridge.v1' \
+  '.codynex/toolchains/compiler.js' \
+  'codynex_compiler.js'; do
+  require_dex_string "$marker" "Codynex current editor/runtime marker $marker"
+done
+for retired_marker in \
   'com.riftos.app.codynexcompiler' \
-  'compile-c0' \
-  'c0-compile' \
-  'c0-run' \
-  'c0-run-host' \
-  'c0-run-host-call' \
-  'codynex-c0-project-compile/1' \
-  'codynex-c0-project-run/1' \
-  'codynex-c0-project-host-run/1' \
-  'codynex-c0-project-host-call-run/1' \
-  'riftosplus-host-snapshot/1' \
-  'riftosplus-host-call/1' \
-  'riftosplus-host-request/1' \
-  'riftosplus-host-response/1' \
-  'hostSnapshotBytes' \
-  'hostSnapshotCapabilities' \
-  'hostCallTurns' \
-  'hostOperation' \
-  'workspace-probe' \
-  'vm1AuthorityBytes' \
   'codynex-c0-ref/0.11.0' \
   'codynex-c0-ref/0.12.0' \
-  '7d7b33d2796ab2ddbca1519e00f254c2e6c8417af3ee9317ab45929a593b7df5' \
-  'com.codynex.editor' \
-  '9874e844c24fe92c65908ce9b3cfb192f87774984a9e4fc600d883badcbe19b5' \
   '/workspace/Codynex/external/language/l0/compiler/c0_reference.js' \
-  'TEMP LIVE-PROOF SCAFFOLD' \
-  'Set Entry' \
-  'Save All' \
-  'compile-c0-project'; do
-  require_dex_string "$marker" "Codynex C0 editor/provider marker $marker"
+  'codynex-c0-project-host-run/1' \
+  'riftosplus-host-snapshot/1'; do
+  forbid_dex_string "$retired_marker" "retired Codynex compiler authority $retired_marker"
 done
 
 for bridge_marker in \
@@ -411,7 +392,8 @@ for editor_descriptor in \
   'Lcom/codynex/editorapp/CodynexEditorBridgeService;' \
   'Lcom/codynex/editorapp/MainActivity;' \
   'Lcom/codynex/editorapp/BootstrapArtifacts;' \
-  'Lcom/codynex/editorapp/Source0SelfHostToolchainPort;' \
+  'Lcom/codynex/editorapp/CodynexCompilerRuntime;' \
+  'Lcom/codynex/editorapp/CodynexEditorToolchainPort;' \
   'Lcom/codynex/editorapp/CodynexRuntimeBridge;' \
   'Lcom/codynex/editorapp/FileWorkspacePort;' \
   'Lcom/codynex/editor/CodynexEditorController;'; do
@@ -431,25 +413,27 @@ require_entry "lib/armeabi-v7a/libriftcli.so"
 forbid_entry '^lib/x86/libriftcli\.so$'
 forbid_entry '^lib/x86_64/libriftcli\.so$'
 
-# RiftBuild's Codynex machine-proof packagers read these disposable ARM32 hosts
-# from RiftOS's own APK. Compiler authority remains the external exact raw seed bytes.
-require_entry "lib/armeabi-v7a/libcodynex_mc0_host.so"
-require_entry "lib/armeabi-v7a/libcodynex_mc1a_host.so"
-require_entry "lib/armeabi-v7a/libcodynex_mc1b_host.so"
+# Retired Codynex machine-proof hosts must not re-enter any APK ABI.
+forbid_entry '^lib/[^/]+/libcodynex_mc0_host\.so$'
+forbid_entry '^lib/[^/]+/libcodynex_mc1a_host\.so$'
+forbid_entry '^lib/[^/]+/libcodynex_mc1b_host\.so$'
+forbid_entry '^lib/[^/]+/libcodynex_m2_vm0_host\.so$'
+forbid_entry '^lib/[^/]+/libcodynex_m2b_host\.so$'
+forbid_entry '^lib/[^/]+/libcodynex_mc2a_host\.so$'
 
 # Retired Rift++ App0 and legacy compiler-host libraries must not re-enter any APK ABI.
 forbid_entry '^lib/[^/]+/libriftpp_app0_host\.so$'
 forbid_entry '^lib/[^/]+/libriftpp_compiler_host\.so$'
 
-# Hot-swappable Rift++ compiler payloads execute through a separate crash-contained host.
-# Both supported ARM ABIs must be packaged; x86 variants are forbidden.
-require_entry "lib/arm64-v8a/libriftpp_dynamic_compiler_host.so"
-require_entry "lib/armeabi-v7a/libriftpp_dynamic_compiler_host.so"
-forbid_entry '^lib/x86/libriftpp_dynamic_compiler_host\.so$'
-forbid_entry '^lib/x86_64/libriftpp_dynamic_compiler_host\.so$'
+# Generic native-buffer compiler payloads execute through a separate crash-contained host.
+# Both supported ARM ABIs must be packaged; x86 variants and retired Rift++ names are forbidden.
+require_entry "lib/arm64-v8a/librift_native_buffer_compiler_host.so"
+require_entry "lib/armeabi-v7a/librift_native_buffer_compiler_host.so"
+forbid_entry '^lib/x86/librift_native_buffer_compiler_host\.so$'
+forbid_entry '^lib/x86_64/librift_native_buffer_compiler_host\.so$'
+forbid_entry '^lib/[^/]+/libriftpp_dynamic_compiler_host\.so$'
 
-# The standalone Codynex editor Preview path executes frozen VM1 on ARM32 and RiftBuild
-# extracts this exact library from the installed RiftOS APK.
+# The mirrored Codynex editor native preview bridge remains a required ARM32 payload.
 require_entry "lib/armeabi-v7a/libcodynex_editor_vm.so"
 forbid_entry '^lib/x86/libcodynex_editor_vm\.so$'
 forbid_entry '^lib/x86_64/libcodynex_editor_vm\.so$'
