@@ -326,7 +326,6 @@ require_dex_string '%SYSROOT%' 'RiftBuild sysroot argv expansion'
 for marker in   'riftpp-editor native-compile'   'riftpp-editor native-run'   'riftpp-editor native-preflight'   'riftpp-editor native-build-debug'   'riftpp-editor-native-compile/1'   'riftpp-editor-native-run/1'   'riftpp-editor-native-preflight/1'   'riftpp-editor-native-build/1'   'riftpp-editor-native-apk-v1'; do
   require_dex_string "$marker" "Rift++ legacy-editor native bootstrap marker $marker"
 done
-done
 
 # RiftGit mode-preserving push must survive compilation into the release DEX, not only exist
 # in source. These strings are emitted by the executable/symlink fallback path.
