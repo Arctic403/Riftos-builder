@@ -517,8 +517,12 @@ if grep -Eq 'ALLOWED_PROOF_PACKAGES|RIFTPP_[A-Z0-9_]*TARGET_PACKAGE|TARGET_PACKA
   echo 'Builder contract failed: generic RiftBuild installer regained project package identity.' >&2
   exit 1
 fi
-if grep -Eq '<package android:name="com\.riftpp\.' "$manifest_contract"; then
-  echo 'Builder contract failed: RiftOS manifest regained Rift++ package visibility for generic install/launch.' >&2
+if ! grep -Fq '<package android:name="com.riftpp.editor" />' "$manifest_contract"; then
+  echo 'Builder contract failed: Rift++ editor bridge package visibility is missing.' >&2
+  exit 1
+fi
+if grep -Eq '<package android:name="com\.riftpp\.(editor\.(nativev1|adapterr1)|nativeproof)"' "$manifest_contract"; then
+  echo 'Builder contract failed: RiftOS manifest regained Rift++ proof package visibility for generic install/launch.' >&2
   exit 1
 fi
 for required_riftbuild_gradle_source in \

@@ -193,10 +193,16 @@ if grep -Eq 'CodynexCompilerProvider|com\.riftos\.app\.codynexcompiler|com\.cody
   echo 'APK smoke check failed: retired Codynex provider/LR0 manifest authority resurfaced.' >&2
   exit 1
 fi
-if grep -Fq 'com.riftpp.' <<<"$manifest_tree"; then
-  echo 'APK smoke check failed: Rift++ package visibility resurfaced in the compiled RiftOS manifest.' >&2
+if ! grep -Fq 'com.riftpp.editor' <<<"$manifest_tree"; then
+  echo 'APK smoke check failed: Rift++ editor bridge package visibility is missing from the compiled RiftOS manifest.' >&2
   exit 1
 fi
+for retired_riftpp_visibility in 'com.riftpp.editor.nativev1' 'com.riftpp.editor.adapterr1' 'com.riftpp.nativeproof'; do
+  if grep -Fq "$retired_riftpp_visibility" <<<"$manifest_tree"; then
+    echo "APK smoke check failed: Rift++ proof package visibility resurfaced in the compiled RiftOS manifest: $retired_riftpp_visibility" >&2
+    exit 1
+  fi
+done
 extract_native_line="$(grep -F 'android:extractNativeLibs' <<<"$manifest_tree" || true)"
 if [ -z "$extract_native_line" ] || ! grep -Eq '(0xffffffff|true)' <<<"$extract_native_line"; then
   echo 'APK smoke check failed: compiled manifest does not retain extractNativeLibs=true for RiftBuild host compiler execution.' >&2
