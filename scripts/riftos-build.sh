@@ -271,6 +271,7 @@ editor_vm_bridge_cpp="android/app/src/main/cpp/editor/editor_vm_bridge.cpp"
 riftbuild_source="android/app/src/main/java/com/riftos/app/RiftBuildLocalExecutor.kt"
 riftbuild_toolchain_source="android/app/src/main/java/com/riftos/app/RiftBuildNativeToolchain.kt"
 riftbuild_native_app_source="android/app/src/main/java/com/riftos/app/RiftBuildNativeApp.kt"
+riftbuild_installer_source="android/app/src/main/java/com/riftos/app/RiftBuildInstaller.kt"
 
 for editor_contract_file in \
   "$manifest_contract" \
@@ -495,6 +496,29 @@ for required_riftbuild_native_app_contract in \
 done
 if grep -Eq 'RIFTPP_ADAPTER|riftpp-adapter|riftpp-android-adapter|com\.riftpp\.android\.RiftppActivity|materializeManagedRuntime' "$riftbuild_native_app_source"; then
   echo 'Builder contract failed: generic runtime/profile materializer regained Rift++ identity.' >&2
+  exit 1
+fi
+for required_riftbuild_installer_contract in \
+  'class RiftBuildInstaller' \
+  'SAFE_PACKAGE_NAME' \
+  'requireSafePackageName' \
+  'Intent(Intent.ACTION_MAIN)' \
+  'Intent.CATEGORY_LAUNCHER' \
+  '.setPackage(safePackageName)' \
+  'launch package is not bound to the latest verified install' \
+  'PackageInstaller reported an unexpected package identity' \
+  'USER_ACTION_REQUIRED'; do
+  grep -Fq "$required_riftbuild_installer_contract" "$riftbuild_installer_source" || {
+    echo "Builder RiftBuild generic installer contract missing: $required_riftbuild_installer_contract" >&2
+    exit 1
+  }
+done
+if grep -Eq 'ALLOWED_PROOF_PACKAGES|RIFTPP_[A-Z0-9_]*TARGET_PACKAGE|TARGET_PACKAGE = "com\.riftpp|EDITOR_TARGET_PACKAGE = "com\.codynex|com\.riftpp\.editor\.adapterr1' "$riftbuild_installer_source"; then
+  echo 'Builder contract failed: generic RiftBuild installer regained project package identity.' >&2
+  exit 1
+fi
+if grep -Eq '<package android:name="com\.riftpp\.' "$manifest_contract"; then
+  echo 'Builder contract failed: RiftOS manifest regained Rift++ package visibility for generic install/launch.' >&2
   exit 1
 fi
 for required_riftbuild_gradle_source in \
