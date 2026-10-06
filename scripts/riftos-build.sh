@@ -747,10 +747,18 @@ grep -Fq 'private val rappManager by lazy' "$riftbuild_source" || {
   echo 'Builder contract failed: RAPP manager must remain lazy so APK RiftBuild startup does not depend on the RAPP lane.' >&2
   exit 1
 }
-grep -Fq 'private val bridge by lazy' "$riftapp_host_source" || {
-  echo 'Builder contract failed: RAPP JNI bridge must remain lazy so RiftOS desktop startup does not depend on RAPP execution.' >&2
+grep -Fq 'RiftNativeBufferCompilerService.compile' "$riftapp_host_source" || {
+  echo 'Builder contract failed: RAPP runtime execution must stay behind the crash-contained native-buffer service.' >&2
   exit 1
 }
+grep -Fq 'RiftBoundedAsync.submit' "$riftapp_host_source" || {
+  echo 'Builder contract failed: RAPP runtime execution must remain bounded and off the desktop UI thread.' >&2
+  exit 1
+}
+if grep -Fq 'RiftppNativeBridge' "$riftapp_host_source"; then
+  echo 'Builder contract failed: RAPP host must not execute native payloads directly in the RiftOS desktop process.' >&2
+  exit 1
+fi
 
 # Long RiftShell/RiftBuild work must survive the MCP request window without reviving RiftCLI.
 shell_executor_source="android/app/src/main/java/com/riftos/app/RiftShellExecutor.kt"

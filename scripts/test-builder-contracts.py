@@ -78,7 +78,9 @@ for marker in (
     '"src/main/java/com/riftos/app/RiftRappHost.kt"',
     '"src/main/java/com/riftos/app/RiftRappManager.kt"',
     "private val rappManager by lazy",
-    "private val bridge by lazy",
+    "RiftNativeBufferCompilerService.compile",
+    "RiftBoundedAsync.submit",
+    "RAPP host must not execute native payloads directly in the RiftOS desktop process",
 ):
     require(BUILD, marker, "RiftOS native RAPP builder contract")
 
