@@ -70,6 +70,18 @@ for marker in (
 ):
     require(BUILD, marker, "Rift++ mirrored editor preflight")
 
+for marker in (
+    '"pack-rapp" -> packRapp(',
+    '"install-rapp" -> installRapp(',
+    '"launch-rapp" -> launchRapp(',
+    '"rapp-list" -> JSONObject()',
+    '"src/main/java/com/riftos/app/RiftRappHost.kt"',
+    '"src/main/java/com/riftos/app/RiftRappManager.kt"',
+    "private val rappManager by lazy",
+    "private val bridge by lazy",
+):
+    require(BUILD, marker, "RiftOS native RAPP builder contract")
+
 for stale in (
     "one-time Rift++ legacy-editor native bootstrap",
     "future Rift++ native-editor",

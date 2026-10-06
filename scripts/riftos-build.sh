@@ -271,6 +271,8 @@ editor_vm_bridge_cpp="android/app/src/main/cpp/editor/editor_vm_bridge.cpp"
 riftbuild_source="android/app/src/main/java/com/riftos/app/RiftBuildLocalExecutor.kt"
 riftbuild_toolchain_source="android/app/src/main/java/com/riftos/app/RiftBuildNativeToolchain.kt"
 riftbuild_native_app_source="android/app/src/main/java/com/riftos/app/RiftBuildNativeApp.kt"
+riftapp_host_source="android/app/src/main/java/com/riftos/app/RiftRappHost.kt"
+riftapp_manager_source="android/app/src/main/java/com/riftos/app/RiftRappManager.kt"
 riftbuild_installer_source="android/app/src/main/java/com/riftos/app/RiftBuildInstaller.kt"
 
 for editor_contract_file in \
@@ -286,7 +288,9 @@ for editor_contract_file in \
   "$editor_vm_bridge_cpp" \
   "$riftbuild_source" \
   "$riftbuild_toolchain_source" \
-  "$riftbuild_native_app_source"; do
+  "$riftbuild_native_app_source" \
+  "$riftapp_host_source" \
+  "$riftapp_manager_source"; do
   test -f "$editor_contract_file" || {
     echo "Builder Codynex editor contract is missing: $editor_contract_file" >&2
     exit 1
@@ -720,6 +724,33 @@ for required_hot_command in \
     exit 1
   }
 done
+
+for required_rapp_contract in \
+  '"pack-rapp" -> packRapp(' \
+  '"install-rapp" -> installRapp(' \
+  '"launch-rapp" -> launchRapp(' \
+  '"rapp-list" -> JSONObject()'; do
+  grep -Fq "$required_rapp_contract" "$riftbuild_source" || {
+    echo "Builder contract is stale: RiftOS RAPP command missing: $required_rapp_contract" >&2
+    exit 1
+  }
+done
+for required_rapp_source in \
+  '"src/main/java/com/riftos/app/RiftRappHost.kt"' \
+  '"src/main/java/com/riftos/app/RiftRappManager.kt"'; do
+  grep -Fq "$required_rapp_source" "$gradle_contract" || {
+    echo "Builder contract is stale: RiftOS RAPP source missing from Gradle source snapshot: $required_rapp_source" >&2
+    exit 1
+  }
+done
+grep -Fq 'private val rappManager by lazy' "$riftbuild_source" || {
+  echo 'Builder contract failed: RAPP manager must remain lazy so APK RiftBuild startup does not depend on the RAPP lane.' >&2
+  exit 1
+}
+grep -Fq 'private val bridge by lazy' "$riftapp_host_source" || {
+  echo 'Builder contract failed: RAPP JNI bridge must remain lazy so RiftOS desktop startup does not depend on RAPP execution.' >&2
+  exit 1
+}
 
 # Long RiftShell/RiftBuild work must survive the MCP request window without reviving RiftCLI.
 shell_executor_source="android/app/src/main/java/com/riftos/app/RiftShellExecutor.kt"
