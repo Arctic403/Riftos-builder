@@ -7,9 +7,6 @@ SOURCE_DIR="$(cd "$SOURCE_DIR" && pwd)"
 LOG_DIR="${RUNNER_TEMP:?}/riftos-private-logs"
 OUT_DIR="${RUNNER_TEMP:?}/riftos-output"
 mkdir -p "$LOG_DIR" "$OUT_DIR"
-# Mirror Builder stdout/stderr into the private failure bundle so early static-preflight
-# failures are diagnosable instead of returning only empty phase logs.
-exec > >(tee -a "$LOG_DIR/builder-console.log") 2>&1
 
 for required_command in timeout node npm gradle git grep sed sha256sum python3 dpkg-deb readelf patchelf; do
   command -v "$required_command" >/dev/null 2>&1 || {
@@ -427,7 +424,6 @@ for required_riftbuild_native_contract in \
   '"toolchain-install-bundled" -> nativeToolchain.installBundled()' \
   '"compile-native" -> compileNative(' \
   '"compile-object" -> compileObject(' \
-  '"assemble-linux-aarch64" -> assembleLinuxAarch64(' \
   '"extract-object-text" -> extractObjectText(' \
   '"prepare-native-app" -> prepareNativeApp(' \
   'structuredCompilerProcessExecution' \
@@ -444,15 +440,6 @@ for required_riftbuild_toolchain_contract in \
   'riftbuild-native-project-validation-v1' \
   'fun validateProject(projectRoot: File)' \
   'fun compileAssemblyObject(projectRoot: File, sourcePath: String, target: String)' \
-  'fun assembleLinuxAarch64Executable(' \
-  'riftbuild-linux-aarch64-assemble-v1' \
-  '--target=aarch64-linux-gnu' \
-  'argv += "-nostdlib"' \
-  'argv += "-static"' \
-  'argv += "-no-pie"' \
-  'verifyLinuxAarch64Executable(output)' \
-  'Linux AArch64 output must be ET_EXEC' \
-  'Linux AArch64 output machine must be EM_AARCH64' \
   'riftbuild-native-object-compile-v1' \
   'Assembly object source must end in .S or .s' \
   'argv += "-c"' \

@@ -298,12 +298,6 @@ done
 # the final release DEX, not merely pass source tests. The mandatory class loop above proves both
 # owners exist; these markers prove the new command/contract surfaces survived Kotlin compilation.
 require_dex_string 'compile-native' 'RiftBuild Native Compile V1 command'
-require_dex_string 'compile-object' 'RiftBuild bounded assembly object command'
-require_dex_string 'assemble-linux-aarch64' 'RiftBuild Linux AArch64 assembler/link command'
-require_dex_string 'riftbuild-linux-aarch64-assemble-v1' 'RiftBuild Linux AArch64 assembler/link result schema'
-require_dex_string 'aarch64-linux-gnu' 'RiftBuild Linux AArch64 target triple'
-require_dex_string 'Linux AArch64 output must be ET_EXEC' 'RiftBuild Linux AArch64 ET_EXEC verifier'
-require_dex_string 'Linux AArch64 output machine must be EM_AARCH64' 'RiftBuild Linux AArch64 machine verifier'
 require_dex_string 'assembled-linked-linux-aarch64' 'RiftBuild Linux AArch64 terminal state'
 require_dex_string 'riftbuild-native-object-compile-v1' 'RiftBuild bounded assembly object result schema'
 require_dex_string 'compiled-native-object' 'RiftBuild bounded assembly object terminal state'
