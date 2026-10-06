@@ -7,6 +7,9 @@ SOURCE_DIR="$(cd "$SOURCE_DIR" && pwd)"
 LOG_DIR="${RUNNER_TEMP:?}/riftos-private-logs"
 OUT_DIR="${RUNNER_TEMP:?}/riftos-output"
 mkdir -p "$LOG_DIR" "$OUT_DIR"
+# Mirror Builder stdout/stderr into the private failure bundle so early static-preflight
+# failures are diagnosable instead of returning only empty phase logs.
+exec > >(tee -a "$LOG_DIR/builder-console.log") 2>&1
 
 for required_command in timeout node npm gradle git grep sed sha256sum python3 dpkg-deb readelf patchelf; do
   command -v "$required_command" >/dev/null 2>&1 || {
