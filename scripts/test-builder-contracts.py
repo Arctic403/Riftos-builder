@@ -84,6 +84,34 @@ for marker in (
 ):
     require(BUILD, marker, "RiftOS native RAPP builder contract")
 
+
+for marker in (
+    '"assemble-linux-aarch64" -> assembleLinuxAarch64(',
+    "fun assembleLinuxAarch64Executable(",
+    "riftbuild-linux-aarch64-assemble-v1",
+    "--target=aarch64-linux-gnu",
+    'argv += "-nostdlib"',
+    'argv += "-static"',
+    'argv += "-no-pie"',
+    "verifyLinuxAarch64Executable(output)",
+    "Linux AArch64 output must be ET_EXEC",
+    "Linux AArch64 output machine must be EM_AARCH64",
+):
+    require(BUILD, marker, "Linux AArch64 assembler/link source preflight")
+
+for marker in (
+    "assemble-linux-aarch64",
+    "riftbuild-linux-aarch64-assemble-v1",
+    "aarch64-linux-gnu",
+    "Linux AArch64 output must be ET_EXEC",
+    "Linux AArch64 output machine must be EM_AARCH64",
+    "assembled-linked-linux-aarch64",
+):
+    require(VERIFY, marker, "Linux AArch64 final APK proof")
+
+require(README, "assemble-linux-aarch64", "builder documentation Linux AArch64 command")
+require(README, "ELF64 ET_EXEC / EM_AARCH64", "builder documentation Linux AArch64 verifier")
+
 for stale in (
     "one-time Rift++ legacy-editor native bootstrap",
     "future Rift++ native-editor",
