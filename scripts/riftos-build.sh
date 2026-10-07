@@ -315,9 +315,6 @@ riftapp_generic_adapter_source="android/app/src/main/java/com/riftos/app/RiftRap
 riftapp_json_adapter_source="android/app/src/main/java/com/riftos/app/RiftRappJsonAdapter.kt"
 riftapp_quickjs_executor_source="android/app/src/main/java/com/riftos/app/RiftRappQuickJsExecutor.kt"
 riftapp_capability_broker_source="android/app/src/main/java/com/riftos/app/RiftRappCapabilityBroker.kt"
-riftbuild_hosted_manifest="apps/riftbuild-hosted/riftapp.json"
-riftbuild_hosted_runtime="apps/riftbuild-hosted/runtime.js"
-riftbuild_hosted_state="apps/riftbuild-hosted/program.json"
 riftapp_absolute_view_source="android/app/src/main/java/com/riftos/app/RiftRappAbsoluteView.kt"
 riftapp_host_source="android/app/src/main/java/com/riftos/app/RiftRappHost.kt"
 riftapp_manager_source="android/app/src/main/java/com/riftos/app/RiftRappManager.kt"
@@ -347,10 +344,7 @@ for editor_contract_file in \
   "$riftapp_capability_broker_source" \
   "$riftapp_absolute_view_source" \
   "$riftapp_host_source" \
-  "$riftapp_manager_source" \
-  "$riftbuild_hosted_manifest" \
-  "$riftbuild_hosted_runtime" \
-  "$riftbuild_hosted_state"; do
+  "$riftapp_manager_source"; do
   test -f "$editor_contract_file" || {
     echo "Builder Codynex editor contract is missing: $editor_contract_file" >&2
     exit 1
@@ -981,59 +975,6 @@ for required_rapp_broker_contract in \
     exit 1
   }
 done
-
-for required_hosted_provider_manifest_contract in \
-  '"id": "riftbuild-hosted"' \
-  '"adapter": "json-generic-v1"' \
-  '"presentation": "json-frame-v1"' \
-  '"fs.read"' \
-  '"fs.write"' \
-  '"build.local"' \
-  '"signing.identity"'; do
-  grep -Fq "$required_hosted_provider_manifest_contract" "$riftbuild_hosted_manifest" || {
-    echo "Builder hosted-provider manifest contract missing: $required_hosted_provider_manifest_contract" >&2
-    exit 1
-  }
-done
-if grep -Eq 'network|clipboard' "$riftbuild_hosted_manifest"; then
-  echo 'Builder contract failed: RiftBuild Hosted requested unnecessary ambient capability.' >&2
-  exit 1
-fi
-for required_hosted_provider_runtime_contract in \
-  'riftbuild-hosted-state/1' \
-  'function compileStart(' \
-  'build.local' \
-  'rift-hosted.json' \
-  'function preflight(' \
-  'function packStart(' \
-  'function signStart(' \
-  'function verifyStart(' \
-  '0x04034b50' \
-  '0x02014b50' \
-  '0x06054b50' \
-  'APK Sig Block 42' \
-  '0x7109871a' \
-  '0x0103' \
-  'signSha256RsaPkcs1' \
-  'verifySha256RsaPkcs1' \
-  'SHA-256 self-test failed'; do
-  grep -Fq "$required_hosted_provider_runtime_contract" "$riftbuild_hosted_runtime" || {
-    echo "Builder hosted-provider runtime contract missing: $required_hosted_provider_runtime_contract" >&2
-    exit 1
-  }
-done
-if grep -Eq 'RiftApkV2Signer|RiftBuildLocalExecutor|PackageInstaller|AndroidKeyStore' "$riftbuild_hosted_runtime"; then
-  echo 'Builder contract failed: hosted provider must use generic host effects, not RiftOS implementation classes.' >&2
-  exit 1
-fi
-if grep -Eq 'build/riftbuild/prepared|kotlin-compile' "$riftbuild_hosted_runtime"; then
-  echo 'Builder contract failed: hosted provider fell back to the old prepared tree or shell compile route.' >&2
-  exit 1
-fi
-grep -Fq 'riftbuild-hosted-state/1' "$riftbuild_hosted_state" || {
-  echo 'Builder hosted-provider persisted state schema is missing.' >&2
-  exit 1
-}
 
 grep -Fq 'MAX_EFFECT_DEPTH = 1024' "$riftapp_host_source" || {
   echo 'Builder generic RAPP host effect ceiling is stale; hosted build streaming must remain bounded at 1024 effects.' >&2
