@@ -318,6 +318,15 @@ for marker in \
   'setting:permissions:' \
   'fs.read' \
   'fs.write' \
+  'readBytes' \
+  'writeBytes' \
+  'riftos-fs-bytes-read/1' \
+  'riftos-fs-bytes-write/1' \
+  'signing.identity' \
+  'signSha256RsaPkcs1' \
+  'riftos-signing-identity/1' \
+  'riftbuild-apk-v2-rsa-v1' \
+  'SHA256withRSA' \
   'network' \
   'clipboard.read' \
   'clipboard.write' \

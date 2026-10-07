@@ -821,6 +821,7 @@ for required_rapp_abi_contract in \
   'const val CLIPBOARD_WRITE = "clipboard.write"' \
   'const val SHARE = "share"' \
   'const val BUILD_LOCAL = "build.local"' \
+  'const val SIGNING_IDENTITY = "signing.identity"' \
   'const val WINDOW_TITLE = "window.title"' \
   'RiftRappRiftppGenericAdapter'; do
   grep -Fq "$required_rapp_abi_contract" "$riftapp_abi_source" || {
@@ -898,6 +899,20 @@ for required_rapp_broker_contract in \
   'class RiftRappCapabilityBroker' \
   'Capability.FS_READ' \
   'Capability.FS_WRITE' \
+  'Capability.SIGNING_IDENTITY' \
+  '"readBytes"' \
+  '"writeBytes"' \
+  '"stat"' \
+  '"mkdir"' \
+  '"move"' \
+  'riftos-fs-bytes-read/1' \
+  'riftos-fs-bytes-write/1' \
+  'MAX_BINARY_CHUNK_BYTES' \
+  'MAX_BINARY_FILE_BYTES' \
+  '"signSha256RsaPkcs1"' \
+  'riftos-signing-identity/1' \
+  'riftbuild-apk-v2-rsa-v1' \
+  'SHA256withRSA' \
   'Capability.CLIPBOARD_READ' \
   'Capability.CLIPBOARD_WRITE' \
   'Capability.SHARE' \
@@ -910,6 +925,11 @@ for required_rapp_broker_contract in \
     exit 1
   }
 done
+
+grep -Fq 'MAX_EFFECT_DEPTH = 1024' "$riftapp_host_source" || {
+  echo 'Builder generic RAPP host effect ceiling is stale; hosted build streaming must remain bounded at 1024 effects.' >&2
+  exit 1
+}
 
 grep -Fq 'private val rappManager by lazy' "$riftbuild_source" || {
   echo 'Builder contract failed: RAPP manager must remain lazy so APK RiftBuild startup does not depend on the RAPP lane.' >&2
