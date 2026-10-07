@@ -836,8 +836,8 @@ for required_rapp_abi_contract in \
   'const val SIGNING_IDENTITY = "signing.identity"' \
   'const val WINDOW_TITLE = "window.title"' \
   'object RiftAppExecutionKind' \
-  'const val NATIVE_BUFFER = "native-buffer-v1"' \
-  'const val QUICKJS = "quickjs-v1"' \
+  '"native-buffer-v1"' \
+  '"quickjs-v1"' \
   'val executorKind: String' \
   'RiftRappRiftppGenericAdapter' \
   'RiftRappJsonAdapter'; do
