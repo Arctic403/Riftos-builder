@@ -946,6 +946,11 @@ for required_rapp_broker_contract in \
   'class RiftRappCapabilityBroker' \
   'Capability.FS_READ' \
   'Capability.FS_WRITE' \
+  'Capability.BUILD_LOCAL' \
+  '"toolchainStatus"' \
+  '"compilerRun"' \
+  '"jvmDex"' \
+  'BUILD_OPERATION_TIMEOUT_MS' \
   'Capability.SIGNING_IDENTITY' \
   '"readBytes"' \
   '"writeBytes"' \
@@ -983,18 +988,22 @@ for required_hosted_provider_manifest_contract in \
   '"presentation": "json-frame-v1"' \
   '"fs.read"' \
   '"fs.write"' \
+  '"build.local"' \
   '"signing.identity"'; do
   grep -Fq "$required_hosted_provider_manifest_contract" "$riftbuild_hosted_manifest" || {
     echo "Builder hosted-provider manifest contract missing: $required_hosted_provider_manifest_contract" >&2
     exit 1
   }
 done
-if grep -Eq 'build\.local|network|clipboard' "$riftbuild_hosted_manifest"; then
+if grep -Eq 'network|clipboard' "$riftbuild_hosted_manifest"; then
   echo 'Builder contract failed: RiftBuild Hosted requested unnecessary ambient capability.' >&2
   exit 1
 fi
 for required_hosted_provider_runtime_contract in \
   'riftbuild-hosted-state/1' \
+  'function compileStart(' \
+  'build.local' \
+  'rift-hosted.json' \
   'function preflight(' \
   'function packStart(' \
   'function signStart(' \
@@ -1015,6 +1024,10 @@ for required_hosted_provider_runtime_contract in \
 done
 if grep -Eq 'RiftApkV2Signer|RiftBuildLocalExecutor|PackageInstaller|AndroidKeyStore' "$riftbuild_hosted_runtime"; then
   echo 'Builder contract failed: hosted provider must use generic host effects, not RiftOS implementation classes.' >&2
+  exit 1
+fi
+if grep -Eq 'build/riftbuild/prepared|kotlin-compile' "$riftbuild_hosted_runtime"; then
+  echo 'Builder contract failed: hosted provider fell back to the old prepared tree or shell compile route.' >&2
   exit 1
 fi
 grep -Fq 'riftbuild-hosted-state/1' "$riftbuild_hosted_state" || {
