@@ -311,6 +311,10 @@ for marker in \
   'Generic Rift++ response magic is invalid' \
   'RAPP pending event queue exceeded bound' \
   'RAPP host effect chain exceeded bound' \
+  'state.bin' \
+  'RAPP persisted state is out of bounds' \
+  'RAPP persisted state escaped program root' \
+  'Installed RAPP state is not a file' \
   'setting:permissions:' \
   'fs.read' \
   'fs.write' \

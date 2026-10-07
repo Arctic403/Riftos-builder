@@ -96,6 +96,14 @@ for marker in (
     "decodeOutput(",
     "pendingEvents",
     "resolveHostEffect(",
+    "manager.persistState(",
+    'private const val STATE_ENTRY = "state.bin"',
+    "val effectiveProgram =",
+    "fun persistState(",
+    "RAPP persisted state is out of bounds",
+    "RAPP persisted state escaped program root",
+    "state.copyOf()",
+    "writeAtomic(",
     "private fun createInput(",
     "private fun createAction(",
     "addTextChangedListener(",
@@ -126,6 +134,10 @@ for marker in (
     "Generic Rift++ response magic is invalid",
     "RAPP pending event queue exceeded bound",
     "RAPP host effect chain exceeded bound",
+    "state.bin",
+    "RAPP persisted state is out of bounds",
+    "RAPP persisted state escaped program root",
+    "Installed RAPP state is not a file",
     "setting:permissions:",
     "fs.read",
     "fs.write",
@@ -192,6 +204,8 @@ require(README, "not used as generic RiftBuild install/launch authority", "build
 require(README, "riftpp-generic-v1", "builder documentation forward RAPP adapter")
 require(README, "RPE4", "builder documentation generic RAPP event envelope")
 require(README, "RWS4", "builder documentation generic RAPP response envelope")
+require(README, "state.bin", "builder documentation durable RAPP state")
+require(README, "effective program/state", "builder documentation RAPP state reload")
 require(README, "RiftRappCapabilityBroker", "builder documentation capability broker")
 require(README, "compatibility lanes", "builder documentation compatibility adapters")
 require(README, "test-riftpp-shell.mjs", "builder documentation headless Rift++ source gate")

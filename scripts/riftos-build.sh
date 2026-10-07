@@ -856,6 +856,7 @@ for required_rapp_host_contract in \
   'resolveHostEffect(' \
   'HOST_EFFECT_RESULT' \
   'MAX_EFFECT_DEPTH = 16' \
+  'manager.persistState(' \
   'RiftNativeBufferCompilerService.compile' \
   'RiftBoundedAsync.submit'; do
   grep -Fq "$required_rapp_host_contract" "$riftapp_host_source" || {
@@ -879,6 +880,13 @@ done
 for required_rapp_manager_contract in \
   'readPermissions(' \
   'RiftAppAdapters.find(' \
+  'private const val STATE_ENTRY = "state.bin"' \
+  'val effectiveProgram =' \
+  'fun persistState(' \
+  'RAPP persisted state is out of bounds' \
+  'RAPP persisted state escaped program root' \
+  'state.copyOf()' \
+  'writeAtomic(' \
   '"permissions"'; do
   grep -Fq "$required_rapp_manager_contract" "$riftapp_manager_source" || {
     echo "Builder generic RAPP package contract missing: $required_rapp_manager_contract" >&2
