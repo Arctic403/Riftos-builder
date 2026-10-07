@@ -312,7 +312,12 @@ riftapp_abi_source="android/app/src/main/java/com/riftos/app/RiftAppAbi.kt"
 riftapp_rpa2_adapter_source="android/app/src/main/java/com/riftos/app/RiftRappRiftppAdapter.kt"
 riftapp_ws15_adapter_source="android/app/src/main/java/com/riftos/app/RiftRappRiftppWs15Adapter.kt"
 riftapp_generic_adapter_source="android/app/src/main/java/com/riftos/app/RiftRappRiftppGenericAdapter.kt"
+riftapp_json_adapter_source="android/app/src/main/java/com/riftos/app/RiftRappJsonAdapter.kt"
+riftapp_quickjs_executor_source="android/app/src/main/java/com/riftos/app/RiftRappQuickJsExecutor.kt"
 riftapp_capability_broker_source="android/app/src/main/java/com/riftos/app/RiftRappCapabilityBroker.kt"
+riftbuild_hosted_manifest="apps/riftbuild-hosted/riftapp.json"
+riftbuild_hosted_runtime="apps/riftbuild-hosted/runtime.js"
+riftbuild_hosted_state="apps/riftbuild-hosted/program.json"
 riftapp_absolute_view_source="android/app/src/main/java/com/riftos/app/RiftRappAbsoluteView.kt"
 riftapp_host_source="android/app/src/main/java/com/riftos/app/RiftRappHost.kt"
 riftapp_manager_source="android/app/src/main/java/com/riftos/app/RiftRappManager.kt"
@@ -337,10 +342,15 @@ for editor_contract_file in \
   "$riftapp_rpa2_adapter_source" \
   "$riftapp_ws15_adapter_source" \
   "$riftapp_generic_adapter_source" \
+  "$riftapp_json_adapter_source" \
+  "$riftapp_quickjs_executor_source" \
   "$riftapp_capability_broker_source" \
   "$riftapp_absolute_view_source" \
   "$riftapp_host_source" \
-  "$riftapp_manager_source"; do
+  "$riftapp_manager_source" \
+  "$riftbuild_hosted_manifest" \
+  "$riftbuild_hosted_runtime" \
+  "$riftbuild_hosted_state"; do
   test -f "$editor_contract_file" || {
     echo "Builder Codynex editor contract is missing: $editor_contract_file" >&2
     exit 1
@@ -790,6 +800,8 @@ for required_rapp_source in \
   '"src/main/java/com/riftos/app/RiftRappRiftppAdapter.kt"' \
   '"src/main/java/com/riftos/app/RiftRappRiftppWs15Adapter.kt"' \
   '"src/main/java/com/riftos/app/RiftRappRiftppGenericAdapter.kt"' \
+  '"src/main/java/com/riftos/app/RiftRappJsonAdapter.kt"' \
+  '"src/main/java/com/riftos/app/RiftRappQuickJsExecutor.kt"' \
   '"src/main/java/com/riftos/app/RiftRappCapabilityBroker.kt"' \
   '"src/main/java/com/riftos/app/RiftRappAbsoluteView.kt"' \
   '"src/main/java/com/riftos/app/RiftRappHost.kt"' \
@@ -823,7 +835,12 @@ for required_rapp_abi_contract in \
   'const val BUILD_LOCAL = "build.local"' \
   'const val SIGNING_IDENTITY = "signing.identity"' \
   'const val WINDOW_TITLE = "window.title"' \
-  'RiftRappRiftppGenericAdapter'; do
+  'object RiftAppExecutionKind' \
+  'const val NATIVE_BUFFER = "native-buffer-v1"' \
+  'const val QUICKJS = "quickjs-v1"' \
+  'val executorKind: String' \
+  'RiftRappRiftppGenericAdapter' \
+  'RiftRappJsonAdapter'; do
   grep -Fq "$required_rapp_abi_contract" "$riftapp_abi_source" || {
     echo "Builder generic RAPP ABI contract missing: $required_rapp_abi_contract" >&2
     exit 1
@@ -851,14 +868,44 @@ for required_generic_rapp_adapter_contract in \
   }
 done
 
+for required_json_rapp_adapter_contract in \
+  '"json-generic-v1"' \
+  '"json-frame-v1"' \
+  'RiftAppExecutionKind.QUICKJS' \
+  'riftos-app-event-json/1' \
+  'riftos-app-output-json/1'; do
+  grep -Fq "$required_json_rapp_adapter_contract" "$riftapp_json_adapter_source" || {
+    echo "Builder generic JSON RAPP adapter contract missing: $required_json_rapp_adapter_contract" >&2
+    exit 1
+  }
+done
+for required_quickjs_rapp_contract in \
+  'class RiftRappQuickJsExecutor' \
+  '__rift_rapp_input' \
+  '__rift_rapp_result' \
+  'riftRappMain'; do
+  grep -Fq "$required_quickjs_rapp_contract" "$riftapp_quickjs_executor_source" || {
+    echo "Builder generic QuickJS RAPP executor contract missing: $required_quickjs_rapp_contract" >&2
+    exit 1
+  }
+done
+if grep -Eq 'RiftVolumePaths|ProcessBuilder|Runtime\.getRuntime|PackageInstaller|RiftApkV2Signer' "$riftapp_quickjs_executor_source"; then
+  echo 'Builder contract failed: generic QuickJS RAPP executor gained direct platform/APK authority.' >&2
+  exit 1
+fi
+
 for required_rapp_host_contract in \
   'decodeOutput(' \
   'pendingEvents' \
   'resolveHostEffect(' \
   'HOST_EFFECT_RESULT' \
-  'MAX_EFFECT_DEPTH = 16' \
+  'MAX_EFFECT_DEPTH = 1024' \
   'manager.persistState(' \
   'RiftNativeBufferCompilerService.compile' \
+  'RiftRappQuickJsExecutor' \
+  'session.adapter.executorKind' \
+  'RiftAppExecutionKind.NATIVE_BUFFER' \
+  'RiftAppExecutionKind.QUICKJS' \
   'RiftBoundedAsync.submit'; do
   grep -Fq "$required_rapp_host_contract" "$riftapp_host_source" || {
     echo "Builder generic RAPP host contract missing: $required_rapp_host_contract" >&2
@@ -910,6 +957,10 @@ for required_rapp_broker_contract in \
   'MAX_BINARY_CHUNK_BYTES' \
   'MAX_BINARY_FILE_BYTES' \
   '"signSha256RsaPkcs1"' \
+  '"verifySha256RsaPkcs1"' \
+  'certificateDerBase64' \
+  'publicKeyDerBase64' \
+  'riftos-signing-verify/1' \
   'riftos-signing-identity/1' \
   'riftbuild-apk-v2-rsa-v1' \
   'SHA256withRSA' \
@@ -925,6 +976,51 @@ for required_rapp_broker_contract in \
     exit 1
   }
 done
+
+for required_hosted_provider_manifest_contract in \
+  '"id": "riftbuild-hosted"' \
+  '"adapter": "json-generic-v1"' \
+  '"presentation": "json-frame-v1"' \
+  '"fs.read"' \
+  '"fs.write"' \
+  '"signing.identity"'; do
+  grep -Fq "$required_hosted_provider_manifest_contract" "$riftbuild_hosted_manifest" || {
+    echo "Builder hosted-provider manifest contract missing: $required_hosted_provider_manifest_contract" >&2
+    exit 1
+  }
+done
+if grep -Eq 'build\.local|network|clipboard' "$riftbuild_hosted_manifest"; then
+  echo 'Builder contract failed: RiftBuild Hosted requested unnecessary ambient capability.' >&2
+  exit 1
+fi
+for required_hosted_provider_runtime_contract in \
+  'riftbuild-hosted-state/1' \
+  'function preflight(' \
+  'function packStart(' \
+  'function signStart(' \
+  'function verifyStart(' \
+  '0x04034b50' \
+  '0x02014b50' \
+  '0x06054b50' \
+  'APK Sig Block 42' \
+  '0x7109871a' \
+  '0x0103' \
+  'signSha256RsaPkcs1' \
+  'verifySha256RsaPkcs1' \
+  'SHA-256 self-test failed'; do
+  grep -Fq "$required_hosted_provider_runtime_contract" "$riftbuild_hosted_runtime" || {
+    echo "Builder hosted-provider runtime contract missing: $required_hosted_provider_runtime_contract" >&2
+    exit 1
+  }
+done
+if grep -Eq 'RiftApkV2Signer|RiftBuildLocalExecutor|PackageInstaller|AndroidKeyStore' "$riftbuild_hosted_runtime"; then
+  echo 'Builder contract failed: hosted provider must use generic host effects, not RiftOS implementation classes.' >&2
+  exit 1
+fi
+grep -Fq 'riftbuild-hosted-state/1' "$riftbuild_hosted_state" || {
+  echo 'Builder hosted-provider persisted state schema is missing.' >&2
+  exit 1
+}
 
 grep -Fq 'MAX_EFFECT_DEPTH = 1024' "$riftapp_host_source" || {
   echo 'Builder generic RAPP host effect ceiling is stale; hosted build streaming must remain bounded at 1024 effects.' >&2
