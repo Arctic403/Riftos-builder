@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BUILD = (ROOT / "scripts" / "riftos-build.sh").read_text(encoding="utf-8")
 VERIFY = (ROOT / "scripts" / "verify-riftos-apk.sh").read_text(encoding="utf-8")
 WORKFLOW = (ROOT / ".github" / "workflows" / "riftos-worker.yml").read_text(encoding="utf-8")
+MANAGED_WORKFLOW = (ROOT / ".github" / "workflows" / "managed-compiler-worker.yml").read_text(encoding="utf-8")
 README = (ROOT / "README.md").read_text(encoding="utf-8")
 
 
@@ -75,14 +76,101 @@ for marker in (
     '"install-rapp" -> installRapp(',
     '"launch-rapp" -> launchRapp(',
     '"rapp-list" -> JSONObject()',
+    '"src/main/java/com/riftos/app/RiftAppAbi.kt"',
+    '"src/main/java/com/riftos/app/RiftRappRiftppAdapter.kt"',
+    '"src/main/java/com/riftos/app/RiftRappRiftppWs15Adapter.kt"',
+    '"src/main/java/com/riftos/app/RiftRappRiftppGenericAdapter.kt"',
+    '"src/main/java/com/riftos/app/RiftRappCapabilityBroker.kt"',
+    '"src/main/java/com/riftos/app/RiftRappAbsoluteView.kt"',
     '"src/main/java/com/riftos/app/RiftRappHost.kt"',
     '"src/main/java/com/riftos/app/RiftRappManager.kt"',
+    "rappHost.onResume()",
+    "rappHost.onPause()",
+    'const val SCHEMA = "riftos-app-abi/1"',
+    'const val HOST_EFFECT_RESULT = 13',
+    '"riftpp-rpa2-v1"',
+    '"riftpp-rws2-rui3-v1"',
+    '"riftpp-generic-v1"',
+    "private const val RPE4_MAGIC",
+    "private const val RWS4_MAGIC",
+    "decodeOutput(",
+    "pendingEvents",
+    "resolveHostEffect(",
+    "private fun createInput(",
+    "private fun createAction(",
+    "addTextChangedListener(",
+    "override fun dispatchKeyEvent(",
+    "override fun onSizeChanged(",
+    "readPermissions(",
+    "RiftAppAdapters.find(",
+    "class RiftRappCapabilityBroker",
+    "setting:permissions:",
     "private val rappManager by lazy",
     "RiftNativeBufferCompilerService.compile",
     "RiftBoundedAsync.submit",
     "RAPP host must not execute native payloads directly in the RiftOS desktop process",
 ):
-    require(BUILD, marker, "RiftOS native RAPP builder contract")
+    require(BUILD, marker, "RiftOS generic RAPP builder contract")
+
+for marker in (
+    "pack-rapp",
+    "install-rapp",
+    "launch-rapp",
+    "rapp-list",
+    "riftos.rapp-project/1",
+    "riftos.rapp/1",
+    "riftos-app-abi/1",
+    "riftpp-rpa2-v1",
+    "riftpp-rws2-rui3-v1",
+    "riftpp-generic-v1",
+    "Generic Rift++ response magic is invalid",
+    "RAPP pending event queue exceeded bound",
+    "RAPP host effect chain exceeded bound",
+    "setting:permissions:",
+    "fs.read",
+    "fs.write",
+    "clipboard.read",
+    "clipboard.write",
+    "window.title",
+):
+    require(VERIFY, marker, "final APK generic RAPP proof")
+
+for marker in (
+    "scripts/test-riftpp-shell.mjs",
+    "headlessJs.executeRiftpp(args, cwd)",
+    "riftpp-shell-self-test/3",
+    "canonicalUtf8Bytes",
+    "run-stateful",
+    "exec-stateful",
+    "run-software",
+    "exec-software",
+    "text-model-benchmark",
+    "semantic-compat",
+    "HEADLESS QUICKJS",
+):
+    require(BUILD, marker, "Rift++ headless source contract")
+
+for marker in (
+    "riftpp-shell-self-test/3",
+    "riftpp-text-model-benchmark-v2",
+    "riftpp-semantic-compat-device-suite/1",
+    "headless-quickjs",
+    "run-stateful",
+    "exec-stateful",
+    "run-software",
+    "exec-software",
+    "state.load",
+    "state.save",
+    "state.remove",
+    "software.caseId",
+    "software.source",
+    "text-model-benchmark",
+    "semantic-compat",
+    "Only SHA-256 is available",
+    "out[i] = raw[i] & 255;",
+    "Array.from(view, value => value & 255)",
+):
+    require(VERIFY, marker, "final APK Rift++ headless proof")
 
 
 
@@ -101,5 +189,21 @@ require(README, "single permanent Rift++ editor", "builder documentation editor 
 require(BUILD, '<package android:name="com.riftpp.editor" />', "external Rift++ editor Binder visibility preflight")
 require(README, "external editor Binder bridge", "builder documentation Binder visibility contract")
 require(README, "not used as generic RiftBuild install/launch authority", "builder documentation generic installer separation")
+require(README, "riftpp-generic-v1", "builder documentation forward RAPP adapter")
+require(README, "RPE4", "builder documentation generic RAPP event envelope")
+require(README, "RWS4", "builder documentation generic RAPP response envelope")
+require(README, "RiftRappCapabilityBroker", "builder documentation capability broker")
+require(README, "compatibility lanes", "builder documentation compatibility adapters")
+require(README, "test-riftpp-shell.mjs", "builder documentation headless Rift++ source gate")
+require(README, "run-stateful", "builder documentation stateful Rift++ shell")
+require(README, "run-software", "builder documentation software-test Rift++ shell")
+require(README, "canonical UTF-8", "builder documentation Rift++ text boundary")
+require(README, "headless QuickJS", "builder documentation headless runtime")
+require(README, "compatibility/reference `riftpp` shell boundary", "builder documentation retained Rift++ shell status")
+require(README, "Historical Rift++ Android-native R3–R8 `riftpp-host` proof lanes remain evidence", "builder documentation historical proof retirement")
+require(BUILD, "retired riftpp-host shell compiler surface resurfaced", "builder retired Rift++ compiler-host guard")
+require(README, "RiftOS APK worker does not use `actions/upload-artifact`", "builder documentation APK artifact policy")
+require(README, "managed compiler worker intentionally uses `actions/upload-artifact@v4`", "builder documentation compiler artifact policy")
+require(MANAGED_WORKFLOW, "actions/upload-artifact@v4", "managed compiler artifact return lane")
 
 print("ok - RiftOS builder contracts are internally consistent")

@@ -294,6 +294,60 @@ for source_rel in "${required_native_sources[@]}"; do
   done
 done
 
+# Generic RAPP final-artifact proof. The mandatory Kotlin descriptor loop above proves that all
+# eight Gradle-owned RAPP classes survived compilation; these literal markers prove the forward
+# ABI/adapter/capability semantics survived too rather than leaving only empty class shells.
+for marker in \
+  'pack-rapp' \
+  'install-rapp' \
+  'launch-rapp' \
+  'rapp-list' \
+  'riftos.rapp-project/1' \
+  'riftos.rapp/1' \
+  'riftos-app-abi/1' \
+  'riftpp-rpa2-v1' \
+  'riftpp-rws2-rui3-v1' \
+  'riftpp-generic-v1' \
+  'Generic Rift++ response magic is invalid' \
+  'RAPP pending event queue exceeded bound' \
+  'RAPP host effect chain exceeded bound' \
+  'setting:permissions:' \
+  'fs.read' \
+  'fs.write' \
+  'network' \
+  'clipboard.read' \
+  'clipboard.write' \
+  'share' \
+  'build.local' \
+  'window.title'; do
+  require_dex_string "$marker" "generic RAPP marker $marker"
+done
+
+# Retained Rift++ compatibility/reference headless-shell proof. These strings are emitted from the native QuickJS host
+# and its embedded runtime scripts, so the signed APK must retain the stateful/software command
+# families plus the canonical UTF-8/unsigned-byte boundary proved by test-riftpp-shell.mjs.
+for marker in \
+  'riftpp-shell-self-test/3' \
+  'riftpp-text-model-benchmark-v2' \
+  'riftpp-semantic-compat-device-suite/1' \
+  'headless-quickjs' \
+  'run-stateful' \
+  'exec-stateful' \
+  'run-software' \
+  'exec-software' \
+  'state.load' \
+  'state.save' \
+  'state.remove' \
+  'software.caseId' \
+  'software.source' \
+  'text-model-benchmark' \
+  'semantic-compat' \
+  'Only SHA-256 is available' \
+  'out[i] = raw[i] & 255;' \
+  'Array.from(view, value => value & 255)'; do
+  require_dex_string "$marker" "Rift++ headless runtime marker $marker"
+done
+
 # RiftBuild Native Compile V1 and generic native-app preparation must survive compilation into
 # the final release DEX, not merely pass source tests. The mandatory class loop above proves both
 # owners exist; these markers prove the new command/contract surfaces survived Kotlin compilation.

@@ -59,7 +59,7 @@ fi
 
 # Builder-owned syntax preflight for the source-gate entrypoints. This runs before the
 # source-owned validator so a malformed validator cannot hide its own parse failure.
-for source_gate_script in   scripts/validate-rift-wiring.mjs   scripts/validate-rift-transport.mjs   scripts/validate-rift-docs.mjs   scripts/test-rift-cli-push-channel.mjs   scripts/test-rift-cli-batch-v2.mjs   scripts/test-rift-local-agent-batch.mjs   scripts/test-rift-mcp-operation-journal.mjs   scripts/test-rift-debug-hub.mjs   scripts/test-riftbuild-native.mjs   scripts/test-rift-shell-bridge.mjs   scripts/test-riftllm-bridge.mjs   scripts/test-semnexis-bootstrap.mjs   scripts/test-semnexis-arm32-exec.mjs   scripts/test-semnexis-shell.mjs; do
+for source_gate_script in   scripts/validate-rift-wiring.mjs   scripts/validate-rift-transport.mjs   scripts/validate-rift-docs.mjs   scripts/test-rift-cli-push-channel.mjs   scripts/test-rift-cli-batch-v2.mjs   scripts/test-rift-local-agent-batch.mjs   scripts/test-rift-mcp-operation-journal.mjs   scripts/test-rift-debug-hub.mjs   scripts/test-riftbuild-native.mjs   scripts/test-riftpp-shell.mjs   scripts/test-rift-shell-bridge.mjs   scripts/test-riftllm-bridge.mjs   scripts/test-semnexis-bootstrap.mjs   scripts/test-semnexis-arm32-exec.mjs   scripts/test-semnexis-shell.mjs; do
   node --check "$source_gate_script" >>"$LOG_DIR/source-syntax.log" 2>&1 || {
     echo "RiftOS source-gate syntax failed: $source_gate_script" >&2
     exit 1
@@ -84,6 +84,7 @@ node -e '
     "node scripts/test-rift-mcp-operation-journal.mjs",
     "node scripts/test-rift-debug-hub.mjs",
     "node scripts/test-riftbuild-native.mjs",
+    "node scripts/test-riftpp-shell.mjs",
     "node scripts/test-rift-shell-bridge.mjs",
     "node scripts/test-riftllm-bridge.mjs",
     "node scripts/test-semnexis-bootstrap.mjs",
@@ -97,6 +98,41 @@ node -e '
   }
 '
 
+# Retained Rift++ compatibility/reference shell/headless-runtime contract. The source-owned regression remains the
+# semantic authority, but Builder locks its wiring and critical runtime boundary before npm/Gradle.
+riftpp_shell_gate="scripts/test-riftpp-shell.mjs"
+riftpp_headless_source="android/app/src/main/java/com/riftos/app/RiftHeadlessJsRuntime.kt"
+riftpp_native_shell_source="android/app/src/main/java/com/riftos/app/RiftNativeShell.kt"
+for riftpp_headless_file in "$riftpp_shell_gate" "$riftpp_headless_source" "$riftpp_native_shell_source"; do
+  test -f "$riftpp_headless_file" || {
+    echo "Builder Rift++ headless contract is missing source: $riftpp_headless_file" >&2
+    exit 1
+  }
+done
+for required_riftpp_headless_gate_marker in \
+  'headlessJs.executeRiftpp(args, cwd)' \
+  "schema:'riftpp-shell-self-test/3'" \
+  'private fun canonicalUtf8Bytes(value: String): ByteArray' \
+  'const out = new Uint8Array(raw.length);' \
+  'out[i] = raw[i] & 255;' \
+  'const input = Array.from(view, value => value & 255);' \
+  "if (sub === 'run-stateful')" \
+  "if (sub === 'exec-stateful')" \
+  "if (sub === 'run-software')" \
+  "if (sub === 'exec-software')" \
+  '"text-model-benchmark" -> executeTextModelBenchmark()' \
+  '"semantic-compat" -> executeSemanticCompatibilityVerifier()'; do
+  if ! grep -Fq "$required_riftpp_headless_gate_marker" "$riftpp_shell_gate" &&
+     ! grep -Fq "$required_riftpp_headless_gate_marker" "$riftpp_headless_source" &&
+     ! grep -Fq "$required_riftpp_headless_gate_marker" "$riftpp_native_shell_source"; then
+    echo "Builder Rift++ headless contract missing: $required_riftpp_headless_gate_marker" >&2
+    exit 1
+  fi
+done
+grep -Fq 'riftpp help|version|self-test|check|compile|inspect|run|exec|run-stateful|exec-stateful|run-software|exec-software   [CORE V1 / HEADLESS QUICKJS]' "$riftpp_native_shell_source" || {
+  echo 'Builder Rift++ headless contract failed: native shell command surface drifted.' >&2
+  exit 1
+}
 
 # Semnexis self-hosting source contract. Product semantics remain owned by RiftOS,
 # but Builder must fail early if the promoted source fixtures or gate wiring disappear.
@@ -259,6 +295,7 @@ fi
 # RiftOS owns bounded Binder transport plus the mirrored editor/runtime payload contract;
 # it must not regain compiler generations, C0/LR0 providers, or special RiftBuild prepare routes.
 manifest_contract="android/app/src/main/AndroidManifest.xml"
+riftos_main_activity="android/app/src/main/java/com/riftos/app/MainActivity.kt"
 editor_activity="android/app/src/main/java/com/codynex/editorapp/MainActivity.kt"
 editor_toolchain="android/app/src/main/java/com/codynex/editorapp/CodynexEditorToolchainPort.kt"
 editor_compiler_runtime="android/app/src/main/java/com/codynex/editorapp/CodynexCompilerRuntime.kt"
@@ -271,12 +308,19 @@ editor_vm_bridge_cpp="android/app/src/main/cpp/editor/editor_vm_bridge.cpp"
 riftbuild_source="android/app/src/main/java/com/riftos/app/RiftBuildLocalExecutor.kt"
 riftbuild_toolchain_source="android/app/src/main/java/com/riftos/app/RiftBuildNativeToolchain.kt"
 riftbuild_native_app_source="android/app/src/main/java/com/riftos/app/RiftBuildNativeApp.kt"
+riftapp_abi_source="android/app/src/main/java/com/riftos/app/RiftAppAbi.kt"
+riftapp_rpa2_adapter_source="android/app/src/main/java/com/riftos/app/RiftRappRiftppAdapter.kt"
+riftapp_ws15_adapter_source="android/app/src/main/java/com/riftos/app/RiftRappRiftppWs15Adapter.kt"
+riftapp_generic_adapter_source="android/app/src/main/java/com/riftos/app/RiftRappRiftppGenericAdapter.kt"
+riftapp_capability_broker_source="android/app/src/main/java/com/riftos/app/RiftRappCapabilityBroker.kt"
+riftapp_absolute_view_source="android/app/src/main/java/com/riftos/app/RiftRappAbsoluteView.kt"
 riftapp_host_source="android/app/src/main/java/com/riftos/app/RiftRappHost.kt"
 riftapp_manager_source="android/app/src/main/java/com/riftos/app/RiftRappManager.kt"
 riftbuild_installer_source="android/app/src/main/java/com/riftos/app/RiftBuildInstaller.kt"
 
 for editor_contract_file in \
   "$manifest_contract" \
+  "$riftos_main_activity" \
   "$editor_activity" \
   "$editor_toolchain" \
   "$editor_compiler_runtime" \
@@ -289,6 +333,12 @@ for editor_contract_file in \
   "$riftbuild_source" \
   "$riftbuild_toolchain_source" \
   "$riftbuild_native_app_source" \
+  "$riftapp_abi_source" \
+  "$riftapp_rpa2_adapter_source" \
+  "$riftapp_ws15_adapter_source" \
+  "$riftapp_generic_adapter_source" \
+  "$riftapp_capability_broker_source" \
+  "$riftapp_absolute_view_source" \
   "$riftapp_host_source" \
   "$riftapp_manager_source"; do
   test -f "$editor_contract_file" || {
@@ -736,6 +786,12 @@ for required_rapp_contract in \
   }
 done
 for required_rapp_source in \
+  '"src/main/java/com/riftos/app/RiftAppAbi.kt"' \
+  '"src/main/java/com/riftos/app/RiftRappRiftppAdapter.kt"' \
+  '"src/main/java/com/riftos/app/RiftRappRiftppWs15Adapter.kt"' \
+  '"src/main/java/com/riftos/app/RiftRappRiftppGenericAdapter.kt"' \
+  '"src/main/java/com/riftos/app/RiftRappCapabilityBroker.kt"' \
+  '"src/main/java/com/riftos/app/RiftRappAbsoluteView.kt"' \
   '"src/main/java/com/riftos/app/RiftRappHost.kt"' \
   '"src/main/java/com/riftos/app/RiftRappManager.kt"'; do
   grep -Fq "$required_rapp_source" "$gradle_contract" || {
@@ -743,16 +799,112 @@ for required_rapp_source in \
     exit 1
   }
 done
+for required_rapp_lifecycle_contract in \
+  'rappHost.onResume()' \
+  'rappHost.onPause()'; do
+  grep -Fq "$required_rapp_lifecycle_contract" "$riftos_main_activity" || {
+    echo "Builder generic RAPP lifecycle contract missing: $required_rapp_lifecycle_contract" >&2
+    exit 1
+  }
+done
+
+for required_rapp_abi_contract in \
+  'const val SCHEMA = "riftos-app-abi/1"' \
+  'const val HOST_EFFECT_RESULT = 13' \
+  'data class HostEffect(' \
+  'data class RuntimeOutput(' \
+  'val permissions: Set<String>' \
+  'const val FS_READ = "fs.read"' \
+  'const val FS_WRITE = "fs.write"' \
+  'const val NETWORK = "network"' \
+  'const val CLIPBOARD_READ = "clipboard.read"' \
+  'const val CLIPBOARD_WRITE = "clipboard.write"' \
+  'const val SHARE = "share"' \
+  'const val BUILD_LOCAL = "build.local"' \
+  'const val WINDOW_TITLE = "window.title"' \
+  'RiftRappRiftppGenericAdapter'; do
+  grep -Fq "$required_rapp_abi_contract" "$riftapp_abi_source" || {
+    echo "Builder generic RAPP ABI contract missing: $required_rapp_abi_contract" >&2
+    exit 1
+  }
+done
+
+grep -Fq '"riftpp-rpa2-v1"' "$riftapp_rpa2_adapter_source" || {
+  echo 'Builder contract failed: RPE2/RUI2 RAPP compatibility adapter identity drifted.' >&2
+  exit 1
+}
+grep -Fq '"riftpp-rws2-rui3-v1"' "$riftapp_ws15_adapter_source" || {
+  echo 'Builder contract failed: WS15 RPE3/RWS2/RUI3 RAPP compatibility adapter identity drifted.' >&2
+  exit 1
+}
+for required_generic_rapp_adapter_contract in \
+  '"riftpp-generic-v1"' \
+  'private const val RPE4_MAGIC' \
+  'private const val RWS4_MAGIC' \
+  'private const val RUI3_MAGIC' \
+  'effectCount in' \
+  'RiftAppAbi.HostEffect('; do
+  grep -Fq "$required_generic_rapp_adapter_contract" "$riftapp_generic_adapter_source" || {
+    echo "Builder generic Rift++ RAPP adapter contract missing: $required_generic_rapp_adapter_contract" >&2
+    exit 1
+  }
+done
+
+for required_rapp_host_contract in \
+  'decodeOutput(' \
+  'pendingEvents' \
+  'resolveHostEffect(' \
+  'HOST_EFFECT_RESULT' \
+  'MAX_EFFECT_DEPTH = 16' \
+  'RiftNativeBufferCompilerService.compile' \
+  'RiftBoundedAsync.submit'; do
+  grep -Fq "$required_rapp_host_contract" "$riftapp_host_source" || {
+    echo "Builder generic RAPP host contract missing: $required_rapp_host_contract" >&2
+    exit 1
+  }
+done
+
+for required_rapp_view_contract in \
+  'private fun createInput(' \
+  'private fun createAction(' \
+  'addTextChangedListener(' \
+  'override fun dispatchKeyEvent(' \
+  'override fun onSizeChanged('; do
+  grep -Fq "$required_rapp_view_contract" "$riftapp_absolute_view_source" || {
+    echo "Builder generic RAPP absolute-view contract missing: $required_rapp_view_contract" >&2
+    exit 1
+  }
+done
+
+for required_rapp_manager_contract in \
+  'readPermissions(' \
+  'RiftAppAdapters.find(' \
+  '"permissions"'; do
+  grep -Fq "$required_rapp_manager_contract" "$riftapp_manager_source" || {
+    echo "Builder generic RAPP package contract missing: $required_rapp_manager_contract" >&2
+    exit 1
+  }
+done
+
+for required_rapp_broker_contract in \
+  'class RiftRappCapabilityBroker' \
+  'Capability.FS_READ' \
+  'Capability.FS_WRITE' \
+  'Capability.CLIPBOARD_READ' \
+  'Capability.CLIPBOARD_WRITE' \
+  'Capability.SHARE' \
+  'Capability.WINDOW_TITLE' \
+  'setting:permissions:' \
+  'Program writes are restricted to D: user/project data and this app' \
+  'Program reads are restricted to approved D: data and this app'; do
+  grep -Fq "$required_rapp_broker_contract" "$riftapp_capability_broker_source" || {
+    echo "Builder generic RAPP capability-broker contract missing: $required_rapp_broker_contract" >&2
+    exit 1
+  }
+done
+
 grep -Fq 'private val rappManager by lazy' "$riftbuild_source" || {
   echo 'Builder contract failed: RAPP manager must remain lazy so APK RiftBuild startup does not depend on the RAPP lane.' >&2
-  exit 1
-}
-grep -Fq 'RiftNativeBufferCompilerService.compile' "$riftapp_host_source" || {
-  echo 'Builder contract failed: RAPP runtime execution must stay behind the crash-contained native-buffer service.' >&2
-  exit 1
-}
-grep -Fq 'RiftBoundedAsync.submit' "$riftapp_host_source" || {
-  echo 'Builder contract failed: RAPP runtime execution must remain bounded and off the desktop UI thread.' >&2
   exit 1
 }
 if grep -Fq 'RiftppNativeBridge' "$riftapp_host_source"; then
