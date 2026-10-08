@@ -521,6 +521,31 @@ for marker in '.claimForShell(payload, adapter)' \
   }
 done
 
+# C1.2-D1: a second terminal shell client subscribes and renders
+# immutable Core frames without attaching an executable session or UI.
+alternate_shell_source="android/app/src/main/java/com/riftos/app/RiftAlternateShellClient.kt"
+test -f "$alternate_shell_source" || {
+  echo 'Builder C1.2-D1 alternate shell source missing' >&2; exit 1;
+}
+grep -Fq '"src/main/java/com/riftos/app/RiftAlternateShellClient.kt"' "$gradle_contract" || {
+  echo 'Builder C1.2-D1 alternate shell not in mandatory Kotlin sources' >&2; exit 1;
+}
+for marker in 'riftos.shell.client.terminal/1' \
+  'fun attach(id: String): JSONObject' 'fun render(id: String): JSONObject' \
+  'fun detach(id: String): JSONObject' 'surfaces.subscribe { change -> onChange(change) }' \
+  'surfaces.snapshot(id)' 'renderedText' 'RiftAppAbi.NodeKind.ACTION'; do
+  grep -Fq "$marker" "$alternate_shell_source" || {
+    echo "Builder C1.2-D1 alternate renderer missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'alternateShellClient.attach(args[1])' \
+  'alternateShellClient.render(args[1])' 'alternateShellClient.detach(args[1])' \
+  'alternateShellClient.close()'; do
+  grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/RiftNativeShell.kt" || {
+    echo "Builder C1.2-D1 terminal shell command missing: $marker" >&2; exit 1;
+  }
+done
+
 # C1.2-B2-B2: Core authorizes focused input at enqueue AND dispatch,
 # retaining the admitted lease revision to block switch-away/refocus ABA.
 for marker in 'fun requireCurrentLease(appId: String, attachmentGeneration: Long)' \

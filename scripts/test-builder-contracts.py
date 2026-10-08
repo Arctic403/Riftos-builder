@@ -49,6 +49,16 @@ for marker in [
     require(BUILD, marker, "C1.2-C1 Core-owned RAPP lifecycle")
 require(VERIFY, "'riftos.core.apps/1'", "C1.2-C1 signed lifecycle schema")
 
+# C1.2-D1: independent read-only alternate terminal shell renderer.
+for marker in [
+    "Builder C1.2-D1 alternate shell source missing",
+    "Builder C1.2-D1 alternate shell not in mandatory Kotlin sources",
+    "Builder C1.2-D1 alternate renderer missing:",
+    "Builder C1.2-D1 terminal shell command missing:",
+    "riftos.shell.client.terminal/1",
+]:
+    require(BUILD, marker, "C1.2-D1 alternate renderer source boundary")
+
 # C1.2-C2: renderer attaches to a verified Core BOOT session without reboot.
 for marker in [
     "Builder C1.2-C2 Core attachment transfer missing:",
