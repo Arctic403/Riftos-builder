@@ -38,6 +38,15 @@ for marker in [
     require(BUILD, marker, "C1.2-B2-B1 Core focus lease source")
 require(VERIFY, "'riftos.core.input-focus/1'", "C1.2-B2-B1 signed focus schema")
 
+# C1.2-B2-B2: real focused input admission and queue lease revision enforcement.
+for marker in [
+    "Builder B2-B2 enforced focus lease missing:",
+    "Builder B2-B2 focused input queue guard missing:",
+    "Builder B2-B2 shell input dequeue guard missing",
+    "ticket.admittedFocusRevision == inputFocus.current()?.revision",
+]:
+    require(BUILD, marker, "C1.2-B2-B2 focused input authority")
+
 # C1.2-B2-A: Core checks typed input event kind, node identity and surface generation.
 for marker in [
     "Builder C1.2-B2-A Core typed input authority missing:",

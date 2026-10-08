@@ -476,6 +476,27 @@ grep -Fq '"focus" -> RiftCoreRuntime.sessions(appContext).focusStatus()' \
   echo 'Builder B2-B1 read-only focus report missing' >&2; exit 1;
 }
 
+# C1.2-B2-B2: Core authorizes focused input at enqueue AND dispatch,
+# retaining the admitted lease revision to block switch-away/refocus ABA.
+for marker in 'fun requireCurrentLease(appId: String, attachmentGeneration: Long)' \
+  'focusEnforcedForInput", true'; do
+  grep -Fq "$marker" "$core_focus_source" || {
+    echo "Builder B2-B2 enforced focus lease missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'val admittedFocusRevision: Long? = null' \
+  'fun authorizeQueuedEventDispatch(attachment: Attachment, ticket: EventTicket)' \
+  'ticket.admittedFocusRevision == inputFocus.current()?.revision' \
+  'return attachment.record.offer(event, focusRevision)'; do
+  grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/RiftCoreAppSessions.kt" || {
+    echo "Builder B2-B2 focused input queue guard missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq 'coreSessions.authorizeQueuedEventDispatch(session.coreAttachment, ticket)' \
+  "$riftapp_host_source" || {
+  echo 'Builder B2-B2 shell input dequeue guard missing' >&2; exit 1;
+}
+
 # C1.2-B2-A: Core validates typed UI input target against current published
 # surface generation before the event enters the Core-owned bounded FIFO.
 for marker in 'private fun authorizeInputTarget(' \
