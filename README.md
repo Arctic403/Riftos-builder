@@ -2,87 +2,103 @@
 
 Public GitHub Actions worker for building the private `Arctic403/RiftOS` Android source.
 
-The Editor manually dispatches `.github/workflows/riftos-worker.yml` with an exact RiftOS
-source ref. The worker resolves that ref to a commit SHA, builds and signs the APK, then
-publishes `RiftOS-Android-debug.apk` to a private RiftOS prerelease.
+The workflow is manual (`workflow_dispatch`). It resolves the requested RiftOS ref to an exact commit SHA, checks out that exact source, runs the source-owned gates, builds the Android release APK, signs the RiftOS APK for distribution, verifies the final signed artifact, and publishes `RiftOS-Android-debug.apk` to the private RiftOS prerelease.
 
-Builds remain `workflow_dispatch` only. The builder does not duplicate RiftOS product tests;
-it runs the validation suite owned by the exact RiftOS source commit and adds artifact-level
-checks that only the builder can perform. The workflow uses Node 24 through `actions/setup-node@v4` and current build actions
-(`actions/checkout@v7`, `actions/setup-java@v5`, `gradle/actions/setup-gradle@v6`); the Gradle
-action uses its open-source `basic` cache provider so this maintenance update does not change
-the builder's trust boundary.
+Builder does not own product behavior. RiftOS owns its source tests and platform contracts; Builder adds only checkout, Android build/signing, and final-artifact proof that cannot be performed by source tests alone.
+
+## Frozen build-provider boundary
+
+RiftBuild application semantics are no longer embedded in RiftOS. The device-proven hosted build provider lives outside the RiftOS source tree. RiftOS keeps only generic reusable platform capabilities.
+
+The permanent platform owners are:
+
+- `RiftLocalBuildCapability.kt` — project-confined registered compiler execution for the `build.local` capability. It exposes managed compiler status/run and nothing resembling a build recipe, prepared-tree materializer, APK packer, APK signer, or PackageInstaller.
+- `RiftJvmDexService.kt` — bounded JVM class-to-DEX conversion through D8 plus the generic Android/JVM toolchain status consumed by external providers.
+- `RiftBuildManagedToolchains.kt` — compiler-id registry for bounded execution engines such as `native-buffer-v1` and isolated `dex-json-v1`.
+- `RiftManagedJvmToolService.kt` and `RiftNativeBufferCompilerService.kt` — generic compiler execution engines. They are reusable platform primitives, not language build recipes.
+- `RiftBuildPlatformTools.kt` — the narrow platform shell surface: generic compiler status/run, JVM DEX, RAPP pack/install/launch/list, APK verification, and Android install/launch proof.
+- `RiftApkV2Verifier.kt` — verification-only APK Signature Scheme v2 parser/verifier. It is keyless and has no signing method.
+- `RiftBuildInstaller.kt` — user-confirmed Android PackageInstaller/launch boundary. It accepts a verifier result and does not own APK signing.
+- `RiftRappCapabilityBroker.kt` — permission-gated host effects, including `build.local` and `signing.identity`. The private signing key stays in Android Keystore; providers receive only bounded public identity plus generic SHA256withRSA sign/verify operations.
+
+The removed embedded implementations must not return: `RiftBuildLocalExecutor.kt`, `RiftBuildKotlinCompiler.kt`, `RiftBuildNativeToolchain.kt`, `RiftBuildNativeApp.kt`, and `RiftApkV2Signer.kt`. The retired Android-host clang payload generator and its `android-clang-v1.zip`, `libclang_exec.so`, `libld_lld_exec.so`, and `libld_lld_shim.so` payloads are also gone.
+
+The boundary is frozen after device proof. It may be extended only when a real device proof exposes a missing **generic reusable platform capability**. Project-specific convenience routes, compiler-specific RiftOS wrappers, prepared-tree recipes, APK packers, or APK signers do not belong in RiftOS.
+
+## External-provider model
+
+The canonical application pipeline is:
+
+`Compile → Preflight → Pack → Sign → Verify → install/launch proof`
+
+That sequence belongs to the external build provider. RiftOS supplies generic capabilities used by the recipe; it does not own the recipe.
+
+`build.local` is deliberately small: registered compiler execution and JVM DEX conversion. App packaging and signing semantics remain provider-owned. Generic signing is exposed only through `signing.identity`; the provider never receives the Android Keystore private key.
+
+`RiftApkV2Verifier` is retained because Android installation is a platform responsibility and RiftOS must independently verify the signed APK before handing it to PackageInstaller.
+
+Builder signing the **RiftOS release APK itself** is separate from RiftBuild application signing. Release signing in this repository must never be interpreted as permission to restore an embedded app-signing path inside RiftOS.
+
+## RAPP host
+
+RiftOS keeps the language-neutral `riftos-app-abi/1` RAPP boundary. `RiftRappManager` owns package/install/launch state under `/C:/Programs`; immutable installed program data is separated from bounded mutable `state.bin`, which is reloaded as the effective program/state on launch.
+
+`RiftRappHost` owns generic event/effect sequencing, bounded host-effect depth, lifecycle delivery, and generic view rendering. `RiftRappCapabilityBroker` owns declared permissions and reusable capabilities. `riftpp-generic-v1` is the forward Rift++ RAPP adapter. Existing RPA/RWS adapters remain compatibility lanes only; new platform behavior must stay language-neutral.
+
+The generic host supports the external provider without containing the provider itself. Provider-specific runtime/manifests/tests belong to the external provider repository.
+
+## Managed compiler lane
+
+Compiler authority remains external to RiftOS recipes. The generic registry can resolve project-owned compiler payloads or validated bundled seeds. The default managed Kotlin compiler is still built as the separate `:rift-managed-kotlin-tool` APK and staged as a compiler seed; RiftOS does not embed the desktop Kotlin compiler implementation.
+
+`.github/workflows/managed-compiler-worker.yml` is the independent compiler-payload lane. The managed compiler worker intentionally uses `actions/upload-artifact@v4` to return compiler payload artifacts. The main RiftOS APK worker does not use `actions/upload-artifact`; the finished RiftOS APK is published through the release path.
+
+Long generic compiler operations use persistent RiftShell jobs. `rift_shell_exec` auto-submits supported long operations such as `compiler-run` and `jvm-dex`, with bounded submit/status/result/cancel/list lifecycle. Retired `kotlin-compile`, native clang compile/prep, embedded `pack`, and embedded `sign` commands are not part of the live shell surface.
+
+## Rift++ editor boundary
+
+There is one single permanent Rift++ editor. Builder continues to validate the current editor-owned native compile/run/preflight/debug-APK capabilities and the mirrored `com.riftpp.editor` / `com.riftpp.apphost` Android sources required to build RiftOS.
+
+RiftOS keeps `<package android:name="com.riftpp.editor" />` visibility for the external editor Binder bridge. That visibility is not used as generic RiftBuild install/launch authority.
+
+The compatibility/reference `riftpp` developer shell remains a headless QuickJS surface and is source-gated by `test-riftpp-shell.mjs`. It is separate from the promoted external build-provider boundary.
 
 ## Build gates
 
-A build must pass all of these stages before publication:
+A RiftOS publication must pass, in order:
 
-1. Resolve the requested RiftOS ref to an exact commit SHA and check out Builder + RiftOS.
-2. Syntax-check both Builder shell scripts with `bash -n`; Python-compile the pinned `prepare-riftbuild-toolchain.py`, its package-layout regression, and `test-builder-contracts.py`; run both regressions; verify RiftOS `HEAD` matches the resolved SHA; and require the checked-out source tree to remain byte-clean (no tracked drift or untracked files). The builder-self regression locks the explicit Gradle mirror gates, persistent RiftShell job source/APK contracts, Rift++ apphost DEX derivation, two-ABI editor JNI payload, the generic RAPP source/APK contract, and single-editor architecture wording before the expensive Android toolchain/build stages begin.
-3. Independently run `node --check` on the critical RiftOS source-gate entrypoints before invoking them, including `test-riftbuild-native.mjs`, `test-riftpp-shell.mjs`, `test-rift-shell-bridge.mjs`, `test-riftllm-bridge.mjs`, and the three Semnexis source gates (`test-semnexis-bootstrap.mjs`, `test-semnexis-arm32-exec.mjs`, `test-semnexis-shell.mjs`). Builder also requires `package.json` to keep those Semnexis gates plus the wiring, transport, docs, RiftCLI push, retired RiftCLI Batch V2, direct Local Agent batch, persistent MCP operation-journal reconciliation, DebugHub, RiftBuild native, and RiftLLM bridge checks reachable from `npm run check`. The promoted Semnexis v18/v19/v25 fixtures are presence/reference-preflighted before `npm run check`; their actual semantic and ARM32 assertions remain source-owned. See `SEMNEXIS_SELFHOSTING.md`.
-4. Preflight Builder assumptions against RiftOS Gradle: root KGP `2.4.10` paired with `quickjs-kt 1.0.14`, namespace/application ID `com.riftos.app`, compile/target Android 36, minSdk 26, Java 17, release minification disabled, `kotlinx-coroutines-android 1.11.0`, pinned NDK `28.2.13676358`, CMake `3.22.1`, ARM64 + ARM32 ABI filters, and every mandatory Kotlin source exposing its declared package plus at least one real top-level class/object/interface (without assuming filename = class name). The preflight now also locks RiftBuild Native Compile V1 and generic native-app preparation: `RiftBuildNativeToolchain.kt` + `RiftBuildNativeApp.kt` must remain in the mandatory Gradle source contract, `compile-native`/`compile-object`/`extract-object-text`/`toolchain-status`/`toolchain-install-bundled`/`prepare-native-app` must remain wired. Compiler execution must remain structured-argv `ProcessBuilder` rather than `/system/bin/sh`, and the bounded toolchain/project/app schemas (including current `riftbuild-native-app-prepare-v3` and `riftbuild-runtime-profile/1`) plus ELF verification, bundled ZIP extraction, `%COMPILER_DIR%`, compiler-local `LD_LIBRARY_PATH`, generated JNI source-set, legacy JNI extraction and `extractNativeLibs=true` contracts must remain present. The same preflight locks the current Codynex Editor-only boundary: `RiftCodynexEditorBridgeClient`, `CodynexEditorBridgeService`, `CodynexEditorToolchainPort`, `CodynexCompilerRuntime`, the `codynex-editor` shell family, bounded recursive folder transport, editor-owned compile/preview/native-proof/build-APK operations, the version-agnostic compiler payload API with `.codynex/toolchains/compiler.js` hot override plus bundled `codynex_compiler.js` fallback, and `codynex_editor_vm`. It explicitly rejects the retired RiftOS `CodynexCompilerProvider`, LR0 bridge/shell family, Source0 adapter, `validateCodynexCompilerTransition`, generation-specific C0 paths, `prepare-codynex-*` routes and MC0/MC1/M2 proof hosts. Any drift fails before source tests/Gradle. The preflight also locks the single permanent Rift++ editor boundary: mandatory mirrored `com.riftpp.editor` and `com.riftpp.apphost` Kotlin sources participate in source/DEX derivation, `verifyRiftppEditorPayload` remains a `preBuild` gate, CMake must produce `riftpp_editor_bridge`, and Builder requires the editor-owned `native-compile`, `native-run`, `native-preflight`, and `native-build-debug` capabilities, arbitrary S3 record compilation/native execution primitives, ELF32 ARM preflight invariants, NativeActivity `hasCode=false` generic native-app packaging, APK-v2 signing, and RiftShell transport commands. These are capabilities of the one Kotlin-hosted Rift++ editor; they do not represent a second native editor or a future editor replacement.
-Hot-swap extension: Builder requires compiler authority to remain external to the RiftOS app. `RiftBuildManagedToolchains.kt` registers compiler ids against bounded engines (`native-buffer-v1` and isolated `dex-json-v1`), `RiftManagedJvmToolService.kt` exact-hash loads JVM/DEX compiler payload APKs in `:riftJvmToolHot`, and `RiftBuildKotlinCompiler.kt` only validates Kotlin project inputs/delegates to the registry before D8. The default Kotlin implementation is the separate `:rift-managed-kotlin-tool` APK using pinned `com.github.PranavPurwar:kotlinc-android:2.4.0` plus its packaged `kotlinx-coroutines-android:1.11.0` runtime; Builder stages it under `assets/riftbuild/compiler-seeds/kotlin-android-2.4.0.apk` and explicitly forbids restoring `kotlin-compiler-embeddable` to the RiftOS app. `.github/workflows/managed-compiler-worker.yml` provides the no-RiftOS-rebuild lane: it builds any validated `rift-managed-*-tool` Android compiler module independently, verifies the resulting APK/DEX, emits SHA/metadata, and publishes the payload for project-owned hot swap. Builder also requires `compiler-status`, `compiler-run`, `managed-status`, `managed-copy`, and `kotlin-compile`. Long RiftBuild commands are protected by the persistent native RiftShell job lane: the direct shell and managed JVM compiler have 10-minute hard ceilings, MCP auto-submits known long commands instead of holding a request open, and bounded submit/status/result/cancel/list control remains on `rift_shell_exec` without reviving RiftCLI. Future compiler adapters such as Codynex can register through the same manifest/engine contract rather than adding compiler-specific RiftOS code. Runtime/profile materialization is project-owned through `riftbuild-native-app/3` + `riftbuild-runtime-profile/1`; Builder rejects any restored project-specific runtime sync task or baked adapter payload. The install/launch boundary is generic too: Builder requires artifact-derived bounded package validation plus install-status identity binding and rejects project package allowlists. RiftOS also has a parallel native `.rapp` application lane whose permanent language-neutral boundary is `riftos-app-abi/1`. Builder requires all eight Gradle-owned RAPP sources to remain mandatory: `RiftAppAbi.kt`, `RiftRappRiftppAdapter.kt`, `RiftRappRiftppWs15Adapter.kt`, `RiftRappRiftppGenericAdapter.kt`, `RiftRappCapabilityBroker.kt`, `RiftRappAbsoluteView.kt`, `RiftRappHost.kt`, and `RiftRappManager.kt`. `riftpp-rpa2-v1` and `riftpp-rws2-rui3-v1` are compatibility lanes for existing RPE2/RUI2 and RPE3/RWS2/RUI3 apps; new Rift++ RAPP work targets `riftpp-generic-v1`. Its RPE4 envelope transports the complete generic app event (kind, target id, integer args, UTF-8 text, opaque bytes and program state) without editor-specific remapping, while RWS4 returns next state, a RUI3 frame and at most one ordered generic host effect. `RiftRappHost` serializes each app's event/effect chain and persists changed opaque `nextProgram` state through `RiftRappManager` before advancing the session. `RiftRappManager` keeps installed `program.bin` immutable, stores bounded mutable app state separately as atomic `state.bin`, and reloads that state as the effective program/state on the next launch. `RiftRappAbsoluteView` supports the current generic node/input surface including `TEXT_INPUT`, `ACTION`, pointer, key and resize delivery. `MainActivity` forwards host resume/pause into the RAPP lifecycle surface, and Builder source-gates both calls so lifecycle delivery cannot silently disappear. `RiftRappManager` preserves optional manifest `permissions` through pack/install/launch, and `RiftRappCapabilityBroker` executes declared, permission-gated capabilities through the same persisted RiftOS grant store and filesystem confinement used elsewhere. The current declared capability vocabulary is `fs.read`, `fs.write`, `network`, `clipboard.read`, `clipboard.write`, `share`, `build.local`, and `window.title`; network remains unavailable. `build.local` is intentionally implemented only as the bounded structured execution boundary required by hosted build orchestration: managed-toolchain status, registered compiler execution, and JVM class-to-DEX conversion. It is not a shell or a route into embedded pack/sign/install semantics. The device-proven RiftBuild Hosted provider is now external to the RiftOS source tree; provider-specific manifest/runtime tests belong to that external repo, and this Builder validates only the reusable RiftOS platform boundary. `pack-rapp` packages program/runtime artifacts without entering APK signing, `install-rapp` installs only bounded RAPP artifacts into `/C:/Programs`, `launch-rapp` dispatches them into RiftOS-owned windows through the crash-contained generic native-buffer service, and `rapp-list` reports installed native RiftOS apps. This lane must remain additive and must not replace or modify the existing APK `pack`/`sign`/`verify`/`install-proof` pipeline. The retained compatibility/reference `riftpp` shell boundary is also locked: `RiftNativeShell` routes Rift++ through `RiftHeadlessJsRuntime`'s headless QuickJS host, and Builder directly syntax/wiring-checks `test-riftpp-shell.mjs` before `npm run check`. The current command family includes `run-stateful`/`exec-stateful` and `run-software`/`exec-software`; the headless state imports remain bounded, software-test expected output is not exposed as a host import, and the `TextEncoder`/SHA bridge uses the canonical UTF-8 encoder while normalizing bridged signed bytes into unsigned `Uint8Array` values. Builder treats `text-model-benchmark` and `semantic-compat` as retained diagnostic/developer-tool surfaces, while the source-owned regression remains the semantic authority. Historical Rift++ Android-native R3–R8 `riftpp-host` proof lanes remain evidence in RiftOS history/status documentation only; the current live compiler authority is hot-managed and Builder rejects any restored `riftpp-host`, `:riftppCompiler`, `RiftppCompilerService`, or `prepare-riftpp-*` special-case route. RiftOS still keeps the explicit `com.riftpp.editor` `<queries>` visibility needed by `RiftppEditorBridgeClient`; that visibility belongs to the external editor Binder bridge and is not used as generic RiftBuild install/launch authority.
+1. Resolve the requested RiftOS ref to an exact SHA and verify the checkout is byte-clean.
+2. Syntax-check Builder shell/Python gates and run `scripts/test-builder-contracts.py`.
+3. Syntax-check critical RiftOS source-gate entrypoints and run RiftOS `npm run check`.
+4. Preflight the Gradle source contract. The promoted generic build-provider owners above must be mandatory sources, and the retired embedded build files must be absent.
+5. Run the dedicated Gradle validation tasks before release compilation, including `verifyRiftOsAndroidSources`, editor payload validation, and browser ownership validation.
+6. Remove stale native/CMake intermediates so native libraries are rebuilt from the resolved source.
+7. Compile/package the RiftOS Android release APK.
+8. Align and sign the RiftOS release APK with the release identity supplied to the worker.
+9. Verify alignment plus APK signature/certificate.
+10. Run `scripts/verify-riftos-apk.sh` against the final signed APK.
+11. Publish only after every source and artifact gate is green.
 
-5. Run RiftOS `npm run check` so its wiring, transport, docs, protocol, native/live and explicitly retained-reference regressions gate the APK.
-6. Generate the bounded RiftBuild Android-host toolchain payload before Gradle: pinned Termux `clang`/`lld` 21.1.8-3 package closures for ARM32 + ARM64 are SHA-verified, extracted executables/libraries are resolved from Termux's canonical `data/data/com.termux/files/usr` package prefix (with the legacy flat `usr` fixture supported only for regression compatibility), runtime ELF dependencies are renamed/patched into private JNI library names, an ABI-matched `libld_lld_shim.so` is compiled to re-exec the renamed bundled LLD with `argv[0] = "ld.lld"`, and the pinned Android NDK `28.2.13676358` sysroot/resource tree is emitted as `assets/riftbuild/android-clang-v1.zip`. Generation is bounded and logged privately.
-7. Run the dedicated Gradle validation tasks (`verifyRiftOsAndroidSources`, `verifyCodynexEditorPayload`, `verifyRiftppEditorPayload`, and `validateRiftBrowserWebViewOwnership`) explicitly and capture them separately in `gradle-validation.log`, so either editor mirror/hash drift fails before release compilation rather than surfacing inside `assembleRelease`.
-8. Compile/package the Android release APK with Gradle.
-9. Align and sign the APK.
-10. Verify zip alignment and the APK signature/certificate.
-11. Run `scripts/verify-riftos-apk.sh` against the **final signed APK**. The verifier requires `assets/riftbuild/android-clang-v1.zip`, `libclang_exec.so` + `libld_lld_exec.so` + `libld_lld_shim.so` for both `arm64-v8a` and `armeabi-v7a`, compiled `extractNativeLibs=true`, and no x86/x86_64 host-toolchain copies. In addition to deriving every mandatory Kotlin class from RiftOS's Gradle source contract, the final DEX smoke now requires RiftBuild Native Compile V1/generic-native-app command and schema markers (`compile-native`, bounded assembly `compile-object`, relocation-free `extract-object-text`, `toolchain-status`, `prepare-native-app`, structured argv, toolchain/project/app/object/text schemas, and `%TOOLCHAIN%`/`%SYSROOT%` expansion) so source-only wiring cannot be mistaken for a live build. The same final DEX gate explicitly proves the generic RAPP lane with `pack-rapp`/`install-rapp`/`launch-rapp`/`rapp-list`, `riftos.rapp-project/1`, `riftos.rapp/1`, `riftos-app-abi/1`, all three Rift++ adapter identities, the `riftpp-generic-v1` response-validation marker, ordered pending-event/effect-chain bounds, the shared permission-store marker, and every declared capability string. This proves the new ABI/broker semantics survived compilation rather than merely proving the eight Kotlin classes exist. The signed-Dex proof also requires the current headless Rift++ markers: self-test/text-model/semantic schemas, `headless-quickjs`, stateful/software command families, bounded state/software import names, and the canonical unsigned-byte TextEncoder/SHA script fragments. This prevents a release from passing if the Kotlin classes remain but the current headless runtime behavior was compiled out or replaced. The final smoke reads package identity with AAPT2 `packagename`, reads minSdk/targetSdk from the compiled `AndroidManifest.xml` via AAPT2 `xmltree` while accepting AAPT2's decimal or typed-hex rendering of the same numeric value, verifies non-debuggable release state, rejects duplicate/unsafe ZIP entries, leaked source/VCS/keystore material, retired native class descriptors, stale OS web assets, missing mandatory native classes/provenance, and byte-mismatched runtime assets. Builder preflight requires the live native targets `riftcli`, `codynex_editor_vm`, `riftpp_editor_bridge`, and `rift_native_buffer_compiler_host`, and explicitly rejects the retired Codynex MC0/MC1/M2 proof targets plus the retired `riftpp_app0_host` / `riftpp_compiler_host` sources and targets. Before release compilation, Builder discards CMake/native packaging intermediates and disables Gradle build-cache so native proof/compiler libraries are rebuilt from the resolved RiftOS source rather than reused across worker revisions. Native RiftCLI Bootstrap-0 additionally requires the exact ZIP entries `lib/arm64-v8a/libriftcli.so` and `lib/armeabi-v7a/libriftcli.so` and forbids x86/x86_64 copies. The verifier's `require_entry` helper is literal/exact (not regex). The final APK must not contain any retired Codynex MC0/MC1/M2 proof-host library for any ABI; the only Codynex native payload required by this boundary is the ARM32 `libcodynex_editor_vm.so` preview bridge. The final signed-APK gate explicitly forbids all ABI copies of the retired `libriftpp_app0_host.so` and `libriftpp_compiler_host.so`; the generic native-buffer compiler host remains live, and the permanent Rift++ editor JNI boundary must package `libriftpp_editor_bridge.so` for both ARM64 and ARM32. The Codynex Editor path requires the mirrored current editor bridge/runtime/toolchain DEX payload, `com.codynex.editor.bridge.v1`, the hot-override/bundled compiler-host markers, and `lib/armeabi-v7a/libcodynex_editor_vm.so`; the final gate forbids the retired provider/LR0/C0 identities and proof-host libraries. The final DEX smoke also requires the Codynex Editor Binder service descriptor plus its `com.codynex.editor.bridge.v1`, folder push/pull, compile, preview, native-proof, and build-APK markers, proving the new RiftOS → Editor control plane survived compilation rather than existing only in source. The same final DEX smoke gate now requires the fixed `text-encoding-prime-b2` shell route, its frozen B2 source-path/SHA markers, both RiftPack qualification shell aliases and exact Provider methods, the fixed no-argument process-death start/status aliases and `rift_micro_process_death_start` / `rift_micro_process_death_status` Provider methods, the fixed `train-v2-adversarial-start` / `train-v2-adversarial-status` aliases and exact `train_v2_adversarial_start` / `train_v2_adversarial_status` Provider methods, plus the fixed `train-v2-builder-start` / `train-v2-builder-status` aliases and exact `train_v2_builder_start` / `train_v2_builder_status` Provider methods. This proves the bounded RiftPack, process-death, RiftTrainData V2 adversarial, and V2 deterministic-builder qualification bridge surfaces survived compilation. The same final DEX gate also requires the Rift++ single-editor native-output markers: all four `riftpp-editor native-*` shell transports, the editor-owned compile/run/preflight/build result schemas, and the NativeActivity APK builder schema. It additionally requires the persistent RiftShell job schemas/states and current `Rift++ editor development bridge` identity while explicitly rejecting the old legacy-editor labels.
+There is no pre-Gradle RiftBuild clang-toolchain generation stage anymore.
 
-For the generic managed-compiler lane, the final signed APK must contain `assets/riftbuild/kotlin-toolchain/android.jar`, `assets/riftbuild/kotlin-toolchain/kotlin-stdlib.jar`, the isolated `RiftNativeBufferCompilerService` manifest entry, and both ARM copies of `librift_native_buffer_compiler_host.so`. It must not contain the retired `RiftppCompilerService` / `:riftppCompiler` process, any `libriftpp_compiler_host.so` or `libriftpp_app0_host.so`, or the retired baked `assets/riftbuild/managed-runtimes/riftpp-adapter-v1/classes*.dex` payload.
+## Final signed-APK proof
 
-The APK smoke gate verifies the Android payload exists and that the only OS-execution files under `assets/www/` are the exact byte-for-byte `src/riftpp-core.js`, `src/riftvm.js`, and `src/semnexis-bootstrap.js` headless assets. Any returned `index.html`, `styles.css`, `workspace-live/`, PWA/service-worker file, or other unexpected `assets/www/` content is a failure. Explicit runtime assets under `android/app/src/main/assets/` (including RiftBrowser adapters) are verified separately byte-for-byte. Semnexis self-host fixtures remain source-regression inputs and are intentionally not packaged into the APK; Builder's current promoted source contract is documented in `SEMNEXIS_SELFHOSTING.md`.
+The final verifier derives mandatory Kotlin owners from RiftOS's Gradle source contract and proves they survived compilation. For the promoted build-provider boundary it requires markers for:
 
-Because important RiftOS fixes can live entirely in Kotlin or C++, the final signed-APK gate derives
-its mandatory Kotlin source set from RiftOS's own
-`android/app/build.gradle.kts` `verifyRiftOsAndroidSources` contract, then parses each source's
-declared package and real top-level class/object/interface names and requires those descriptors in
-the packaged DEX files. Kotlin filenames are not assumed to be class names. That derivation now covers mandatory `com.riftos.app` sources plus mirrored `com.riftpp.editor` and `com.riftpp.apphost` sources, including the editor-owned ELF preflight and Android app-host owners. It therefore also automatically covers all eight current RAPP owners from `RiftAppAbi` through `RiftRappManager`; Builder adds separate DEX-string assertions only for semantics that class descriptors cannot prove. It automatically covers current native surfaces such as
-`MainActivity`, `RiftBrowserAppHost`, `RiftVolumePaths` and every other file in the current mandatory native snapshot without a second Builder list drifting behind the source contract. The private top-level
-`RiftDevLabLocalAgent` object remains an explicit extra provenance assertion because it lives
-inside `RiftVortexLocalAgent.kt`. The exact `SOURCE_SHA` compiled into runtime diagnostics must
-also survive into DEX. RiftCLI N1.5 additionally requires the final signed DEX to retain the
-`riftcli.event-bus` and `mcp.relay` component markers plus `event.created`,
-`cli.event.send`, `relay.ready`, `cli.replay.request`, `cli.replay.send` and `cli.ack`.
-That proves the specific passive push-diagnostics patch survived compilation rather than merely
-proving the containing Kotlin classes exist. This closes the gap where Web assets could match
-source while the final native payload or provenance was not independently asserted.
+- managed compiler execution (`riftbuild-managed-compiler-run/1`);
+- generic JVM toolchain/D8 (`riftbuild-kotlin-toolchain-status/2`, `rift-jvm-dex/1`);
+- surviving platform commands (`compiler-status`, `compiler-run`, `jvm-status`, `jvm-dex`, `pack-rapp`, `install-rapp`, `launch-rapp`, `rapp-list`);
+- generic RAPP ABI/capabilities, durable `state.bin`, permission state, `build.local`, and `signing.identity`;
+- APK-v2 verification behavior;
+- persistent RiftShell jobs;
+- the current single Rift++ editor and retained headless QuickJS compatibility surface.
 
-The worker builds a **Git commit** from `Arctic403/RiftOS`, not the phone's local
-`workspace/RiftOS-main` directory. Push RiftOS workspace changes to the RiftOS repository
-before dispatching a build, then use the intended commit as `source_ref`. Dispatch remains
-manual; updating either workspace does not start a build or publish an APK.
+The verifier rejects the removed clang ZIP/JNI payloads and retired embedded native compile, native app preparation, runtime-profile, project-toolchain, and app-signing markers. It also keeps the existing security checks for unsafe/duplicate ZIP entries, leaked source/VCS/keystore material, package/minSdk/targetSdk/debuggable state, required native libraries, and exact runtime asset provenance.
 
-Failure logs are kept in `$RUNNER_TEMP/riftos-private-logs` and are returned through the private
-RiftOS prerelease failure bundle when publication is enabled. This separates source-validation, dedicated Gradle-validation, Android compile/package, APK smoke, alignment, signature, and private-release publication failures.
-The publish stage creates the private prerelease first, then uploads the verified APK with up to
-three bounded retries. `publish.log` captures GitHub CLI output, and a failed asset upload removes
-the half-created release/tag before the private failure bundle is returned.
+The generic managed-compiler lane still requires the Android/JVM toolchain assets, validated compiler seed, `RiftNativeBufferCompilerService`, and ARM native-buffer compiler hosts. Those are generic execution capabilities and are not the retired Android-host clang toolchain.
 
-## Semnexis self-hosting contract
+## Failure policy
 
-Builder now has an explicit source-contract document for the Semnexis self-hosting frontier: `SEMNEXIS_SELFHOSTING.md`.
+Builder is stop-on-error. A failed source gate, Gradle validation, compilation, signing step, or final APK proof blocks publication. Sparse worker failure bundles are diagnostic pointers only; the private detailed Builder logs are the source of truth for the actual failure.
 
-The current RiftOS-promoted source fixtures are v18 frontend, v19 semantic graph, and v25 full canonical graph/verifier/effect/plan/Native-IR parity. The installed `semx` promotion remains `/17` until a newer APK is actually installed and proved. Builder also enforces the current RiftOS runtime-boundary regression: ARM32 must emit and canonically verify a source program with more than 256 functions, proving the retired 256-function bootstrap policy cap has not returned. Real artifact/runtime bounds remain mandatory. Local Semnexis work beyond the promoted fixtures is not claimed by Builder until it is deliberately promoted into RiftOS.
-
-## Required secret
-
-- `RIFTOS_PRIVATE_TOKEN` — fine-grained PAT restricted to `Arctic403/RiftOS` with
-  Contents read/write.
-
-Optional production-signing secrets:
-
-- `RIFTOS_KEYSTORE_B64`
-- `RIFTOS_KEYSTORE_PASSWORD`
-- `RIFTOS_KEY_ALIAS`
-- `RIFTOS_KEY_PASSWORD`
-
-Without those four signing secrets, the worker uses RiftOS's alpha/debug keystore with the known development alias/password. That fallback is suitable only as an alpha/development signing identity and is not strong production publisher identity. A production distribution policy should require private release signing and remove the fallback separately.
-
-The workflow currently references major-version GitHub Action tags rather than immutable action commit SHAs; that remains an external supply-chain/reproducibility limitation.
-
-The RiftOS APK worker does not use `actions/upload-artifact`; verified APKs and failure bundles return through private RiftOS prereleases. The managed compiler worker intentionally uses `actions/upload-artifact@v4` for its small compiler-payload APK/SHA/metadata result in addition to the optional private prerelease publication lane.
-
-
+Do not weaken a gate merely to make a build green. If a real device proof exposes a missing generic boundary, extend the reusable platform capability, prove it, update the source/final-APK contracts, and keep provider semantics external.

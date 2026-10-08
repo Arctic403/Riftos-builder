@@ -21,17 +21,12 @@ NODE_MAJOR="$(node -p 'Number(process.versions.node.split(".")[0])')"
 }
 
 SOURCE_CHECK_TIMEOUT="${SOURCE_CHECK_TIMEOUT:-12m}"
-RIFTBUILD_TOOLCHAIN_TIMEOUT="${RIFTBUILD_TOOLCHAIN_TIMEOUT:-10m}"
 GRADLE_VALIDATE_TIMEOUT="${GRADLE_VALIDATE_TIMEOUT:-6m}"
 GRADLE_BUILD_TIMEOUT="${GRADLE_BUILD_TIMEOUT:-20m}"
 APK_VERIFY_TIMEOUT="${APK_VERIFY_TIMEOUT:-3m}"
 
-# Fail before the expensive Android build if Builder-owned gates/generators are malformed.
+# Fail before the expensive Android build if Builder-owned gates are malformed.
 bash -n "$SCRIPT_DIR/verify-riftos-apk.sh"
-python3 -m py_compile \
-  "$SCRIPT_DIR/prepare-riftbuild-toolchain.py" \
-  "$SCRIPT_DIR/test-prepare-riftbuild-toolchain.py"
-python3 "$SCRIPT_DIR/test-prepare-riftbuild-toolchain.py"
 
 cd "$SOURCE_DIR"
 echo "Building RiftOS ${SOURCE_SHA:-unknown}."
@@ -305,9 +300,10 @@ native_shell="android/app/src/main/java/com/riftos/app/RiftNativeShell.kt"
 editor_bootstrap="android/app/src/main/java/com/codynex/editorapp/BootstrapArtifacts.kt"
 editor_vm_bridge_kt="android/app/src/main/java/com/codynex/editorapp/CodynexRuntimeBridge.kt"
 editor_vm_bridge_cpp="android/app/src/main/cpp/editor/editor_vm_bridge.cpp"
-riftbuild_source="android/app/src/main/java/com/riftos/app/RiftBuildLocalExecutor.kt"
-riftbuild_toolchain_source="android/app/src/main/java/com/riftos/app/RiftBuildNativeToolchain.kt"
-riftbuild_native_app_source="android/app/src/main/java/com/riftos/app/RiftBuildNativeApp.kt"
+riftbuild_capability_source="android/app/src/main/java/com/riftos/app/RiftLocalBuildCapability.kt"
+riftbuild_jvm_dex_source="android/app/src/main/java/com/riftos/app/RiftJvmDexService.kt"
+riftbuild_platform_source="android/app/src/main/java/com/riftos/app/RiftBuildPlatformTools.kt"
+riftbuild_verifier_source="android/app/src/main/java/com/riftos/app/RiftApkV2Verifier.kt"
 riftapp_abi_source="android/app/src/main/java/com/riftos/app/RiftAppAbi.kt"
 riftapp_rpa2_adapter_source="android/app/src/main/java/com/riftos/app/RiftRappRiftppAdapter.kt"
 riftapp_ws15_adapter_source="android/app/src/main/java/com/riftos/app/RiftRappRiftppWs15Adapter.kt"
@@ -332,9 +328,10 @@ for editor_contract_file in \
   "$editor_bootstrap" \
   "$editor_vm_bridge_kt" \
   "$editor_vm_bridge_cpp" \
-  "$riftbuild_source" \
-  "$riftbuild_toolchain_source" \
-  "$riftbuild_native_app_source" \
+  "$riftbuild_capability_source" \
+  "$riftbuild_jvm_dex_source" \
+  "$riftbuild_platform_source" \
+  "$riftbuild_verifier_source" \
   "$riftapp_abi_source" \
   "$riftapp_rpa2_adapter_source" \
   "$riftapp_ws15_adapter_source" \
@@ -473,89 +470,87 @@ if grep -Eq 'codynex-c0-ref/0\.11\.0|codynex-c0-ref/0\.12\.0' "$editor_compiler_
   echo 'Builder Codynex editor compiler host must remain compiler-version agnostic.' >&2
   exit 1
 fi
-for required_riftbuild_native_contract in \
-  '"toolchain-status" -> nativeToolchain.status()' \
-  '"toolchain-install-bundled" -> nativeToolchain.installBundled()' \
-  '"compile-native" -> compileNative(' \
-  '"compile-object" -> compileObject(' \
-  '"extract-object-text" -> extractObjectText(' \
-  '"prepare-native-app" -> prepareNativeApp(' \
-  'structuredCompilerProcessExecution' \
-  'downloadedToolchainsAllowed'; do
-  grep -Fq "$required_riftbuild_native_contract" "$riftbuild_source" || {
-    echo "Builder RiftBuild Native Compile V1 controller contract missing: $required_riftbuild_native_contract" >&2
+for required_riftbuild_capability_contract in \
+  'class RiftLocalBuildCapability' \
+  'RiftBuildManagedToolchains' \
+  'compilerStatus(' \
+  'compilerRunInline(' \
+  'RiftManagedJvmToolService.run(' \
+  'RiftNativeBufferCompilerService.compile(' \
+  'build/riftbuild/' \
+  'Managed compiler classpath escaped project/toolchains'; do
+  grep -Fq "$required_riftbuild_capability_contract" "$riftbuild_capability_source" || {
+    echo "Builder generic build.local contract missing: $required_riftbuild_capability_contract" >&2
     exit 1
   }
 done
-for required_riftbuild_toolchain_contract in \
-  'class RiftBuildNativeToolchain' \
-  'riftbuild-android-clang-toolchain/1' \
-  'riftbuild-native-project/1' \
-  'riftbuild-native-project-validation-v1' \
-  'fun validateProject(projectRoot: File)' \
-  'fun compileAssemblyObject(projectRoot: File, sourcePath: String, target: String)' \
-  'riftbuild-native-object-compile-v1' \
-  'Assembly object source must end in .S or .s' \
-  'argv += "-c"' \
-  'verifyRelocatableObject(output, abi.abi)' \
-  'build/riftbuild/objects/' \
-  'fun extractRelocationFreeText(projectRoot: File, objectPath: String, target: String)' \
-  'riftbuild-native-object-text-v1' \
-  'Native object contains relocation sections; raw text extraction is forbidden' \
-  'Native object must contain exactly one .text section' \
-  'build/riftbuild/blobs/' \
-  'ProcessBuilder(argv)' \
-  'structured-argv' \
-  'downloadedToolchainsAllowed' \
-  'MAX_TOOLCHAIN_ARGS = 128' \
-  'MAX_LIBRARIES = 64' \
-  'BUNDLED_TOOLCHAIN_ASSET = "riftbuild/android-clang-v1.zip"' \
-  'riftbuild-native-toolchain-install-v1' \
-  'ZipInputStream' \
-  'LD_LIBRARY_PATH' \
-  '.replace("%TOOLCHAIN%", toolchainRoot.absolutePath)' \
-  '.replace("%SYSROOT%", sysroot.absolutePath)' \
-  '.replace("%COMPILER_DIR%", compiler.parentFile?.absolutePath.orEmpty())' \
-  'verifyElf'; do
-  grep -Fq "$required_riftbuild_toolchain_contract" "$riftbuild_toolchain_source" || {
-    echo "Builder RiftBuild Native Compile V1 toolchain contract missing: $required_riftbuild_toolchain_contract" >&2
-    exit 1
-  }
-done
-if grep -Fq '/system/bin/sh' "$riftbuild_toolchain_source"; then
-  echo 'Builder RiftBuild Native Compile V1 contract regressed to shell-string execution.' >&2
+if grep -Eq 'PackageInstaller|RiftApkV2Verifier|signArtifact|prepare-native-app|compile-native' "$riftbuild_capability_source"; then
+  echo 'Builder contract failed: generic build.local regained package/sign/prepared-tree authority.' >&2
   exit 1
 fi
-for required_riftbuild_native_app_contract in \
-  'class RiftBuildNativeApp' \
-  'riftbuild-native-app/1' \
-  'riftbuild-native-app/2' \
-  'riftbuild-native-app/3' \
-  'riftbuild-runtime-profile/1' \
-  'riftbuild-native-app-prepare-v3' \
-  'riftbuild-native-app-validation-v2' \
-  'fun validateProject(projectRoot: File)' \
-  'readRuntimeProfile' \
-  'materializeRuntimeProfile' \
-  'MAX_RUNTIME_DEX_FILES = 8' \
-  'MAX_RUNTIME_DEX_BYTES = 16L * 1024L * 1024L' \
-  'runtimeProfile' \
-  'activityClass' \
-  'hasCode' \
-  'dexDir' \
-  'android.app.NativeActivity' \
-  'android.app.lib_name' \
-  'build/riftbuild/prepared/AndroidManifest.xml' \
-  'Native app assetsDir must not point inside build/riftbuild'; do
-  grep -Fq "$required_riftbuild_native_app_contract" "$riftbuild_native_app_source" || {
-    echo "Builder RiftBuild generic native-app contract missing: $required_riftbuild_native_app_contract" >&2
+
+for required_riftbuild_jvm_dex_contract in \
+  'class RiftJvmDexService' \
+  'riftbuild-kotlin-toolchain-status/2' \
+  'rift-jvm-dex/1' \
+  'D8Command.builder()' \
+  'OutputMode.DexIndexed'; do
+  grep -Fq "$required_riftbuild_jvm_dex_contract" "$riftbuild_jvm_dex_source" || {
+    echo "Builder generic JVM DEX contract missing: $required_riftbuild_jvm_dex_contract" >&2
     exit 1
   }
 done
-if grep -Eq 'RIFTPP_ADAPTER|riftpp-adapter|riftpp-android-adapter|com\.riftpp\.android\.RiftppActivity|materializeManagedRuntime' "$riftbuild_native_app_source"; then
-  echo 'Builder contract failed: generic runtime/profile materializer regained Rift++ identity.' >&2
+
+for required_riftbuild_platform_contract in \
+  'class RiftBuildPlatformTools' \
+  '"compiler-status"' \
+  '"compiler-run"' \
+  '"jvm-status"' \
+  '"jvm-dex"' \
+  '"pack-rapp"' \
+  '"install-rapp"' \
+  '"launch-rapp"' \
+  '"rapp-list"' \
+  '"verify"' \
+  '"install-proof"'; do
+  grep -Fq "$required_riftbuild_platform_contract" "$riftbuild_platform_source" || {
+    echo "Builder generic RiftBuild platform contract missing: $required_riftbuild_platform_contract" >&2
+    exit 1
+  }
+done
+if grep -Eq '"kotlin-compile"|"compile-native"|"prepare-native-app"|"sign"[[:space:]]*->|"pack"[[:space:]]*->' "$riftbuild_platform_source"; then
+  echo 'Builder contract failed: retired embedded build command resurfaced.' >&2
   exit 1
 fi
+
+for required_riftbuild_verifier_contract in \
+  'class RiftApkV2Verifier' \
+  'fun verify(' \
+  'APK Sig Block 42' \
+  'V2_BLOCK_ID = 0x7109871a' \
+  'SIGNATURE_ALGORITHM_ID = 0x0103' \
+  'SHA256withRSA'; do
+  grep -Fq "$required_riftbuild_verifier_contract" "$riftbuild_verifier_source" || {
+    echo "Builder APK verifier contract missing: $required_riftbuild_verifier_contract" >&2
+    exit 1
+  }
+done
+if grep -Eq 'AndroidKeyStore|KeyGenParameterSpec|KeyPairGenerator|fun sign\(' "$riftbuild_verifier_source"; then
+  echo 'Builder contract failed: verifier regained signing-key authority.' >&2
+  exit 1
+fi
+
+for retired_riftbuild_source in \
+  android/app/src/main/java/com/riftos/app/RiftBuildLocalExecutor.kt \
+  android/app/src/main/java/com/riftos/app/RiftBuildKotlinCompiler.kt \
+  android/app/src/main/java/com/riftos/app/RiftBuildNativeToolchain.kt \
+  android/app/src/main/java/com/riftos/app/RiftBuildNativeApp.kt \
+  android/app/src/main/java/com/riftos/app/RiftApkV2Signer.kt; do
+  if test -e "$retired_riftbuild_source"; then
+    echo "Builder contract failed: retired embedded RiftBuild source resurfaced: $retired_riftbuild_source" >&2
+    exit 1
+  fi
+done
 for required_riftbuild_installer_contract in \
   'class RiftBuildInstaller' \
   'SAFE_PACKAGE_NAME' \
@@ -584,9 +579,10 @@ if grep -Eq '<package android:name="com\.riftpp\.(editor\.(nativev1|adapterr1)|n
   exit 1
 fi
 for required_riftbuild_gradle_source in \
-  '"src/main/java/com/riftos/app/RiftBuildNativeToolchain.kt"' \
-  '"src/main/java/com/riftos/app/RiftBuildNativeApp.kt"' \
-  '"src/main/java/com/riftos/app/RiftBuildKotlinCompiler.kt"' \
+  '"src/main/java/com/riftos/app/RiftLocalBuildCapability.kt"' \
+  '"src/main/java/com/riftos/app/RiftJvmDexService.kt"' \
+  '"src/main/java/com/riftos/app/RiftBuildPlatformTools.kt"' \
+  '"src/main/java/com/riftos/app/RiftApkV2Verifier.kt"' \
   '"src/main/java/com/riftos/app/RiftBuildManagedToolchains.kt"' \
   '"src/main/java/com/riftos/app/RiftManagedJvmToolService.kt"' \
   '"src/main/java/com/riftos/app/RiftNativeBufferCompilerService.kt"' \
@@ -1074,29 +1070,8 @@ if ! timeout --signal=TERM --kill-after=30s "$SOURCE_CHECK_TIMEOUT" \
   exit 1
 fi
 
-if ! timeout --signal=TERM --kill-after=30s "$RIFTBUILD_TOOLCHAIN_TIMEOUT" \
-    python3 "$SCRIPT_DIR/prepare-riftbuild-toolchain.py" "$SOURCE_DIR" \
-    >"$LOG_DIR/riftbuild-toolchain.log" 2>&1; then
-  echo "RiftBuild Android-host toolchain generation failed or exceeded $RIFTBUILD_TOOLCHAIN_TIMEOUT. Detailed log will be returned privately." >&2
-  exit 1
-fi
-for generated_toolchain_file in \
-  android/app/build/generated/riftosAssets/riftbuild/android-clang-v1.zip \
-  android/app/build/generated/riftosJniLibs/arm64-v8a/libclang_exec.so \
-  android/app/build/generated/riftosJniLibs/arm64-v8a/libld_lld_exec.so \
-  android/app/build/generated/riftosJniLibs/arm64-v8a/libld_lld_shim.so \
-  android/app/build/generated/riftosJniLibs/armeabi-v7a/libclang_exec.so \
-  android/app/build/generated/riftosJniLibs/armeabi-v7a/libld_lld_exec.so \
-  android/app/build/generated/riftosJniLibs/armeabi-v7a/libld_lld_shim.so; do
-  test -s "$generated_toolchain_file" || {
-    echo "RiftBuild generated toolchain payload missing or empty: $generated_toolchain_file" >&2
-    exit 1
-  }
-done
-
-# Native proof/compiler hosts must be rebuilt from the checked-out source. Keep
-# the generated RiftBuild toolchain payload, but discard CMake/native packaging
-# intermediates that can survive worker reuse across source revisions.
+# Native runtime/editor hosts must be rebuilt from the checked-out source.
+# Discard CMake/native packaging intermediates that can survive worker reuse across source revisions.
 rm -rf \
   android/app/.cxx \
   android/.cxx \

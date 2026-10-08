@@ -238,14 +238,9 @@ if grep -Fq 'application-debuggable' <<<"$badging"; then
   exit 1
 fi
 
-# RiftBuild bundled Android-host compiler payload must survive final packaging for both supported host ABIs.
-require_entry 'assets/riftbuild/android-clang-v1.zip'
-for abi in arm64-v8a armeabi-v7a; do
-  require_entry "lib/$abi/libclang_exec.so"
-  require_entry "lib/$abi/libld_lld_exec.so"
-  require_entry "lib/$abi/libld_lld_shim.so"
-done
-forbid_entry '^lib/(x86|x86_64)/lib(clang_exec|ld_lld_exec|ld_lld_shim)\.so$'
+# The retired embedded Android-host clang toolchain must not survive the purge.
+forbid_entry '^assets/riftbuild/android-clang-v1\.zip$'
+forbid_entry '^lib/(arm64-v8a|armeabi-v7a|x86|x86_64)/lib(clang_exec|ld_lld_exec|ld_lld_shim)\.so$'
 
 # Source, VCS and signing-key material must never leak into the APK ZIP.
 forbid_entry '\.(kt|java)$'
@@ -360,38 +355,56 @@ for marker in \
   'Array.from(view, value => value & 255)'; do
   require_dex_string "$marker" "Rift++ headless runtime marker $marker"
 done
+# The promoted generic build-provider boundary must survive into the signed DEX.
+# Build recipes/packing/signing stay external; RiftOS retains only reusable execution,
+# RAPP lifecycle, verification, and Android-install capabilities.
+for marker in \
+  'riftbuild-managed-compiler-run/1' \
+  'riftbuild-kotlin-toolchain-status/2' \
+  'rift-jvm-dex/1' \
+  'compiler-status' \
+  'compiler-run' \
+  'jvm-status' \
+  'jvm-dex' \
+  'pack-rapp' \
+  'install-rapp' \
+  'launch-rapp' \
+  'rapp-list' \
+  'v2 signed-data RSA signature verification failed' \
+  'v2 protected APK content digest mismatch'; do
+  require_dex_string "$marker" "generic post-purge RiftBuild marker $marker"
+done
 
-# RiftBuild Native Compile V1 and generic native-app preparation must survive compilation into
-# the final release DEX, not merely pass source tests. The mandatory class loop above proves both
-# owners exist; these markers prove the new command/contract surfaces survived Kotlin compilation.
-require_dex_string 'compile-native' 'RiftBuild Native Compile V1 command'
-require_dex_string 'riftbuild-native-object-compile-v1' 'RiftBuild bounded assembly object result schema'
-require_dex_string 'compiled-native-object' 'RiftBuild bounded assembly object terminal state'
-require_dex_string 'extract-object-text' 'RiftBuild relocation-free object text extraction command'
-require_dex_string 'riftbuild-native-object-text-v1' 'RiftBuild object text extraction result schema'
-require_dex_string 'extracted-native-object-text' 'RiftBuild object text extraction terminal state'
-require_dex_string 'toolchain-status' 'RiftBuild Native Compile V1 toolchain status command'
-require_dex_string 'toolchain-install-bundled' 'RiftBuild bundled toolchain install command'
-require_dex_string 'riftbuild-native-toolchain-install-v1' 'RiftBuild bundled toolchain install result schema'
-require_dex_string 'riftbuild/android-clang-v1.zip' 'RiftBuild bundled toolchain asset path'
-require_dex_string '%COMPILER_DIR%' 'RiftBuild compiler-directory argv expansion'
-require_dex_string 'prepare-native-app' 'RiftBuild generic native-app preparation command'
-require_dex_string 'riftbuild-native-toolchain-status-v1' 'RiftBuild native toolchain status schema'
-require_dex_string 'riftbuild-native-compile-v1' 'RiftBuild native compile result schema'
-require_dex_string 'riftbuild-native-app-prepare-v3' 'RiftBuild generic native-app prepare schema'
-require_dex_string 'riftbuild-native-app-validation-v2' 'RiftBuild generic native-app validation schema'
-require_dex_string 'riftbuild-runtime-profile/1' 'RiftBuild generic runtime profile contract'
-require_dex_string 'riftbuild-android-clang-toolchain/1' 'RiftBuild Android-host toolchain contract'
-require_dex_string 'riftbuild-native-project/1' 'RiftBuild native project contract'
-require_dex_string 'riftbuild-native-app/1' 'RiftBuild native app contract'
-require_dex_string 'riftbuild-native-app/2' 'RiftBuild native app v2 compatibility contract'
-require_dex_string 'riftbuild-native-app/3' 'RiftBuild native app v3 profile contract'
+# Retired embedded compiler/prepared-tree/pack/sign semantics must not reappear in the APK.
+for retired_marker in \
+  'compile-native' \
+  'riftbuild-native-object-compile-v1' \
+  'extract-object-text' \
+  'riftbuild-native-object-text-v1' \
+  'toolchain-status' \
+  'toolchain-install-bundled' \
+  'riftbuild-native-toolchain-install-v1' \
+  'riftbuild/android-clang-v1.zip' \
+  '%COMPILER_DIR%' \
+  '%TOOLCHAIN%' \
+  '%SYSROOT%' \
+  'prepare-native-app' \
+  'riftbuild-native-toolchain-status-v1' \
+  'riftbuild-native-compile-v1' \
+  'riftbuild-native-app-prepare-v3' \
+  'riftbuild-native-app-validation-v2' \
+  'riftbuild-runtime-profile/1' \
+  'riftbuild-android-clang-toolchain/1' \
+  'riftbuild-native-project/1' \
+  'riftbuild-native-app/1' \
+  'riftbuild-native-app/2' \
+  'riftbuild-native-app/3'; do
+  forbid_dex_string "$retired_marker" "retired embedded RiftBuild marker $retired_marker"
+done
+
 for retired_marker in 'riftpp-android-adapter/1' 'com.riftpp.android.RiftppActivity' 'riftpp-adapter'; do
   forbid_dex_string "$retired_marker" "retired Rift++ runtime identity $retired_marker"
 done
-require_dex_string 'structured-argv' 'RiftBuild structured compiler process mode'
-require_dex_string '%TOOLCHAIN%' 'RiftBuild toolchain-root argv expansion'
-require_dex_string '%SYSROOT%' 'RiftBuild sysroot argv expansion'
 
 # Persistent RiftShell jobs must survive into the signed DEX. These markers prove the new
 # long-command lifecycle is packaged rather than the retired request-bound 60-second behavior.
