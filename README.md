@@ -55,6 +55,14 @@ Compiler authority remains external to RiftOS recipes. The generic registry can 
 
 Long generic compiler operations use persistent RiftShell jobs. `rift_shell_exec` auto-submits supported long operations such as `compiler-run` and `jvm-dex`, with bounded submit/status/result/cancel/list lifecycle. Retired `kotlin-compile`, native clang compile/prep, embedded `pack`, and embedded `sign` commands are not part of the live shell surface.
 
+## C1.0 RiftOS Core / replaceable RiftShell boundary
+
+**Baseline:** User confirmed C0.2.5 Builder green and installed on actual Android device, 2026-10-08.
+
+This source gate makes `RiftCoreApplication` bootstrap application-scoped Core authority before the desktop. `RiftCoreRuntime` owns the shared RAPP package manager, external runtime-provider registry and generic RiftBuild service; `RiftNativeShell` and the Activity-owned RAPP UI host become Core clients for those functions. The signed APK must retain the Core Application entry and `riftos.core.status/1`. The `core status` shell command is an Activity-independent diagnostic.
+
+**Do not over-promote:** Core and desktop still share the same Android process, and RAPP execution/rendering sessions remain Activity-owned. Shell crash/process isolation and replaceable shell package are later C1 gates. The user's NEXT manual Builder + device installation must verify this gate; Builder must never be triggered automatically. Architecture owned by `RiftOS-main/docs/systems/core-shell/README.md`.
+
 ## C0.2.5 external runtime-provider migration
 
 RiftOS now sources the generic `RiftExternalRuntimeProviders` registry and signer-pinned Binder execution boundary; the external installed package advertises `com.riftos.runtime.EXECUTE_V1`. Builder requires source, Gradle reachability, manifest query visibility and final signed-DEX proof. Runtime provider registration is a separate platform installation gate, not language-specific Builder logic. `riftbuild runtime-status` is the read-only diagnostic.

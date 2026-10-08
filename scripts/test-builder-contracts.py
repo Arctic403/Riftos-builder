@@ -26,6 +26,22 @@ for task in (
 ):
     require(BUILD, task, "dedicated Gradle validation")
 
+# C1.0: Core bootstrap and package/runtime/build services must be owned
+# independently of the desktop Activity and source-verified in the signed APK.
+for marker in (
+    'RiftCoreApplication.kt',
+    'RiftCoreRuntime.kt',
+    'android:name=".RiftCoreApplication"',
+    "object RiftCoreRuntime",
+    "RiftCoreRuntime.buildPlatform(appContext)",
+    "RiftCoreRuntime.packages(activity.applicationContext)",
+    '"appExecutionIndependentOfDesktop", false',
+):
+    require(BUILD, marker, "C1.0 Core/Shell source ownership")
+for marker in ("RiftCoreApplication", "'riftos.core.status/1'",
+               "'appExecutionIndependentOfDesktop'"):
+    require(VERIFY, marker, "C1.0 Core bootstrap signed APK proof")
+
 # C0.2.5 generic installed runtime-provider contract; NEVER bake in an
 # editor/QuickJS package or mark a provider ready without signer validation.
 for marker in (

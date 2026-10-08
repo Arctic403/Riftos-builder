@@ -193,6 +193,12 @@ if grep -Eq 'CodynexCompilerProvider|com\.riftos\.app\.codynexcompiler|com\.cody
   echo 'APK smoke check failed: retired Codynex provider/LR0 manifest authority resurfaced.' >&2
   exit 1
 fi
+# C1.0: Android application bootstrap names the Core owner, never the UI shell.
+if ! grep -Fq 'RiftCoreApplication' <<<"$manifest_tree"; then
+  echo 'APK smoke check failed: Core Application bootstrap missing from signed APK.' >&2
+  exit 1
+fi
+
 # C0.2.5: Android must permit discovery of installed generic runtime services
 # without hardcoding any particular language/runtime provider package.
 if ! grep -Fq 'com.riftos.runtime.EXECUTE_V1' <<<"$manifest_tree"; then
@@ -313,6 +319,8 @@ for marker in \
   'riftos-runtime-providers/1' \
   'riftos-runtime-exec/1' \
   'riftos-runtime-status/1' \
+  'riftos.core.status/1' \
+  'appExecutionIndependentOfDesktop' \
   'riftos.runtime.provider/1' \
   'runtime-status' \
   'riftpp-rws2-rui3-v1' \

@@ -322,6 +322,36 @@ grep -Fq '<action android:name="com.riftos.runtime.EXECUTE_V1" />' "$manifest_co
   echo 'Builder generic runtime provider Android query action missing.' >&2
   exit 1
 }
+# C1.0: RiftOS Core must bootstrap without constructing a desktop shell;
+# package/runtime/build authority is process-owned, not Activity-owned.
+core_application_source="android/app/src/main/java/com/riftos/app/RiftCoreApplication.kt"
+core_runtime_source="android/app/src/main/java/com/riftos/app/RiftCoreRuntime.kt"
+for core_source in "$core_application_source" "$core_runtime_source"; do
+  test -f "$core_source" || { echo "Builder C1.0 Core source missing: $core_source" >&2; exit 1; }
+  grep -Fq "${core_source#android/app/}" android/app/build.gradle.kts || {
+    echo "Builder C1.0 Core Kotlin source not Gradle-mandatory: $core_source" >&2; exit 1;
+  }
+done
+grep -Fq 'android:name=".RiftCoreApplication"' "$manifest_contract" || {
+  echo 'Builder C1.0 Android Application bootstrap missing.' >&2; exit 1;
+}
+for core_marker in 'object RiftCoreRuntime' 'fun packages(context: Context)' \
+  'fun runtimes(context: Context)' 'fun buildPlatform(context: Context)' \
+  'riftos.core.status/1' '"desktopRequired", false' \
+  '"appExecutionIndependentOfDesktop", false'; do
+  grep -Fq "$core_marker" "$core_runtime_source" || {
+    echo "Builder C1.0 core contract missing: $core_marker" >&2; exit 1;
+  }
+done
+grep -Fq 'RiftCoreRuntime.buildPlatform(appContext)' \
+  android/app/src/main/java/com/riftos/app/RiftNativeShell.kt || {
+  echo 'Builder C1.0 shell still owns RiftBuild platform.' >&2; exit 1;
+}
+grep -Fq 'RiftCoreRuntime.packages(activity.applicationContext)' \
+  android/app/src/main/java/com/riftos/app/RiftRappHost.kt || {
+  echo 'Builder C1.0 desktop still owns package manager.' >&2; exit 1;
+}
+
 riftos_main_activity="android/app/src/main/java/com/riftos/app/MainActivity.kt"
 native_shell="android/app/src/main/java/com/riftos/app/RiftNativeShell.kt"
 riftbuild_capability_source="android/app/src/main/java/com/riftos/app/RiftLocalBuildCapability.kt"
