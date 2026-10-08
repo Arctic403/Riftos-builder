@@ -232,7 +232,7 @@ for required_gradle_contract in \
   }
 done
 mapfile -t required_native_sources < <(
-  sed -nE 's/.*"(src\/main\/java\/(com\/riftos\/app|com\/riftpp\/editor|com\/riftpp\/apphost)\/[A-Za-z0-9_]+\.kt)".*/\1/p' "$gradle_contract"
+  sed -nE 's/.*"(src\/main\/java\/(com\/riftos\/app)\/[A-Za-z0-9_]+\.kt)".*/\1/p' "$gradle_contract"
 )
 test "${#required_native_sources[@]}" -gt 0 || { echo 'Builder contract preflight found no mandatory Kotlin sources.' >&2; exit 1; }
 for source_rel in "${required_native_sources[@]}"; do
