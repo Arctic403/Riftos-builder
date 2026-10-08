@@ -43,7 +43,7 @@ Builder signing the **RiftOS release APK itself** is separate from RiftBuild app
 
 RiftOS keeps the language-neutral `riftos-app-abi/1` RAPP boundary. `RiftRappManager` owns package/install/launch state under `/C:/Programs`; immutable installed program data is separated from bounded mutable `state.bin`, which is reloaded as the effective program/state on launch.
 
-`RiftRappHost` owns generic event/effect sequencing, bounded host-effect depth, lifecycle delivery, and generic view rendering. `RiftRappCapabilityBroker` owns declared permissions and reusable capabilities. `riftpp-generic-v1` is the forward Rift++ RAPP adapter. Existing RPA/RWS adapters remain compatibility lanes only; new platform behavior must stay language-neutral.
+`RiftRappHost` owns disposable graphical rendering and UI callbacks. `RiftCoreAppExecutor` owns generic interpreter execution, event-effect chaining and the 1024-effect ceiling; application-context-only `RiftRappCapabilityBroker` enforces Core capability permissions. `RiftCoreShellCapabilityRequests` and `RiftRappShellCapabilityClient` handle only ticketed consent and UI effects. `riftpp-generic-v1` is the forward Rift++ RAPP adapter. Existing RPA/RWS adapters remain compatibility lanes only; new platform behavior must stay language-neutral.
 
 The generic host supports the external provider without containing the provider itself. Provider-specific runtime/manifests/tests belong to the external provider repository.
 
@@ -54,6 +54,10 @@ Compiler authority remains external to RiftOS recipes. The generic registry can 
 `.github/workflows/managed-compiler-worker.yml` is the independent compiler-payload lane. The managed compiler worker intentionally uses `actions/upload-artifact@v4` to return compiler payload artifacts. The main RiftOS APK worker does not use `actions/upload-artifact`; the finished RiftOS APK is published through the release path.
 
 Long generic compiler operations use persistent RiftShell jobs. `rift_shell_exec` auto-submits supported long operations such as `compiler-run` and `jvm-dex`, with bounded submit/status/result/cancel/list lifecycle. Retired `kotlin-compile`, native clang compile/prep, embedded `pack`, and embedded `sign` commands are not part of the live shell surface.
+
+## C1.1-B2-B Core capability and shell consent contracts
+
+Source candidate only until the user runs the manual Builder and proves it on-device. The signed RiftOS APK must contain the versioned `riftos.core.capability-consent/1` and `riftos.core.ui-effect/1` protocols, as well as `RiftCoreShellCapabilityRequests.kt` and `RiftRappShellCapabilityClient.kt` in the exact Kotlin source snapshot. The broker must not import Android Activity/desktop classes; the shell cannot persist grants. Core effect chaining uses bounded tickets and checks the attached app generation. Consent dialogues must reject late/closed/detached replies. Current Core and desktop remain in the same process; headless execution and shell crash survival are not yet proven.
 
 ## C1.1-P Core RAPP installation and uninstallation
 

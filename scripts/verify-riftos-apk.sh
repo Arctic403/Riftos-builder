@@ -315,6 +315,8 @@ for marker in \
   'riftos.core.package-uninstall/1' \
   'riftos.core.packages.change/1' \
   'riftos.core.app-launch/1' \
+  'riftos.core.capability-consent/1' \
+  'riftos.core.ui-effect/1' \
   'installed-apps' \
   'launch-rapp' \
   'rapp-list' \

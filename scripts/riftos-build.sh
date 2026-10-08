@@ -373,7 +373,7 @@ done
 for marker in 'coreSessions.attach(payload, adapter)' \
   'coreSessions.detach(it.coreAttachment)' \
   'coreSessions.close(session.coreAttachment)' \
-  'coreExecutor.execute('; do
+  'coreExecutor.executeChained('; do
   grep -Fq "$marker" "$rapp_host_source" || {
     echo "Builder C1.1 RAPP UI/Core attachment contract missing: $marker" >&2
     exit 1
@@ -417,6 +417,43 @@ riftapp_capability_broker_source="android/app/src/main/java/com/riftos/app/RiftR
 riftapp_absolute_view_source="android/app/src/main/java/com/riftos/app/RiftRappAbsoluteView.kt"
 riftapp_host_source="android/app/src/main/java/com/riftos/app/RiftRappHost.kt"
 riftapp_manager_source="android/app/src/main/java/com/riftos/app/RiftRappManager.kt"
+# C1.1-B2-B: Core capability effects and consent tickets; shell only renders UI.
+core_consent_source="android/app/src/main/java/com/riftos/app/RiftCoreShellCapabilityRequests.kt"
+shell_capability_client="android/app/src/main/java/com/riftos/app/RiftRappShellCapabilityClient.kt"
+for source in "$core_consent_source" "$shell_capability_client"; do
+  test -f "$source" || { echo "Builder C1.1-B2-B required source missing: $source" >&2; exit 1; }
+  grep -Fq "\"src/main/java/com/riftos/app/${source##*/}\"" "$gradle_contract" || {
+    echo "Builder C1.1-B2-B source absent from exact Gradle snapshot: $source" >&2; exit 1;
+  }
+done
+for marker in 'riftos.core.capability-consent/1' 'riftos.core.ui-effect/1' \
+    'MAX_PENDING = 64' 'respondConsent(' 'respondUiEffect('; do
+  grep -Fq "$marker" "$core_consent_source" || {
+    echo "Builder C1.1-B2-B Core protocol missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'fun executeChained(' 'capabilityBroker.execute(' \
+    'HOST_EFFECT_RESULT' 'maxEffectDepth = 1024'; do
+  grep -Fq "$marker" "$core_executor_source" || {
+    echo "Builder C1.1-B2-B Core effect chain missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'RiftCoreShellCapabilityRequests.requestConsent(' \
+    'RiftCoreShellCapabilityRequests.requestUiEffect(' 'stillValid: () -> Boolean'; do
+  grep -Fq "$marker" "$riftapp_capability_broker_source" || {
+    echo "Builder C1.1-B2-B Core capability authority missing: $marker" >&2; exit 1;
+  }
+done
+if grep -Eq 'RiftNativeDesktop|android.app.Activity|AlertDialog' "$riftapp_capability_broker_source"; then
+  echo 'Builder C1.1-B2-B Core broker depends on graphical shell.' >&2; exit 1;
+fi
+grep -Fq 'RiftCoreShellCapabilityRequests.subscribe(' "$shell_capability_client" || {
+  echo 'Builder C1.1-B2-B disposable shell consent client missing.' >&2; exit 1;
+}
+if grep -Fq 'resolveHostEffect(' "$riftapp_host_source"; then
+  echo 'Builder C1.1-B2-B desktop still owns effect continuation.' >&2; exit 1;
+fi
+
 # C1.1-P: Core manages install/update/uninstall; shell is a client only.
 core_package_events="android/app/src/main/java/com/riftos/app/RiftCorePackageEvents.kt"
 core_package_grants="android/app/src/main/java/com/riftos/app/RiftCorePackageGrants.kt"
@@ -822,10 +859,7 @@ fi
 
 for required_rapp_host_contract in \
   'pendingUiCompletions' \
-  'resolveHostEffect(' \
-  'HOST_EFFECT_RESULT' \
-  'MAX_EFFECT_DEPTH = 1024' \
-  'coreExecutor.execute('; do
+  'coreExecutor.executeChained('; do
   grep -Fq "$required_rapp_host_contract" "$riftapp_host_source" || {
     echo "Builder generic RAPP host contract missing: $required_rapp_host_contract" >&2
     exit 1
@@ -927,7 +961,7 @@ for required_rapp_broker_contract in \
   }
 done
 
-grep -Fq 'MAX_EFFECT_DEPTH = 1024' "$riftapp_host_source" || {
+grep -Fq 'maxEffectDepth = 1024' "$core_executor_source" || {
   echo 'Builder generic RAPP host effect ceiling is stale; hosted build streaming must remain bounded at 1024 effects.' >&2
   exit 1
 }

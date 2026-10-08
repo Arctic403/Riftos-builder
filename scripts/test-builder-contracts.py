@@ -26,6 +26,20 @@ for task in (
 ):
     require(BUILD, task, "dedicated Gradle validation")
 
+# C1.1-B2-B: Core-only effect execution; replaceable shell handles UI requests.
+for marker in [
+    "RiftCoreShellCapabilityRequests.kt",
+    "RiftRappShellCapabilityClient.kt",
+    "Builder C1.1-B2-B required source missing:",
+    "Builder C1.1-B2-B Core protocol missing:",
+    "Builder C1.1-B2-B Core effect chain missing:",
+    "Builder C1.1-B2-B Core capability authority missing:",
+    "Builder C1.1-B2-B Core broker depends on graphical shell.",
+]:
+    require(BUILD, marker, "C1.1-B2-B Core effect and consent contract")
+for marker in ["'riftos.core.capability-consent/1'", "'riftos.core.ui-effect/1'"]:
+    require(VERIFY, marker, "C1.1-B2-B signed APK consent/effect protocol")
+
 # C1.1-P: Core installed RAPP lifecycle and replaceable shell package client.
 for marker in (
     "RiftCorePackageEvents.kt",
@@ -87,7 +101,7 @@ for marker in (
     "coreSessions.attach(payload, adapter)",
     "coreSessions.detach(it.coreAttachment)",
     "coreSessions.close(session.coreAttachment)",
-    "coreExecutor.execute(",
+    "coreExecutor.executeChained(",
 ):
     require(BUILD, marker, "C1.1-A Core session source gate")
 for marker in ("'riftos.core.sessions/1'", "'headlessExecution'"):
@@ -221,7 +235,7 @@ for marker in (
     "private const val RWS4_MAGIC",
     "decodeOutput(",
     "pendingUiCompletions",
-    "resolveHostEffect(",
+    "RiftCoreShellCapabilityRequests.requestConsent(",
     "sessions.commitFromExecution(",
     'private const val STATE_ENTRY = "state.bin"',
     "val effectiveProgram =",
@@ -263,7 +277,7 @@ for marker in (
     '"compilerRun"',
     '"jvmDex"',
     "BUILD_OPERATION_TIMEOUT_MS",
-    "MAX_EFFECT_DEPTH = 1024",
+    "maxEffectDepth = 1024",
     "private val rappManager by lazy",
     "RiftNativeBufferCompilerService.compile",
     "RiftBoundedAsync.submit",
