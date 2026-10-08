@@ -35,6 +35,8 @@ for marker in [
     "Builder C1.1-B2-B Core effect chain missing:",
     "Builder C1.1-B2-B Core capability authority missing:",
     "Builder C1.1-B2-B Core broker depends on graphical shell.",
+    "Builder C1.1-B2-B explicit fail-closed Cancel missing:",
+    "\u0027.setNeutralButton(\"Cancel\")\u0027",
 ]:
     require(BUILD, marker, "C1.1-B2-B Core effect and consent contract")
 for marker in ["'riftos.core.capability-consent/1'", "'riftos.core.ui-effect/1'"]:

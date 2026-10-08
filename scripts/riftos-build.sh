@@ -451,6 +451,11 @@ fi
 grep -Fq 'RiftCoreShellCapabilityRequests.subscribe(' "$shell_capability_client" || {
   echo 'Builder C1.1-B2-B disposable shell consent client missing.' >&2; exit 1;
 }
+for marker in '.setNeutralButton("Cancel")' '.setOnCancelListener'; do
+  grep -Fq "$marker" "$shell_capability_client" || {
+    echo "Builder C1.1-B2-B explicit fail-closed Cancel missing: $marker" >&2; exit 1;
+  }
+done
 if grep -Fq 'resolveHostEffect(' "$riftapp_host_source"; then
   echo 'Builder C1.1-B2-B desktop still owns effect continuation.' >&2; exit 1;
 fi
