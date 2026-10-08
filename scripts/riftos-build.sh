@@ -294,7 +294,6 @@ editor_activity="android/app/src/main/java/com/codynex/editorapp/MainActivity.kt
 editor_toolchain="android/app/src/main/java/com/codynex/editorapp/CodynexEditorToolchainPort.kt"
 editor_compiler_runtime="android/app/src/main/java/com/codynex/editorapp/CodynexCompilerRuntime.kt"
 editor_bridge_service="android/app/src/main/java/com/codynex/editorapp/CodynexEditorBridgeService.kt"
-editor_bridge_client="android/app/src/main/java/com/riftos/app/RiftCodynexEditorBridgeClient.kt"
 native_shell="android/app/src/main/java/com/riftos/app/RiftNativeShell.kt"
 editor_bootstrap="android/app/src/main/java/com/codynex/editorapp/BootstrapArtifacts.kt"
 editor_vm_bridge_kt="android/app/src/main/java/com/codynex/editorapp/CodynexRuntimeBridge.kt"
@@ -322,7 +321,6 @@ for editor_contract_file in \
   "$editor_toolchain" \
   "$editor_compiler_runtime" \
   "$editor_bridge_service" \
-  "$editor_bridge_client" \
   "$native_shell" \
   "$editor_bootstrap" \
   "$editor_vm_bridge_kt" \
@@ -367,7 +365,6 @@ if grep -Eq 'prepare-codynex-|compileCodynexC0|codynex-c0-ref|c0_reference\.js' 
 fi
 
 for required_gradle_editor_source in \
-  '"src/main/java/com/riftos/app/RiftCodynexEditorBridgeClient.kt"' \
   '"src/main/java/com/codynex/editorapp/CodynexCompilerRuntime.kt"' \
   '"src/main/java/com/codynex/editorapp/CodynexEditorToolchainPort.kt"' \
   '"src/main/java/com/codynex/editorapp/CodynexEditorBridgeService.kt"'; do
@@ -381,19 +378,19 @@ if grep -Eq 'CodynexCompilerProvider\.kt|validateCodynexCompilerTransition|Sourc
   exit 1
 fi
 
-for required_editor_bridge_client in \
-  'class RiftCodynexEditorBridgeClient' \
-  'EDITOR_PACKAGE = "com.codynex.editor"' \
-  'com.codynex.editorapp.CodynexEditorBridgeService' \
-  'DESCRIPTOR = "com.codynex.editor.bridge.v1"' \
-  'MAX_TREE_ENTRIES = 4096' \
-  'MAX_TREE_DEPTH = 32' \
-  'fun pushDirectory' \
-  'fun pullDirectory'; do
-  grep -Fq "$required_editor_bridge_client" "$editor_bridge_client" || {
-    echo "Builder Codynex editor bridge client contract missing: $required_editor_bridge_client" >&2
+# Project-specific editor Binder client proxies were orphaned when their RiftShell
+# command families retired. Reject their return to the base OS source/Gradle tree.
+for retired_editor_client in \
+  android/app/src/main/java/com/riftos/app/RiftCodynexEditorBridgeClient.kt \
+  android/app/src/main/java/com/riftos/app/RiftppEditorBridgeClient.kt; do
+  if test -e "$retired_editor_client"; then
+    echo "Builder contract failed: project editor bridge client resurfaced: $retired_editor_client" >&2
     exit 1
-  }
+  fi
+  if grep -Fq "${retired_editor_client#android/app/}" "$gradle_contract"; then
+    echo "Builder contract failed: project editor bridge client remains in Gradle: $retired_editor_client" >&2
+    exit 1
+  fi
 done
 
 for required_editor_bridge_service in \

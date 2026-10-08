@@ -306,6 +306,16 @@ for forbidden_marker in dex_forbidden:
                 + repr(forbidden_marker) + " is inside required " + repr(required_marker)
             )
 
+# C0.1 correction: source graph requires deleting unused editor Binder clients.
+# Restore neither the files nor Gradle declarations to bypass reachability.
+for marker in (
+    "project editor bridge client resurfaced",
+    "project editor bridge client remains in Gradle",
+    "RiftCodynexEditorBridgeClient.kt",
+    "RiftppEditorBridgeClient.kt",
+):
+    require(BUILD, marker, "retired editor client absence regression")
+
 # C0.1: editor workflows are external software, not RiftShell built-ins.
 # Their independently compiled bridge services remain required only until the
 # later mirrored-editor APK-payload removal gate.
