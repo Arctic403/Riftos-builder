@@ -289,6 +289,7 @@ fi
 # may enter the OS; no language-specific provider code or fixed package IDs.
 runtime_provider_source="android/app/src/main/java/com/riftos/app/RiftExternalRuntimeProviders.kt"
 rapp_host_source="android/app/src/main/java/com/riftos/app/RiftRappHost.kt"
+core_executor_source="android/app/src/main/java/com/riftos/app/RiftCoreAppExecutor.kt"
 test -f "$runtime_provider_source" || {
   echo 'Builder generic runtime provider source is missing.' >&2
   exit 1
@@ -307,8 +308,8 @@ for required_runtime_provider_marker in \
     exit 1
   }
 done
-grep -Fq 'externalRuntimeProviders.execute(' "$rapp_host_source" || {
-  echo 'Builder generic RAPP runtime-provider dispatch missing.' >&2
+grep -Fq 'providers.execute(' "$core_executor_source" || {
+  echo 'Builder generic Core runtime-provider dispatch missing.' >&2
   exit 1
 }
 if grep -Eq 'com\.codynex\.editor|com\.riftpp\.editor' "$runtime_provider_source"; then
@@ -372,7 +373,7 @@ done
 for marker in 'coreSessions.attach(payload, adapter)' \
   'coreSessions.detach(it.coreAttachment)' \
   'coreSessions.close(session.coreAttachment)' \
-  'session.coreAttachment.record.nextEventSequence()'; do
+  'coreExecutor.execute('; do
   grep -Fq "$marker" "$rapp_host_source" || {
     echo "Builder C1.1 RAPP UI/Core attachment contract missing: $marker" >&2
     exit 1
@@ -653,6 +654,7 @@ for required_rapp_source in \
   '"src/main/java/com/riftos/app/RiftRappRiftppGenericAdapter.kt"' \
   '"src/main/java/com/riftos/app/RiftRappJsonAdapter.kt"' \
   '"src/main/java/com/riftos/app/RiftRappQuickJsExecutor.kt"' \
+  '"src/main/java/com/riftos/app/RiftCoreAppExecutor.kt"' \
   '"src/main/java/com/riftos/app/RiftRappCapabilityBroker.kt"' \
   '"src/main/java/com/riftos/app/RiftRappAbsoluteView.kt"' \
   '"src/main/java/com/riftos/app/RiftRappHost.kt"' \
@@ -742,23 +744,42 @@ if grep -Eq 'RiftVolumePaths|ProcessBuilder|Runtime\.getRuntime|PackageInstaller
 fi
 
 for required_rapp_host_contract in \
-  'decodeOutput(' \
   'pendingEvents' \
   'resolveHostEffect(' \
   'HOST_EFFECT_RESULT' \
   'MAX_EFFECT_DEPTH = 1024' \
-  'manager.persistState(' \
-  'RiftNativeBufferCompilerService.compile' \
-  'RiftRappQuickJsExecutor' \
-  'session.adapter.executorKind' \
-  'RiftAppExecutionKind.NATIVE_BUFFER' \
-  'RiftAppExecutionKind.QUICKJS' \
-  'RiftBoundedAsync.submit'; do
+  'coreExecutor.execute('; do
   grep -Fq "$required_rapp_host_contract" "$riftapp_host_source" || {
     echo "Builder generic RAPP host contract missing: $required_rapp_host_contract" >&2
     exit 1
   }
 done
+
+# C1.1-B1: app-context Core owns runtime selection, bounded execution,
+# adapter protocols, timeouts and state persistence. UI owns only effects.
+test -f "$core_executor_source" || {
+  echo 'Builder C1.1-B1 Core RAPP executor source missing.' >&2
+  exit 1
+}
+grep -Fq '"src/main/java/com/riftos/app/RiftCoreAppExecutor.kt"' "$gradle_contract" || {
+  echo 'Builder C1.1-B1 Core executor missing from mandatory Gradle source list.' >&2
+  exit 1
+}
+for marker in 'class RiftCoreAppExecutor' 'RiftBoundedAsync.submit(' \
+  'RiftRappQuickJsExecutor()' 'RiftNativeBufferCompilerService.compile(' \
+  'adapter.encodeEvent(' 'adapter.decodeOutput(' \
+  'sessions.commitFromExecution(' 'sessions.matchesExecution(' \
+  'providers.execute(' \
+  'RiftAppExecutionKind.NATIVE_BUFFER' 'RiftAppExecutionKind.QUICKJS'; do
+  grep -Fq "$marker" "$core_executor_source" || {
+    echo "Builder C1.1-B1 Core executor contract missing: $marker" >&2
+    exit 1
+  }
+done
+if grep -Eq 'RiftRappQuickJsExecutor\\(|RiftBoundedAsync\\.submit\\(|RiftNativeBufferCompilerService\\.compile\\(' "$riftapp_host_source"; then
+  echo 'Builder C1.1-B1 desktop regained runtime authority.' >&2
+  exit 1
+fi
 
 for required_rapp_view_contract in \
   'private fun createInput(' \

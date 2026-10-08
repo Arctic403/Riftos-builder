@@ -321,6 +321,8 @@ for marker in \
   'riftos-runtime-status/1' \
   'riftos.core.status/1' \
   'riftos.core.sessions/1' \
+  'rift-core-rapp-event' \
+  'eventExecutorOwner' \
   'headlessExecution' \
   'appExecutionIndependentOfDesktop' \
   'riftos.runtime.provider/1' \

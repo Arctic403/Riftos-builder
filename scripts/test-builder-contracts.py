@@ -26,6 +26,22 @@ for task in (
 ):
     require(BUILD, task, "dedicated Gradle validation")
 
+# C1.1-B1: bounded RAPP runtime/event execution belongs to Core, not UI.
+for marker in (
+    "RiftCoreAppExecutor.kt",
+    "Builder C1.1-B1 Core RAPP executor source missing.",
+    "Builder C1.1-B1 Core executor missing from mandatory Gradle source list.",
+    "Builder C1.1-B1 Core executor contract missing:",
+    "Builder C1.1-B1 desktop regained runtime authority.",
+    "'RiftAppExecutionKind.NATIVE_BUFFER'",
+    "'RiftAppExecutionKind.QUICKJS'",
+    "'sessions.commitFromExecution('",
+    "'sessions.matchesExecution('",
+):
+    require(BUILD, marker, "C1.1-B1 Core runtime execution source gate")
+for marker in ("'rift-core-rapp-event'", "'eventExecutorOwner'"):
+    require(VERIFY, marker, "C1.1-B1 signed APK Core execution proof")
+
 # C1.1-A: Core identity/state records remain independent of desktop hosts.
 for marker in (
     "RiftCoreAppSessions.kt",
@@ -35,7 +51,7 @@ for marker in (
     "coreSessions.attach(payload, adapter)",
     "coreSessions.detach(it.coreAttachment)",
     "coreSessions.close(session.coreAttachment)",
-    "session.coreAttachment.record.nextEventSequence()",
+    "coreExecutor.execute(",
 ):
     require(BUILD, marker, "C1.1-A Core session source gate")
 for marker in ("'riftos.core.sessions/1'", "'headlessExecution'"):
@@ -68,7 +84,7 @@ for marker in (
     "verifyInstalled(",
     "bindService(",
     "?: return fallback()",
-    "externalRuntimeProviders.execute(",
+    "providers.execute(",
     "Builder generic runtime provider source is missing.",
 ):
     require(BUILD, marker, "C0.2.5 generic runtime provider preflight")
@@ -146,6 +162,7 @@ for marker in (
     '"src/main/java/com/riftos/app/RiftRappRiftppGenericAdapter.kt"',
     '"src/main/java/com/riftos/app/RiftRappJsonAdapter.kt"',
     '"src/main/java/com/riftos/app/RiftRappQuickJsExecutor.kt"',
+    '"src/main/java/com/riftos/app/RiftCoreAppExecutor.kt"',
     '"src/main/java/com/riftos/app/RiftRappCapabilityBroker.kt"',
     '"src/main/java/com/riftos/app/RiftRappAbsoluteView.kt"',
     '"src/main/java/com/riftos/app/RiftRappHost.kt"',
@@ -168,7 +185,7 @@ for marker in (
     "decodeOutput(",
     "pendingEvents",
     "resolveHostEffect(",
-    "manager.persistState(",
+    "sessions.commitFromExecution(",
     'private const val STATE_ENTRY = "state.bin"',
     "val effectiveProgram =",
     "fun persistState(",
