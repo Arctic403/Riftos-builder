@@ -381,7 +381,6 @@ for retired_marker in \
   'riftbuild-native-object-compile-v1' \
   'extract-object-text' \
   'riftbuild-native-object-text-v1' \
-  'toolchain-status' \
   'toolchain-install-bundled' \
   'riftbuild-native-toolchain-install-v1' \
   'riftbuild/android-clang-v1.zip' \

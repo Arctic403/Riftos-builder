@@ -517,7 +517,7 @@ for required_riftbuild_platform_contract in \
     exit 1
   }
 done
-if grep -Eq '"kotlin-compile"|"compile-native"|"prepare-native-app"|"sign"[[:space:]]*->|"pack"[[:space:]]*->' "$riftbuild_platform_source"; then
+if grep -Eq '"toolchain-status"[[:space:]]*->|"kotlin-compile"[[:space:]]*->|"compile-native"[[:space:]]*->|"prepare-native-app"[[:space:]]*->|"sign"[[:space:]]*->|"pack"[[:space:]]*->' "$riftbuild_platform_source"; then
   echo 'Builder contract failed: retired embedded build command resurfaced.' >&2
   exit 1
 fi

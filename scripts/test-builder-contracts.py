@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD = (ROOT / "scripts" / "riftos-build.sh").read_text(encoding="utf-8")
@@ -277,5 +278,32 @@ require(BUILD, "retired riftpp-host shell compiler surface resurfaced", "builder
 require(README, "RiftOS APK worker does not use `actions/upload-artifact`", "builder documentation APK artifact policy")
 require(README, "managed compiler worker intentionally uses `actions/upload-artifact@v4`", "builder documentation compiler artifact policy")
 require(MANAGED_WORKFLOW, "actions/upload-artifact@v4", "managed compiler artifact return lane")
+
+# DEX smoke requirements must never also be forbidden as substrings: the surviving
+# generic riftbuild-kotlin-toolchain-status/2 schema contains "toolchain-status".
+# Assert semantic markers remain while guarding the exact retired shell route in source.
+require(VERIFY, "'riftbuild-kotlin-toolchain-status/2'", "active generic JVM status marker")
+require(VERIFY, "'riftbuild-native-toolchain-status-v1'", "unique retired native toolchain schema guard")
+require(BUILD, '"toolchain-status"[[:space:]]*->', "exact retired shell toolchain-status route guard")
+dex_required, dex_forbidden = [], []
+for marker_block, operation in re.findall(
+    r'for (?:retired_marker|marker) in \\\n(.*?); do\s*\n\s*(require_dex_string|forbid_dex_string)',
+    VERIFY,
+    re.S,
+):
+    markers = re.findall(r"'([^']+)'", marker_block)
+    if operation == "require_dex_string":
+        dex_required.extend(markers)
+    else:
+        dex_forbidden.extend(markers)
+if not dex_required or not dex_forbidden:
+    raise AssertionError("Builder DEX marker lists are missing")
+for forbidden_marker in dex_forbidden:
+    for required_marker in dex_required:
+        if forbidden_marker in required_marker:
+            raise AssertionError(
+                "APK DEX smoke marker contradiction: forbidden "
+                + repr(forbidden_marker) + " is inside required " + repr(required_marker)
+            )
 
 print("ok - RiftOS builder contracts are internally consistent")
