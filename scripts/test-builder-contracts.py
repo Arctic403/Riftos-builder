@@ -71,6 +71,25 @@ for marker in (
 ):
     require(BUILD, marker, "Rift++ mirrored editor preflight")
 
+# Regression guard for the removed embedded RiftBuild variable that caused
+# Build 37721469811 to fail under bash -u before source/Gradle validation.
+forbid(BUILD, '"$riftbuild_source"', "retired embedded RiftBuild source variable")
+require(BUILD, "retired Kotlin compiler job routing resurfaced", "ToolHost legacy Kotlin job-route retirement")
+require(BUILD, 'riftbuild_platform_source="android/app/src/main/java/com/riftos/app/RiftBuildPlatformTools.kt"', "canonical platform owner")
+for current_command in (
+    '"compiler-status" -> buildLocal.compilerStatus(',
+    '"compiler-run" -> buildLocal.compilerRun(',
+    '"jvm-status" -> buildLocal.jvmToolchainStatus()',
+    '"jvm-dex" -> buildLocal.dexJvmClasses(',
+):
+    require(BUILD, current_command, "generic compiler and DEX source contract")
+for retired_command in (
+    """'"managed-status" -> managedStatus('""",
+    """'"managed-copy" -> managedCopy('""",
+    """'"kotlin-compile" -> kotlinCompile('""",
+):
+    forbid(BUILD, retired_command, "retired embedded compiler command contract")
+
 for marker in (
     '"pack-rapp" -> packRapp(',
     '"install-rapp" -> installRapp(',

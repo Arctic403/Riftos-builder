@@ -361,7 +361,7 @@ if grep -Eq 'CodynexCompilerProvider|com\.riftos\.app\.codynexcompiler|com\.cody
   echo 'Builder contract failed: retired Codynex provider/LR0 manifest authority resurfaced.' >&2
   exit 1
 fi
-if grep -Eq 'prepare-codynex-|compileCodynexC0|codynex-c0-ref|c0_reference\.js' "$riftbuild_source"; then
+if grep -Eq 'prepare-codynex-|compileCodynexC0|codynex-c0-ref|c0_reference\.js' "$riftbuild_platform_source"; then
   echo 'Builder contract failed: retired Codynex compiler/proof RiftBuild authority resurfaced.' >&2
   exit 1
 fi
@@ -668,7 +668,7 @@ grep -Fq '"src/main/java/com/riftpp/editor/RiftppNativeElfPreflight.kt"' "$gradl
   echo 'Builder contract is stale: RiftppNativeElfPreflight.kt is not mandatory in verifyRiftppEditorPayload.' >&2
   exit 1
 }
-if grep -Fq 'prepare-codynex-' "$riftbuild_source"; then
+if grep -Fq 'prepare-codynex-' "$riftbuild_platform_source"; then
   echo 'Builder contract failed: retired Codynex special-case RiftBuild prepare route resurfaced.' >&2
   exit 1
 fi
@@ -768,24 +768,28 @@ if grep -Fq 'riftpp_dynamic_compiler_host' android/app/src/main/cpp/CMakeLists.t
   echo 'Builder contract failed: Rift++-named native-buffer host resurfaced.' >&2
   exit 1
 fi
+# Only the generic platform compiler/DEX routes remain. Recipe and APK orchestration live in Hosted.
 for required_hot_command in \
-  '"managed-status" -> managedStatus(' \
-  '"managed-copy" -> managedCopy(' \
-  '"compiler-status" -> compilerStatus(' \
-  '"compiler-run" -> compilerRun(' \
-  '"kotlin-compile" -> kotlinCompile('; do
-  grep -Fq "$required_hot_command" "$riftbuild_source" || {
-    echo "Builder contract is stale: RiftBuild hot-swap command missing: $required_hot_command" >&2
+  '"compiler-status" -> buildLocal.compilerStatus(' \
+  '"compiler-run" -> buildLocal.compilerRun(' \
+  '"jvm-status" -> buildLocal.jvmToolchainStatus()' \
+  '"jvm-dex" -> buildLocal.dexJvmClasses('; do
+  grep -Fq "$required_hot_command" "$riftbuild_platform_source" || {
+    echo "Builder contract is stale: generic RiftBuild platform command missing: $required_hot_command" >&2
     exit 1
   }
 done
+if grep -Eq '"managed-status"[[:space:]]*->|"managed-copy"[[:space:]]*->|"kotlin-compile"[[:space:]]*->' "$riftbuild_platform_source"; then
+  echo 'Builder contract failed: retired embedded compiler and managed-copy shell commands resurfaced.' >&2
+  exit 1
+fi
 
 for required_rapp_contract in \
   '"pack-rapp" -> packRapp(' \
   '"install-rapp" -> installRapp(' \
   '"launch-rapp" -> launchRapp(' \
   '"rapp-list" -> JSONObject()'; do
-  grep -Fq "$required_rapp_contract" "$riftbuild_source" || {
+  grep -Fq "$required_rapp_contract" "$riftbuild_platform_source" || {
     echo "Builder contract is stale: RiftOS RAPP command missing: $required_rapp_contract" >&2
     exit 1
   }
@@ -982,7 +986,7 @@ grep -Fq 'MAX_EFFECT_DEPTH = 1024' "$riftapp_host_source" || {
   exit 1
 }
 
-grep -Fq 'private val rappManager by lazy' "$riftbuild_source" || {
+grep -Fq 'private val rappManager by lazy' "$riftbuild_platform_source" || {
   echo 'Builder contract failed: RAPP manager must remain lazy so APK RiftBuild startup does not depend on the RAPP lane.' >&2
   exit 1
 }
@@ -1027,13 +1031,16 @@ for required_native_shell_job_contract in \
 done
 for required_shell_tool_contract in \
   'shouldSubmitShellJob(command)' \
-  '"auto", "exec", "submit", "status", "result", "cancel", "list"' \
-  '"kotlin-compile"'; do
+  '"auto", "exec", "submit", "status", "result", "cancel", "list"'; do
   grep -Fq "$required_shell_tool_contract" "$tool_host_source" || {
     echo "Builder MCP RiftShell job routing contract missing: $required_shell_tool_contract" >&2
     exit 1
   }
 done
+if grep -Fq '"kotlin-compile"' "$tool_host_source"; then
+  echo 'Builder contract failed: retired Kotlin compiler job routing resurfaced.' >&2
+  exit 1
+fi
 for required_managed_jvm_contract in \
   'RUN_TIMEOUT_SECONDS = 10 * 60L' \
   'putString("status", "cancelled")' \
@@ -1054,7 +1061,7 @@ for retired_riftpp_route in \
   'prepare-riftpp-seed0-arm64' \
   'prepare-riftpp-app0' \
   'prepare-riftpp-editor'; do
-  if grep -Fq "$retired_riftpp_route" "$riftbuild_source"; then
+  if grep -Fq "$retired_riftpp_route" "$riftbuild_platform_source"; then
     echo "Builder contract is stale: retired Rift++ RiftBuild route resurfaced: $retired_riftpp_route" >&2
     exit 1
   fi
