@@ -49,6 +49,15 @@ for marker in [
     require(BUILD, marker, "C1.2-C1 Core-owned RAPP lifecycle")
 require(VERIFY, "'riftos.core.apps/1'", "C1.2-C1 signed lifecycle schema")
 
+# C1.2-C2: renderer attaches to a verified Core BOOT session without reboot.
+for marker in [
+    "Builder C1.2-C2 Core attachment transfer missing:",
+    "Builder C1.2-C2 shell attachment consumer missing:",
+    "sessions.matchesExecution(entry.attachment, payload, adapter)",
+    "val attachment = claimed ?: coreSessions.attach(payload, adapter)",
+]:
+    require(BUILD, marker, "C1.2-C2 running Core session graphical attachment")
+
 # C1.2-B2-B2: real focused input admission and queue lease revision enforcement.
 for marker in [
     "Builder B2-B2 enforced focus lease missing:",

@@ -502,6 +502,25 @@ grep -Fq '.put("coreApps", lifecycle(context).status())' \
   echo 'Builder C1.2-C1 Core lifecycle health missing' >&2; exit 1;
 }
 
+# C1.2-C2: attaching RiftShell to Core-running app preserves its
+# generation and immutable surface; it must never duplicate BOOT.
+for marker in 'fun claimForShell(' \
+  'sessions.matchesExecution(entry.attachment, payload, adapter)' \
+  'surface.attachmentGeneration == entry.attachment.token' \
+  'return entry.attachment'; do
+  grep -Fq "$marker" "$core_lifecycle_source" || {
+    echo "Builder C1.2-C2 Core attachment transfer missing: $marker" >&2; exit 1;
+  }
+done
+for marker in '.claimForShell(payload, adapter)' \
+  'val attachment = claimed ?: coreSessions.attach(payload, adapter)' \
+  'if (claimed != null) {' \
+  'desktop.attachContent(id, render(session, published.frame))'; do
+  grep -Fq "$marker" "$riftapp_host_source" || {
+    echo "Builder C1.2-C2 shell attachment consumer missing: $marker" >&2; exit 1;
+  }
+done
+
 # C1.2-B2-B2: Core authorizes focused input at enqueue AND dispatch,
 # retaining the admitted lease revision to block switch-away/refocus ABA.
 for marker in 'fun requireCurrentLease(appId: String, attachmentGeneration: Long)' \
