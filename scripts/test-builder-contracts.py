@@ -26,6 +26,19 @@ for task in (
 ):
     require(BUILD, task, "dedicated Gradle validation")
 
+# C1.1-B2-A: Core ticket/FIFO owns event scheduling; UI only keeps callbacks.
+for marker in (
+    "Builder C1.1-B2-A Core event queue missing:",
+    "Builder C1.1-B2-A UI ticket dispatch missing:",
+    "Builder C1.1-B2-A desktop regained Core event queue authority.",
+    "MAX_PENDING_EVENT_BYTES = 1024 * 1024",
+    "coreSessions.offerEvent(session.coreAttachment, event)",
+    "coreSessions.finishEvent(session.coreAttachment, ticket)",
+    "dispatchCoreEvent(session, offered.ticket)",
+):
+    require(BUILD, marker, "C1.1-B2-A Core event FIFO source gate")
+require(VERIFY, "'eventQueueOwner'", "C1.1-B2-A signed APK queue owner proof")
+
 # C1.1-B1: bounded RAPP runtime/event execution belongs to Core, not UI.
 for marker in (
     "RiftCoreAppExecutor.kt",
@@ -183,7 +196,7 @@ for marker in (
     "private const val RPE4_MAGIC",
     "private const val RWS4_MAGIC",
     "decodeOutput(",
-    "pendingEvents",
+    "pendingUiCompletions",
     "resolveHostEffect(",
     "sessions.commitFromExecution(",
     'private const val STATE_ENTRY = "state.bin"',

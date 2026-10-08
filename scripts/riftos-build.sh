@@ -380,6 +380,28 @@ for marker in 'coreSessions.attach(payload, adapter)' \
   }
 done
 
+# C1.1-B2-A: Core owns bounded event FIFO; desktop owns UI callbacks only.
+for marker in 'data class EventTicket(' 'MAX_PENDING_EVENTS = 64' \
+  'MAX_PENDING_EVENT_BYTES = 1024 * 1024' \
+  'fun offerEvent(attachment: Attachment' \
+  'fun finishEvent(attachment: Attachment' \
+  '"eventQueueOwner", "riftos-core"'; do
+  grep -Fq "$marker" "$core_sessions_source" || {
+    echo "Builder C1.1-B2-A Core event queue missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'coreSessions.offerEvent(session.coreAttachment, event)' \
+  'coreSessions.finishEvent(session.coreAttachment, ticket)' \
+  'pendingUiCompletions' 'dispatchCoreEvent(session, offered.ticket)'; do
+  grep -Fq "$marker" "$rapp_host_source" || {
+    echo "Builder C1.1-B2-A UI ticket dispatch missing: $marker" >&2; exit 1;
+  }
+done
+if grep -Eq 'val pendingEvents =|var eventBusy:|data class PendingEvent\\(' "$rapp_host_source"; then
+  echo 'Builder C1.1-B2-A desktop regained Core event queue authority.' >&2
+  exit 1
+fi
+
 riftos_main_activity="android/app/src/main/java/com/riftos/app/MainActivity.kt"
 native_shell="android/app/src/main/java/com/riftos/app/RiftNativeShell.kt"
 riftbuild_capability_source="android/app/src/main/java/com/riftos/app/RiftLocalBuildCapability.kt"
@@ -744,7 +766,7 @@ if grep -Eq 'RiftVolumePaths|ProcessBuilder|Runtime\.getRuntime|PackageInstaller
 fi
 
 for required_rapp_host_contract in \
-  'pendingEvents' \
+  'pendingUiCompletions' \
   'resolveHostEffect(' \
   'HOST_EFFECT_RESULT' \
   'MAX_EFFECT_DEPTH = 1024' \

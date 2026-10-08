@@ -55,6 +55,10 @@ Compiler authority remains external to RiftOS recipes. The generic registry can 
 
 Long generic compiler operations use persistent RiftShell jobs. `rift_shell_exec` auto-submits supported long operations such as `compiler-run` and `jvm-dex`, with bounded submit/status/result/cancel/list lifecycle. Retired `kotlin-compile`, native clang compile/prep, embedded `pack`, and embedded `sign` commands are not part of the live shell surface.
 
+## C1.1-B2-A Core event tickets and FIFO scheduling
+
+C1.1-B1 green installed according to the user and verified through live `core status`/`core sessions`; `eventExecutorOwner=riftos-core`, no active app session. B2-A is the next source checkpoint: `RiftCoreAppSessions` now owns bounded FIFO event state, monotonic tickets and limits (64 pending/1 MiB per session) with attachment generation checks. `RiftRappHost` stores only UI callbacks keyed by Core ticket; shell detach discards outstanding events without deleting installed RAPP opaque program state. Builder rejects UI event queue ownership and signed APK checks `eventQueueOwner`. Consent, effect chaining and UI rendering are not yet headless; the user must manually run Builder and device proof before B2-B.
+
 ## C1.1-B1 Core RAPP event execution service
 
 The user confirms the C1.1-A APK build is green and installed; live Core reports five RAPPs and a correctly empty session registry prior to opening apps. C1.1-B1 moves generic interpreter/event/adapter execution, timeouts and persistent state commits from the Activity host into application-scoped `RiftCoreAppExecutor`. Builder now requires this Kotlin source, enforces language-runtime dispatch and Core persistence within it, rejects runtime execution in `RiftRappHost`, and verifies signed DEX markers. The capability broker/UI effects still require the desktop Activity, so no headless application execution is claimed. The next Builder is manually initiated by the user; don't automate it.
