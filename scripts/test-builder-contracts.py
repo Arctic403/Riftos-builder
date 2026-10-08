@@ -26,6 +26,14 @@ for task in (
 ):
     require(BUILD, task, "dedicated Gradle validation")
 
+# C1.2-B1: replaceable shell surface rendering reads generation-matched Core data.
+for marker in [
+    "Builder C1.2-B1 Core snapshot shell client missing:",
+    "Builder C1.2-B1 shell still renders raw executor callback frames.",
+    "coreSurfaces.snapshot(session.id)",
+]:
+    require(BUILD, marker, "C1.2-B1 Core-owned surface rendering")
+
 # C1.2-A: generic typed Core surface registration, revision feed and APK proof.
 for marker in [
     "RiftCoreAppSurfaces.kt",

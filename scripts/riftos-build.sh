@@ -449,6 +449,20 @@ grep -Fq '"surfaces" -> RiftCoreRuntime.surfaces(appContext).list()' \
   echo 'Builder C1.2-A read-only surface diagnostics missing.' >&2; exit 1;
 }
 
+# C1.2-B1: generic RiftShell view client consumes the verified Core surface
+# snapshot rather than a frame returned directly through interpreter callback.
+for marker in 'coreSurfaces.snapshot(session.id)' \
+  'it.attachmentGeneration == session.coreAttachment.token' \
+  'frame = surface?.frame' \
+  'Core application surface unavailable for current attachment'; do
+  grep -Fq "$marker" "$riftapp_host_source" || {
+    echo "Builder C1.2-B1 Core snapshot shell client missing: $marker" >&2; exit 1;
+  }
+done
+if grep -Fq 'EventOutcome(frame = result.frame' "$riftapp_host_source"; then
+  echo 'Builder C1.2-B1 shell still renders raw executor callback frames.' >&2; exit 1;
+fi
+
 # C1.1-B2-B: Core capability effects and consent tickets; shell only renders UI.
 core_consent_source="android/app/src/main/java/com/riftos/app/RiftCoreShellCapabilityRequests.kt"
 shell_capability_client="android/app/src/main/java/com/riftos/app/RiftRappShellCapabilityClient.kt"
