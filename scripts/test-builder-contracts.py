@@ -306,4 +306,23 @@ for forbidden_marker in dex_forbidden:
                 + repr(forbidden_marker) + " is inside required " + repr(required_marker)
             )
 
+# C0.1: editor workflows are external software, not RiftShell built-ins.
+# Their independently compiled bridge services remain required only until the
+# later mirrored-editor APK-payload removal gate.
+for marker in (
+    "executeCodynexEditorCommand",
+    "executeRiftppEditorCommand",
+    "Rift++ editor-specific native shell command resurfaced",
+    "Codynex editor-specific native shell command resurfaced",
+):
+    require(BUILD, marker, "external editor shell ownership guard")
+for marker in (
+    "'usage: riftpp-editor'",
+    "'usage: codynex-editor'",
+    "forbid_dex_string \"$retired_editor_shell\"",
+    "'riftpp-editor-native-compile/1'",
+    "'codynex-editor-bridge-compile/1'",
+):
+    require(VERIFY, marker, "editor shell exclusion and independent service proof")
+
 print("ok - RiftOS builder contracts are internally consistent")

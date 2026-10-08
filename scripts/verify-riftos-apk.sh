@@ -418,16 +418,25 @@ for marker in \
   require_dex_string "$marker" "persistent RiftShell job marker $marker"
 done
 
-# The single permanent Rift++ editor identity must be current in the packaged shell surface.
-require_dex_string 'Rift++ editor development bridge' 'current Rift++ editor bridge identity'
-forbid_dex_string 'Rift++ legacy editor development bridge' 'legacy Rift++ editor identity'
-forbid_dex_string '[LEGACY EDITOR BINDER BRIDGE]' 'legacy Rift++ editor bridge label'
-
-# Rift++ single-editor native-output final-artifact proof. Class descriptors above prove
-# the permanent Kotlin-hosted editor owners survived DEX compilation; these unique markers prove
-# its editor-owned compile/run/preflight/debug-APK capability lane survived too.
-for marker in   'riftpp-editor native-compile'   'riftpp-editor native-run'   'riftpp-editor native-preflight'   'riftpp-editor native-build-debug'   'riftpp-editor-native-compile/1'   'riftpp-editor-native-run/1'   'riftpp-editor-native-preflight/1'   'riftpp-editor-native-build/1'   'riftpp-editor-native-apk-v1'; do
-  require_dex_string "$marker" "Rift++ editor native-output marker $marker"
+# Editor control is external software, not a built-in RiftShell command surface.
+# The editor's current Binder protocol remains independently tested until its
+# mirrored APK payload is removed in a separate C0 gate.
+for retired_editor_shell in \
+  'usage: riftpp-editor' \
+  'usage: codynex-editor' \
+  'riftpp-editor native-compile' \
+  'riftpp-editor native-run' \
+  'riftpp-editor native-preflight' \
+  'riftpp-editor native-build-debug'; do
+  forbid_dex_string "$retired_editor_shell" "project-specific editor shell command $retired_editor_shell"
+done
+for editor_service_marker in \
+  'riftpp-editor-native-compile/1' \
+  'riftpp-editor-native-run/1' \
+  'riftpp-editor-native-preflight/1' \
+  'riftpp-editor-native-build/1' \
+  'riftpp-editor-native-apk-v1'; do
+  require_dex_string "$editor_service_marker" "independent editor Binder service marker $editor_service_marker"
 done
 
 # RiftGit mode-preserving push must survive compilation into the release DEX, not only exist
@@ -481,8 +490,6 @@ done
 for bridge_marker in \
   'com.codynex.editor.bridge.v1' \
   'codynex-editor' \
-  'push-dir' \
-  'pull-dir' \
   'codynex-editor-folder-push/1' \
   'codynex-editor-folder-pull/1' \
   'codynex-editor-bridge-status/1' \

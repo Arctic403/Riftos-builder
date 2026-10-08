@@ -413,19 +413,10 @@ for required_editor_bridge_service in \
   }
 done
 
-for required_editor_shell_contract in \
-  '"codynex-editor" -> executeCodynexEditorCommand(cwd, args)' \
-  '"push-dir" -> {' \
-  '"pull-dir" -> {' \
-  '"compile" -> {' \
-  '"preview" -> {' \
-  '"native-proof" -> {' \
-  '"build-apk" -> {'; do
-  grep -Fq "$required_editor_shell_contract" "$native_shell" || {
-    echo "Builder Codynex editor shell transport missing: $required_editor_shell_contract" >&2
-    exit 1
-  }
-done
+if grep -Eq '"codynex-editor"[[:space:]]*->|executeCodynexEditorCommand' "$native_shell"; then
+  echo 'Builder contract failed: Codynex editor-specific native shell command resurfaced.' >&2
+  exit 1
+fi
 if grep -Eq '"codynex"[[:space:]]*->|RiftCodynexBridgeClient|codynexBridge\(' "$native_shell"; then
   echo 'Builder contract failed: retired Codynex LR0 shell route resurfaced.' >&2
   exit 1
@@ -657,12 +648,12 @@ for required_riftpp_editor_elf_contract in   'EM_ARM = 40'   'PT_LOAD'   'sectio
   }
 done
 
-for required_riftpp_editor_shell_contract in   'riftpp-editor native-compile'   'riftpp-editor native-run'   'riftpp-editor native-preflight'   '[required-symbol]'   'riftpp-editor native-build-debug'; do
-  grep -Fq "$required_riftpp_editor_shell_contract" "$riftpp_editor_shell" || {
-    echo "Builder Rift++ editor native-output shell transport contract missing: $required_riftpp_editor_shell_contract" >&2
-    exit 1
-  }
-done
+# RiftOS is an OS, not an editor command proxy. Editor Binder services are
+# independently packaged for now and must not return to the native shell.
+if grep -Eq '"riftpp-editor"[[:space:]]*->|executeRiftppEditorCommand' "$riftpp_editor_shell"; then
+  echo 'Builder contract failed: Rift++ editor-specific native shell command resurfaced.' >&2
+  exit 1
+fi
 
 grep -Fq '"src/main/java/com/riftpp/editor/RiftppNativeElfPreflight.kt"' "$gradle_contract" || {
   echo 'Builder contract is stale: RiftppNativeElfPreflight.kt is not mandatory in verifyRiftppEditorPayload.' >&2
