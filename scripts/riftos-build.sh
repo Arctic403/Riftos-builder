@@ -449,6 +449,33 @@ grep -Fq '"surfaces" -> RiftCoreRuntime.surfaces(appContext).list()' \
   echo 'Builder C1.2-A read-only surface diagnostics missing.' >&2; exit 1;
 }
 
+# C1.2-B2-B1 Core-owned focus lease source proof.
+core_focus_source="android/app/src/main/java/com/riftos/app/RiftCoreInputFocus.kt"
+test -f "$core_focus_source" || { echo 'Builder B2-B1 focus source missing' >&2; exit 1; }
+grep -Fq '"src/main/java/com/riftos/app/RiftCoreInputFocus.kt"' "$gradle_contract" || {
+  echo 'Builder B2-B1 focus source absent in Gradle' >&2; exit 1;
+}
+for marker in 'riftos.core.input-focus/1' 'data class Lease(' 'fun requestVerified(' 'fun revoke('; do
+  grep -Fq "$marker" "$core_focus_source" || {
+    echo "Builder B2-B1 Core focus lease missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'fun requestFocusFromShell(' 'record?.activeGeneration()' 'inputFocus.revoke(id)'; do
+  grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/RiftCoreAppSessions.kt" || {
+    echo "Builder B2-B1 session focus guard missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq 'focusRequestSink(visibleFocusId)' "android/app/src/main/java/com/riftos/app/RiftNativeDesktop.kt" || {
+  echo 'Builder B2-B1 desktop focus notifier missing' >&2; exit 1;
+}
+grep -Fq 'requestFocusFromShell(id)' "android/app/src/main/java/com/riftos/app/MainActivity.kt" || {
+  echo 'Builder B2-B1 Activity focus client missing' >&2; exit 1;
+}
+grep -Fq '"focus" -> RiftCoreRuntime.sessions(appContext).focusStatus()' \
+  "android/app/src/main/java/com/riftos/app/RiftNativeShell.kt" || {
+  echo 'Builder B2-B1 read-only focus report missing' >&2; exit 1;
+}
+
 # C1.2-B2-A: Core validates typed UI input target against current published
 # surface generation before the event enters the Core-owned bounded FIFO.
 for marker in 'private fun authorizeInputTarget(' \

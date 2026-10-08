@@ -26,6 +26,18 @@ for task in (
 ):
     require(BUILD, task, "dedicated Gradle validation")
 
+# C1.2-B2-B1: Core focus leases are versioned and signed-DEX reachable.
+for marker in [
+    "Builder B2-B1 focus source missing",
+    "Builder B2-B1 Core focus lease missing:",
+    "Builder B2-B1 session focus guard missing:",
+    "Builder B2-B1 desktop focus notifier missing",
+    "Builder B2-B1 Activity focus client missing",
+    "Builder B2-B1 read-only focus report missing",
+]:
+    require(BUILD, marker, "C1.2-B2-B1 Core focus lease source")
+require(VERIFY, "'riftos.core.input-focus/1'", "C1.2-B2-B1 signed focus schema")
+
 # C1.2-B2-A: Core checks typed input event kind, node identity and surface generation.
 for marker in [
     "Builder C1.2-B2-A Core typed input authority missing:",
