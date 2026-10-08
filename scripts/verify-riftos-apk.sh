@@ -311,6 +311,11 @@ done
 for marker in \
   'pack-rapp' \
   'install-rapp' \
+  'uninstall-rapp' \
+  'riftos.core.package-uninstall/1' \
+  'riftos.core.packages.change/1' \
+  'riftos.core.app-launch/1' \
+  'installed-apps' \
   'launch-rapp' \
   'rapp-list' \
   'riftos.rapp-project/1' \
@@ -395,6 +400,7 @@ for marker in \
   'jvm-dex' \
   'pack-rapp' \
   'install-rapp' \
+  'uninstall-rapp' \
   'launch-rapp' \
   'rapp-list' \
   'v2 signed-data RSA signature verification failed' \

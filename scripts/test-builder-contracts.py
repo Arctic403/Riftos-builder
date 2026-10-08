@@ -26,6 +26,29 @@ for task in (
 ):
     require(BUILD, task, "dedicated Gradle validation")
 
+# C1.1-P: Core installed RAPP lifecycle and replaceable shell package client.
+for marker in (
+    "RiftCorePackageEvents.kt",
+    "RiftCorePackageGrants.kt",
+    "Builder C1.1-P Core package source missing:",
+    "Builder C1.1-P uninstall integrity missing:",
+    "Builder C1.1-P Core installer still depends on desktop host.",
+    "Builder C1.1-P Installed Apps UI missing:",
+    "fun uninstall(id: String)",
+    "RiftCorePackageEvents.publish(id, \"uninstalled\")",
+    "RiftCoreRuntime.sessions(appContext).invalidateInstalled(id)",
+    "'\"uninstall-rapp\" -> {'",
+):
+    require(BUILD, marker, "C1.1-P Core managed RAPP package contract")
+for marker in (
+    "'uninstall-rapp'",
+    "'riftos.core.package-uninstall/1'",
+    "'riftos.core.packages.change/1'",
+    "'riftos.core.app-launch/1'",
+    "'installed-apps'",
+):
+    require(VERIFY, marker, "C1.1-P signed APK package lifecycle")
+
 # C1.1-B2-A: Core ticket/FIFO owns event scheduling; UI only keeps callbacks.
 for marker in (
     "Builder C1.1-B2-A Core event queue missing:",
@@ -168,6 +191,7 @@ for retired_command in (
 for marker in (
     '"pack-rapp" -> packRapp(',
     '"install-rapp" -> installRapp(',
+    '"uninstall-rapp" -> {',
     '"launch-rapp" -> launchRapp(',
     '"rapp-list" -> JSONObject()',
     '"src/main/java/com/riftos/app/RiftAppAbi.kt"',
@@ -250,6 +274,7 @@ for marker in (
 for marker in (
     "pack-rapp",
     "install-rapp",
+    "uninstall-rapp",
     "launch-rapp",
     "rapp-list",
     "riftos.rapp-project/1",

@@ -417,6 +417,59 @@ riftapp_capability_broker_source="android/app/src/main/java/com/riftos/app/RiftR
 riftapp_absolute_view_source="android/app/src/main/java/com/riftos/app/RiftRappAbsoluteView.kt"
 riftapp_host_source="android/app/src/main/java/com/riftos/app/RiftRappHost.kt"
 riftapp_manager_source="android/app/src/main/java/com/riftos/app/RiftRappManager.kt"
+# C1.1-P: Core manages install/update/uninstall; shell is a client only.
+core_package_events="android/app/src/main/java/com/riftos/app/RiftCorePackageEvents.kt"
+core_package_grants="android/app/src/main/java/com/riftos/app/RiftCorePackageGrants.kt"
+native_system_apps="android/app/src/main/java/com/riftos/app/RiftNativeSystemApps.kt"
+for source in "$core_package_events" "$core_package_grants"; do
+  test -f "$source" || {
+    echo "Builder C1.1-P Core package source missing: $source" >&2; exit 1;
+  }
+  grep -Fq "${source#android/app/}" "$gradle_contract" || {
+    echo "Builder C1.1-P source not Gradle mandatory: $source" >&2; exit 1;
+  }
+done
+for marker in 'riftos.core.packages.change/1' \
+  'object RiftCoreAppLaunchRequests' 'riftos.core.app-launch/1' \
+  'fun subscribe(' 'fun unsubscribe(' 'fun publish('; do
+  grep -Fq "$marker" "$core_package_events" || {
+    echo "Builder C1.1-P change contract missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'fun uninstall(id: String)' 'isManagedRapp(target, id)' \
+  'target.renameTo(quarantine)' \
+  'RiftCorePackageGrants.revokeAll(appContext, id)' \
+  'RiftCoreRuntime.sessions(appContext).invalidateInstalled(id)' \
+  'RiftCorePackageEvents.publish(id, "uninstalled")' \
+  'RiftCoreAppLaunchRequests.requestLaunch(id)' \
+  'Files.isSymbolicLink('; do
+  grep -Fq "$marker" "$riftapp_manager_source" || {
+    echo "Builder C1.1-P uninstall integrity missing: $marker" >&2; exit 1;
+  }
+done
+if grep -Fq 'RiftRappHost' "$riftapp_manager_source"; then
+  echo 'Builder C1.1-P Core installer still depends on desktop host.' >&2
+  exit 1
+fi
+for marker in 'RiftCoreAppLaunchRequests.subscribe' \
+  'RiftCoreAppLaunchRequests.unsubscribe' \
+  'RiftCorePackageEvents.subscribe' 'RiftCorePackageEvents.unsubscribe'; do
+  grep -Fq "$marker" "$rapp_host_source" || {
+    echo "Builder C1.1-P shell observer missing: $marker" >&2; exit 1;
+  }
+done
+for marker in '"installed-apps"' 'openInstalledApps()' \
+  'RiftCorePackageEvents.subscribe' 'uninstallRapp(id)' \
+  'installRapp(path)' 'AlertDialog.Builder(activity)'; do
+  grep -Fq "$marker" "$native_system_apps" || {
+    echo "Builder C1.1-P Installed Apps UI missing: $marker" >&2; exit 1
+  }
+done
+grep -Fq 'LauncherApp("installed-apps", "Installed Apps",' \
+  android/app/src/main/java/com/riftos/app/RiftNativeDesktop.kt || {
+  echo 'Builder C1.1-P native desktop Installed Apps launcher missing.' >&2; exit 1;
+}
+
 riftbuild_installer_source="android/app/src/main/java/com/riftos/app/RiftBuildInstaller.kt"
 for project_source in \
   android/app/src/main/java/com/codynex \
@@ -482,6 +535,7 @@ for required_riftbuild_platform_contract in \
   '"jvm-dex"' \
   '"pack-rapp"' \
   '"install-rapp"' \
+  '"uninstall-rapp"' \
   '"launch-rapp"' \
   '"rapp-list"' \
   '"verify"' \
@@ -663,6 +717,7 @@ fi
 for required_rapp_contract in \
   '"pack-rapp" -> packRapp(' \
   '"install-rapp" -> installRapp(' \
+  '"uninstall-rapp" -> {' \
   '"launch-rapp" -> launchRapp(' \
   '"rapp-list" -> JSONObject()'; do
   grep -Fq "$required_rapp_contract" "$riftbuild_platform_source" || {
