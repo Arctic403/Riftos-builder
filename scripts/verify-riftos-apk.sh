@@ -328,6 +328,7 @@ for marker in \
   'riftos-runtime-status/1' \
   'riftos.core.status/1' \
   'riftos.core.sessions/1' \
+  'riftos.core.app-surfaces/1' \
   'rift-core-rapp-event' \
   'eventExecutorOwner' \
   'eventQueueOwner' \

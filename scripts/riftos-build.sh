@@ -417,6 +417,38 @@ riftapp_capability_broker_source="android/app/src/main/java/com/riftos/app/RiftR
 riftapp_absolute_view_source="android/app/src/main/java/com/riftos/app/RiftRappAbsoluteView.kt"
 riftapp_host_source="android/app/src/main/java/com/riftos/app/RiftRappHost.kt"
 riftapp_manager_source="android/app/src/main/java/com/riftos/app/RiftRappManager.kt"
+# C1.2-A: process-owned generic immutable app surface snapshots, independent
+# from the desktop View tree. C1.2 shell-less launch and focus input remain later.
+core_surfaces_source="android/app/src/main/java/com/riftos/app/RiftCoreAppSurfaces.kt"
+test -f "$core_surfaces_source" || {
+  echo 'Builder C1.2-A Core surface source missing.' >&2; exit 1;
+}
+grep -Fq '"src/main/java/com/riftos/app/RiftCoreAppSurfaces.kt"' "$gradle_contract" || {
+  echo 'Builder C1.2-A Core surfaces absent from mandatory Gradle source list.' >&2; exit 1;
+}
+for marker in 'riftos.core.app-surfaces/1' 'data class Snapshot(' \
+    'MAX_SURFACES = 128' 'MAX_SURFACE_TEXT_BYTES = 256 * 1024' \
+    'MAX_TOTAL_SURFACE_TEXT_BYTES = 4 * 1024 * 1024' \
+    'frame.nodes.map { it.copy() }' \
+    'fun publish(' 'fun remove('; do
+  grep -Fq "$marker" "$core_surfaces_source" || {
+    echo "Builder C1.2-A Core surface registry contract missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'publishSurfaceFromExecution(' \
+    'surfaces.remove(attachment.record.id)' 'surfaces.remove(id)'; do
+  grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/RiftCoreAppSessions.kt" || {
+    echo "Builder C1.2-A surface lifecycle contract missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq 'sessions.publishSurfaceFromExecution(' "$core_executor_source" || {
+  echo 'Builder C1.2-A final frame must be published by Core executor.' >&2; exit 1;
+}
+grep -Fq '"surfaces" -> RiftCoreRuntime.surfaces(appContext).list()' \
+  "android/app/src/main/java/com/riftos/app/RiftNativeShell.kt" || {
+  echo 'Builder C1.2-A read-only surface diagnostics missing.' >&2; exit 1;
+}
+
 # C1.1-B2-B: Core capability effects and consent tickets; shell only renders UI.
 core_consent_source="android/app/src/main/java/com/riftos/app/RiftCoreShellCapabilityRequests.kt"
 shell_capability_client="android/app/src/main/java/com/riftos/app/RiftRappShellCapabilityClient.kt"

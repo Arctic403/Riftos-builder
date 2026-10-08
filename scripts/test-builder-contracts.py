@@ -26,6 +26,19 @@ for task in (
 ):
     require(BUILD, task, "dedicated Gradle validation")
 
+# C1.2-A: generic typed Core surface registration, revision feed and APK proof.
+for marker in [
+    "RiftCoreAppSurfaces.kt",
+    "Builder C1.2-A Core surface source missing.",
+    "Builder C1.2-A Core surfaces absent from mandatory Gradle source list.",
+    "Builder C1.2-A Core surface registry contract missing:",
+    "Builder C1.2-A surface lifecycle contract missing:",
+    "Builder C1.2-A final frame must be published by Core executor.",
+    "Builder C1.2-A read-only surface diagnostics missing.",
+]:
+    require(BUILD, marker, "C1.2-A Core surface owner")
+require(VERIFY, "'riftos.core.app-surfaces/1'", "C1.2-A signed APK surface schema")
+
 # C1.1-B2-B: Core-only effect execution; replaceable shell handles UI requests.
 for marker in [
     "RiftCoreShellCapabilityRequests.kt",
