@@ -352,6 +352,33 @@ grep -Fq 'RiftCoreRuntime.packages(activity.applicationContext)' \
   echo 'Builder C1.0 desktop still owns package manager.' >&2; exit 1;
 }
 
+# C1.1-A: installed application identity/opaque state must live in Core.
+core_sessions_source="android/app/src/main/java/com/riftos/app/RiftCoreAppSessions.kt"
+test -f "$core_sessions_source" || {
+  echo 'Builder C1.1 Core session registry missing.' >&2
+  exit 1
+}
+grep -Fq '"src/main/java/com/riftos/app/RiftCoreAppSessions.kt"' android/app/build.gradle.kts || {
+  echo 'Builder C1.1 Core session source not mandatory in Gradle.' >&2
+  exit 1
+}
+for marker in 'riftos.core.sessions/1' 'fun nextEventSequence()' \
+  'fun detach(attachment: Attachment)' '"headlessExecution", false'; do
+  grep -Fq "$marker" "$core_sessions_source" || {
+    echo "Builder C1.1 Core session ABI missing: $marker" >&2
+    exit 1
+  }
+done
+for marker in 'coreSessions.attach(payload, adapter)' \
+  'coreSessions.detach(it.coreAttachment)' \
+  'coreSessions.close(session.coreAttachment)' \
+  'session.coreAttachment.record.nextEventSequence()'; do
+  grep -Fq "$marker" "$rapp_host_source" || {
+    echo "Builder C1.1 RAPP UI/Core attachment contract missing: $marker" >&2
+    exit 1
+  }
+done
+
 riftos_main_activity="android/app/src/main/java/com/riftos/app/MainActivity.kt"
 native_shell="android/app/src/main/java/com/riftos/app/RiftNativeShell.kt"
 riftbuild_capability_source="android/app/src/main/java/com/riftos/app/RiftLocalBuildCapability.kt"

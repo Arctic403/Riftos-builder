@@ -26,6 +26,21 @@ for task in (
 ):
     require(BUILD, task, "dedicated Gradle validation")
 
+# C1.1-A: Core identity/state records remain independent of desktop hosts.
+for marker in (
+    "RiftCoreAppSessions.kt",
+    "Builder C1.1 Core session registry missing.",
+    "Builder C1.1 Core session source not mandatory in Gradle.",
+    "Builder C1.1 RAPP UI/Core attachment contract missing:",
+    "coreSessions.attach(payload, adapter)",
+    "coreSessions.detach(it.coreAttachment)",
+    "coreSessions.close(session.coreAttachment)",
+    "session.coreAttachment.record.nextEventSequence()",
+):
+    require(BUILD, marker, "C1.1-A Core session source gate")
+for marker in ("'riftos.core.sessions/1'", "'headlessExecution'"):
+    require(VERIFY, marker, "C1.1-A Core session signed APK proof")
+
 # C1.0: Core bootstrap and package/runtime/build services must be owned
 # independently of the desktop Activity and source-verified in the signed APK.
 for marker in (

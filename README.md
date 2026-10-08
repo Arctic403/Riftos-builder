@@ -55,6 +55,12 @@ Compiler authority remains external to RiftOS recipes. The generic registry can 
 
 Long generic compiler operations use persistent RiftShell jobs. `rift_shell_exec` auto-submits supported long operations such as `compiler-run` and `jvm-dex`, with bounded submit/status/result/cancel/list lifecycle. Retired `kotlin-compile`, native clang compile/prep, embedded `pack`, and embedded `sign` commands are not part of the live shell surface.
 
+## C1.1-A Core RAPP session-state registry
+
+C1.0 manual Builder is reported green/device-installed by user and independently checked on-device (`core status`, `riftbuild runtime-status`, installed app listing). The next source gate introduces `RiftCoreAppSessions.kt`, a process-owned registry with app identity, bounded opaque program state, monotonic event sequence, and generation-checked UI attachments. `RiftRappHost` now delegates those responsibilities to Core, and desktop Activity destruction only detaches the UI client while explicit window close removes the Core session. `core sessions` is a read-only diagnostic; `core status` includes `appSessions`. Builder checks the exact Kotlin source list and signed DEX `riftos.core.sessions/1` schema.
+
+**No over-promotion:** RAPP event execution, effect broker and UI still live in the Activity; detached records do not execute headlessly. `headlessExecution=false` and `appExecutionIndependentOfDesktop=false` are deliberate. This C1.1-A source is awaiting the user's next manual Builder + actual Android install/device proof. Next C1.1-B separates the executor/effects themselves.
+
 ## C1.0 RiftOS Core / replaceable RiftShell boundary
 
 **Baseline:** User confirmed C0.2.5 Builder green and installed on actual Android device, 2026-10-08.

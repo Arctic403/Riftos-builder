@@ -320,6 +320,8 @@ for marker in \
   'riftos-runtime-exec/1' \
   'riftos-runtime-status/1' \
   'riftos.core.status/1' \
+  'riftos.core.sessions/1' \
+  'headlessExecution' \
   'appExecutionIndependentOfDesktop' \
   'riftos.runtime.provider/1' \
   'runtime-status' \
