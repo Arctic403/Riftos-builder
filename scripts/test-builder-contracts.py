@@ -38,6 +38,17 @@ for marker in [
     require(BUILD, marker, "C1.2-B2-B1 Core focus lease source")
 require(VERIFY, "'riftos.core.input-focus/1'", "C1.2-B2-B1 signed focus schema")
 
+# C1.2-C1: real Core-only installed RAPP BOOT lifecycle source and DEX.
+for marker in [
+    "Builder C1.2-C1 Core-only RAPP lifecycle source missing",
+    "Builder C1.2-C1 lifecycle source not compiled by Gradle",
+    "Builder C1.2-C1 Core lifecycle missing:",
+    "Builder C1.2-C1 Core-only start control missing",
+    "Builder C1.2-C1 Core lifecycle health missing",
+]:
+    require(BUILD, marker, "C1.2-C1 Core-owned RAPP lifecycle")
+require(VERIFY, "'riftos.core.apps/1'", "C1.2-C1 signed lifecycle schema")
+
 # C1.2-B2-B2: real focused input admission and queue lease revision enforcement.
 for marker in [
     "Builder B2-B2 enforced focus lease missing:",

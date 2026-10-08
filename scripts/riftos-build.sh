@@ -476,6 +476,32 @@ grep -Fq '"focus" -> RiftCoreRuntime.sessions(appContext).focusStatus()' \
   echo 'Builder B2-B1 read-only focus report missing' >&2; exit 1;
 }
 
+# C1.2-C1: Core-only installed RAPP BOOT/stop lifecycle independent
+# of the graphical RiftShell host. Enforce verified installed package flow.
+core_lifecycle_source="android/app/src/main/java/com/riftos/app/RiftCoreAppLifecycle.kt"
+test -f "$core_lifecycle_source" || {
+  echo 'Builder C1.2-C1 Core-only RAPP lifecycle source missing' >&2; exit 1;
+}
+grep -Fq '"src/main/java/com/riftos/app/RiftCoreAppLifecycle.kt"' "$gradle_contract" || {
+  echo 'Builder C1.2-C1 lifecycle source not compiled by Gradle' >&2; exit 1;
+}
+for marker in 'riftos.core.apps/1' 'packages.loadInstalled(id)' \
+  'sessions.hasAttachedApp(id)' 'executor.executeChained(' \
+  'RiftAppAbi.Event(kind = RiftAppAbi.EventKind.BOOT)' \
+  'fun stop(id: String): JSONObject'; do
+  grep -Fq "$marker" "$core_lifecycle_source" || {
+    echo "Builder C1.2-C1 Core lifecycle missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq 'RiftCoreRuntime.lifecycle(appContext).start(args[1])' \
+  "android/app/src/main/java/com/riftos/app/RiftNativeShell.kt" || {
+  echo 'Builder C1.2-C1 Core-only start control missing' >&2; exit 1;
+}
+grep -Fq '.put("coreApps", lifecycle(context).status())' \
+  "android/app/src/main/java/com/riftos/app/RiftCoreRuntime.kt" || {
+  echo 'Builder C1.2-C1 Core lifecycle health missing' >&2; exit 1;
+}
+
 # C1.2-B2-B2: Core authorizes focused input at enqueue AND dispatch,
 # retaining the admitted lease revision to block switch-away/refocus ABA.
 for marker in 'fun requireCurrentLease(appId: String, attachmentGeneration: Long)' \

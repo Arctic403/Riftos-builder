@@ -330,6 +330,7 @@ for marker in \
   'riftos.core.sessions/1' \
   'riftos.core.app-surfaces/1' \
   'riftos.core.input-focus/1' \
+  'riftos.core.apps/1' \
   'rift-core-rapp-event' \
   'eventExecutorOwner' \
   'eventQueueOwner' \
