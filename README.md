@@ -57,9 +57,9 @@ Long generic compiler operations use persistent RiftShell jobs. `rift_shell_exec
 
 ## Rift++ editor boundary
 
-There is one single permanent Rift++ editor. Builder continues to validate the current editor-owned native compile/run/preflight/debug-APK capabilities and the mirrored `com.riftpp.editor` / `com.riftpp.apphost` Android sources required to build RiftOS.
+**C0.2:** RiftOS no longer compiles or packages mirrored Rift++ and Codynex editor classes or their native JNI bridges. Builder enforces absence of those project-specific Kotlin sources, Gradle SHA-lock tasks, DEX descriptors and libraries. The standalone Rift++ editor remains independently maintained and owns its canonical compile → preflight → pack/sign pipeline; this cleanup does not modify that editor.
 
-RiftOS keeps `<package android:name="com.riftpp.editor" />` visibility for the external editor Binder bridge. That visibility is not used as generic RiftBuild install/launch authority.
+Fixed project editor Binder package visibility was removed from the RiftOS manifest. Generic RiftBuild APK install/launch derives the target package from verified artifacts; no hardcoded external editor package identity is allowed. Source/Gradle/DEX/ABI absence checks were added without dropping generic platform compilation, signing or app-host verification.
 
 The compatibility/reference `riftpp` developer shell remains a headless QuickJS surface and is source-gated by `test-riftpp-shell.mjs`. It is separate from the promoted external build-provider boundary.
 

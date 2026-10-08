@@ -22,15 +22,14 @@ def forbid(text: str, needle: str, label: str) -> None:
 
 for task in (
     ":app:verifyRiftOsAndroidSources",
-    ":app:verifyCodynexEditorPayload",
-    ":app:verifyRiftppEditorPayload",
     ":app:validateRiftBrowserWebViewOwnership",
 ):
     require(BUILD, task, "dedicated Gradle validation")
 
-apphost_pattern = "com\\/riftpp\\/apphost"
-require(BUILD, apphost_pattern, "builder Kotlin source derivation")
-require(VERIFY, apphost_pattern, "APK Kotlin descriptor derivation")
+# C0.2: no mirrored application/editor descriptor derivation remains.
+for source_namespace in ("com\\/riftpp\\/editor", "com\\/riftpp\\/apphost", "com\\/codynex"):
+    forbid(BUILD, source_namespace, "mirrored editor source derivation")
+    forbid(VERIFY, source_namespace, "mirrored editor DEX derivation")
 
 for marker in (
     "SYNC_SHELL_TIMEOUT_MS = 10 * 60 * 1000L",
@@ -58,19 +57,14 @@ for marker in (
 ):
     require(VERIFY, marker, "final APK persistent shell-job proof")
 
-for entry in (
-    'lib/arm64-v8a/libriftpp_editor_bridge.so',
-    'lib/armeabi-v7a/libriftpp_editor_bridge.so',
-):
-    require(VERIFY, entry, "Rift++ editor JNI bridge APK proof")
-
-for marker in (
-    "riftpp_editor_bridge",
-    '"src/main/java/com/riftpp/apphost/RiftppAppActivity.kt"',
-    '"src/main/cpp/editor/riftpp_editor_bridge.cpp"',
-    "dependsOn(verifyRiftppEditorPayload)",
-):
-    require(BUILD, marker, "Rift++ mirrored editor preflight")
+# C0.2: the only REQUIRED native library is the generic native-buffer worker.
+for entry in ('libriftpp_editor_bridge', 'libcodynex_editor_vm'):
+    require(VERIFY, entry, "retired editor library negative APK proof")
+for marker in ("Builder C0.2 project-owned editor payload returned",
+               "Builder C0.2 embedded editor still declared by RiftOS Gradle",
+               "Builder C0.2 editor JNI target returned to RiftOS CMake",
+               "Builder C0.2 editor command returned to native RiftShell"):
+    require(BUILD, marker, "project editor payload absence preflight")
 
 # Regression guard for the removed embedded RiftBuild variable that caused
 # Build 37721469811 to fail under bash -u before source/Gradle validation.
@@ -97,7 +91,6 @@ for marker in (
     '"launch-rapp" -> launchRapp(',
     '"rapp-list" -> JSONObject()',
     '"src/main/java/com/riftos/app/RiftAppAbi.kt"',
-    '"src/main/java/com/riftos/app/RiftRappRiftppAdapter.kt"',
     '"src/main/java/com/riftos/app/RiftRappRiftppWs15Adapter.kt"',
     '"src/main/java/com/riftos/app/RiftRappRiftppGenericAdapter.kt"',
     '"src/main/java/com/riftos/app/RiftRappJsonAdapter.kt"',
@@ -110,7 +103,6 @@ for marker in (
     "rappHost.onPause()",
     'const val SCHEMA = "riftos-app-abi/1"',
     'const val HOST_EFFECT_RESULT = 13',
-    '"riftpp-rpa2-v1"',
     '"riftpp-rws2-rui3-v1"',
     '"riftpp-generic-v1"',
     '"json-generic-v1"',
@@ -182,7 +174,6 @@ for marker in (
     "riftos.rapp-project/1",
     "riftos.rapp/1",
     "riftos-app-abi/1",
-    "riftpp-rpa2-v1",
     "riftpp-rws2-rui3-v1",
     "riftpp-generic-v1",
     "Generic Rift++ response magic is invalid",
@@ -260,10 +251,10 @@ for stale in (
 require(WORKFLOW, "python3 worker/scripts/test-builder-contracts.py", "workflow builder self-test")
 require(WORKFLOW, "worker/scripts/test-builder-contracts.py", "workflow Python syntax validation")
 require(README, "persistent RiftShell jobs", "builder documentation shell-job contract")
-require(README, "single permanent Rift++ editor", "builder documentation editor contract")
-require(BUILD, '<package android:name="com.riftpp.editor" />', "external Rift++ editor Binder visibility preflight")
-require(README, "external editor Binder bridge", "builder documentation Binder visibility contract")
-require(README, "not used as generic RiftBuild install/launch authority", "builder documentation generic installer separation")
+require(README, "C0.2", "builder documentation editor-externalization contract")
+require(BUILD, "Builder C0.2 project-owned editor payload returned", "project editor visibility no longer mandated")
+require(README, "project-specific", "builder documentation package ownership")
+require(README, "no hardcoded external editor package identity", "builder documentation generic installer separation")
 require(README, "RiftLocalBuildCapability", "builder documentation build.local owner")
 require(README, "RiftJvmDexService", "builder documentation JVM DEX owner")
 require(README, "RiftBuildPlatformTools", "builder documentation platform tool owner")
@@ -306,45 +297,35 @@ for forbidden_marker in dex_forbidden:
                 + repr(forbidden_marker) + " is inside required " + repr(required_marker)
             )
 
-# C0.1 APK gate: removed editor client schema is forbidden, while the
-# still-shipping mirrored editor service protocols remain positively verified.
-require(VERIFY, "for bridge_marker in ", "Codynex service marker loop")
-client_marker_block = VERIFY.split("for bridge_marker in ", 1)[1].split("; do", 1)[0]
-for marker in ("codynex-editor-folder-push/1", "codynex-editor-folder-pull/1"):
-    if marker in client_marker_block:
-        raise AssertionError("Retired editor client marker must not be required in APK: " + marker)
-    require(VERIFY, "'" + marker + "'", "retired editor client negative DEX marker")
-require(VERIFY, "for retired_editor_client_marker in", "signed DEX editor-client absence gate")
-require(VERIFY, 'forbid_dex_string "$retired_editor_client_marker"', "signed DEX editor-client absence call")
-require(VERIFY, "'codynex-editor-bridge-compile/1'", "still-present editor service proof")
+# C0.2: standalone editor payloads and their JNI bridges must be absent in
+# the signed APK; preserve active generic RAPP/JVM native-buffer host proofs.
+for marker in (
+    "'Lcom/codynex/'",
+    "'Lcom/riftpp/editor/'",
+    "'Lcom/riftpp/apphost/'",
+    "'Lcom/riftos/app/RiftRappRiftppAdapter;'",
+    "'codynex-editor-bridge-compile/1'",
+    "'riftpp-editor-native-compile/1'",
+    "forbid_dex_string \"$retired_editor_dex\"",
+    "forbid_entry '^lib/[^/]+/libriftpp_editor_bridge",
+    "forbid_entry '^lib/[^/]+/libcodynex_editor_vm",
+    "require_entry \"lib/arm64-v8a/librift_native_buffer_compiler_host.so\"",
+):
+    require(VERIFY, marker, "C0.2 signed APK platform/project boundary")
 
 # C0.1 correction: source graph requires deleting unused editor Binder clients.
 # Restore neither the files nor Gradle declarations to bypass reachability.
 for marker in (
-    "project editor bridge client resurfaced",
-    "project editor bridge client remains in Gradle",
+    "Builder C0.2 project-owned editor payload returned",
+    "Builder C0.2 embedded editor still declared by RiftOS Gradle",
     "RiftCodynexEditorBridgeClient.kt",
     "RiftppEditorBridgeClient.kt",
 ):
     require(BUILD, marker, "retired editor client absence regression")
 
-# C0.1: editor workflows are external software, not RiftShell built-ins.
-# Their independently compiled bridge services remain required only until the
-# later mirrored-editor APK-payload removal gate.
-for marker in (
-    "executeCodynexEditorCommand",
-    "executeRiftppEditorCommand",
-    "Rift++ editor-specific native shell command resurfaced",
-    "Codynex editor-specific native shell command resurfaced",
-):
-    require(BUILD, marker, "external editor shell ownership guard")
-for marker in (
-    "'usage: riftpp-editor'",
-    "'usage: codynex-editor'",
-    "forbid_dex_string \"$retired_editor_shell\"",
-    "'riftpp-editor-native-compile/1'",
-    "'codynex-editor-bridge-compile/1'",
-):
-    require(VERIFY, marker, "editor shell exclusion and independent service proof")
+# C0.1 editor commands remain retired even after payload removal.
+for marker in ("'usage: riftpp-editor'", "'usage: codynex-editor'",
+               'forbid_dex_string "$retired_editor_shell"'):
+    require(VERIFY, marker, "project editor shell absence gate")
 
 print("ok - RiftOS builder contracts are internally consistent")

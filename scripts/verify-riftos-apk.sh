@@ -193,10 +193,13 @@ if grep -Eq 'CodynexCompilerProvider|com\.riftos\.app\.codynexcompiler|com\.cody
   echo 'APK smoke check failed: retired Codynex provider/LR0 manifest authority resurfaced.' >&2
   exit 1
 fi
-if ! grep -Fq 'com.riftpp.editor' <<<"$manifest_tree"; then
-  echo 'APK smoke check failed: Rift++ editor bridge package visibility is missing from the compiled RiftOS manifest.' >&2
-  exit 1
-fi
+# C0.2: no project editor package dependency is baked into the OS manifest.
+for editor_package in 'com.riftpp.editor' 'com.codynex.editor'; do
+  if grep -Fq "$editor_package" <<<"$manifest_tree"; then
+    echo "APK smoke check failed: fixed project editor visibility resurfaced: $editor_package" >&2
+    exit 1
+  fi
+done
 for retired_riftpp_visibility in 'com.riftpp.editor.nativev1' 'com.riftpp.editor.adapterr1' 'com.riftpp.nativeproof'; do
   if grep -Fq "$retired_riftpp_visibility" <<<"$manifest_tree"; then
     echo "APK smoke check failed: Rift++ proof package visibility resurfaced in the compiled RiftOS manifest: $retired_riftpp_visibility" >&2
@@ -258,7 +261,7 @@ forbid_entry '\.keystore$'
 gradle_contract="$SOURCE_DIR/android/app/build.gradle.kts"
 test -f "$gradle_contract" || { echo 'APK smoke check failed: RiftOS Gradle source contract is missing.' >&2; exit 1; }
 mapfile -t required_native_sources < <(
-  sed -nE 's/.*"(src\/main\/java\/(com\/riftos\/app|com\/riftpp\/editor|com\/riftpp\/apphost)\/[A-Za-z0-9_]+\.kt)".*/\1/p' "$gradle_contract"
+  sed -nE 's/.*"(src\/main\/java\/(com\/riftos\/app)\/[A-Za-z0-9_]+\.kt)".*/\1/p' "$gradle_contract"
 )
 if [ "${#required_native_sources[@]}" -eq 0 ]; then
   echo 'APK smoke check failed: RiftOS Gradle source contract declared no mandatory native sources.' >&2
@@ -300,7 +303,6 @@ for marker in \
   'riftos.rapp-project/1' \
   'riftos.rapp/1' \
   'riftos-app-abi/1' \
-  'riftpp-rpa2-v1' \
   'riftpp-rws2-rui3-v1' \
   'riftpp-generic-v1' \
   'Generic Rift++ response magic is invalid' \
@@ -430,14 +432,7 @@ for retired_editor_shell in \
   'riftpp-editor native-build-debug'; do
   forbid_dex_string "$retired_editor_shell" "project-specific editor shell command $retired_editor_shell"
 done
-for editor_service_marker in \
-  'riftpp-editor-native-compile/1' \
-  'riftpp-editor-native-run/1' \
-  'riftpp-editor-native-preflight/1' \
-  'riftpp-editor-native-build/1' \
-  'riftpp-editor-native-apk-v1'; do
-  require_dex_string "$editor_service_marker" "independent editor Binder service marker $editor_service_marker"
-done
+# Mirrored editor Binder service markers are now forbidden by C0.2 below.
 
 # RiftGit mode-preserving push must survive compilation into the release DEX, not only exist
 # in source. These strings are emitted by the executable/symlink fallback path.
@@ -468,14 +463,23 @@ require_dex_string 'train-v2-builder-status' 'RiftLLM RiftTrainData V2 builder q
 require_dex_string 'train_v2_builder_start' 'RiftLLM RiftTrainData V2 builder qualification start Provider method'
 require_dex_string 'train_v2_builder_status' 'RiftLLM RiftTrainData V2 builder qualification status Provider method'
 
-# Codynex final-artifact proof: RiftOS carries only the editor bridge and generic
-# editor runtime/toolchain payload. Compiler generations and C0/LR0 authority stay retired.
-for marker in \
-  'com.codynex.editor' \
-  'com.codynex.editor.bridge.v1' \
-  '.codynex/toolchains/compiler.js' \
-  'codynex_compiler.js'; do
-  require_dex_string "$marker" "Codynex current editor/runtime marker $marker"
+# C0.2 final-artifact proof: project editor implementation and its stale
+# Binder protocol must NOT be part of the signed OS DEX. The independent
+# project repos own these implementations; RiftOS retains the generic host.
+for retired_editor_dex in \
+  'Lcom/codynex/' \
+  'Lcom/riftpp/editor/' \
+  'Lcom/riftpp/apphost/' \
+  'Lcom/riftos/app/RiftRappRiftppAdapter;' \
+  'codynex-editor-bridge-compile/1' \
+  'codynex-editor-bridge-preview/1' \
+  'codynex-editor-bridge-native-proof/1' \
+  'codynex-editor-bridge-build-apk/1' \
+  'riftpp-editor-native-compile/1' \
+  'riftpp-editor-native-run/1' \
+  'riftpp-editor-native-preflight/1' \
+  'riftpp-editor-native-build/1'; do
+  forbid_dex_string "$retired_editor_dex" "embedded project editor DEX marker $retired_editor_dex"
 done
 for retired_marker in \
   'com.riftos.app.codynexcompiler' \
@@ -485,38 +489,6 @@ for retired_marker in \
   'codynex-c0-project-host-run/1' \
   'riftosplus-host-snapshot/1'; do
   forbid_dex_string "$retired_marker" "retired Codynex compiler authority $retired_marker"
-done
-
-for bridge_marker in \
-  'com.codynex.editor.bridge.v1' \
-  'codynex-editor' \
-  'codynex-editor-bridge-status/1' \
-  'codynex-editor-bridge-compile/1' \
-  'codynex-editor-bridge-preview/1' \
-  'codynex-editor-bridge-native-proof/1' \
-  'codynex-editor-bridge-build-apk/1' \
-  'folderTransport'; do
-  require_dex_string "$bridge_marker" "Codynex Editor bridge marker $bridge_marker"
-done
-
-# C0.1: these two folder-transfer receipt schemas belonged solely to the
-# removed RiftOS-side Codynex editor Binder client. They must not ship in DEX.
-for retired_editor_client_marker in \
-  'codynex-editor-folder-push/1' \
-  'codynex-editor-folder-pull/1'; do
-  forbid_dex_string "$retired_editor_client_marker" "retired project editor client marker $retired_editor_client_marker"
-done
-
-for editor_descriptor in \
-  'Lcom/codynex/editorapp/CodynexEditorBridgeService;' \
-  'Lcom/codynex/editorapp/MainActivity;' \
-  'Lcom/codynex/editorapp/BootstrapArtifacts;' \
-  'Lcom/codynex/editorapp/CodynexCompilerRuntime;' \
-  'Lcom/codynex/editorapp/CodynexEditorToolchainPort;' \
-  'Lcom/codynex/editorapp/CodynexRuntimeBridge;' \
-  'Lcom/codynex/editorapp/FileWorkspacePort;' \
-  'Lcom/codynex/editor/CodynexEditorController;'; do
-  require_dex_string "$editor_descriptor" "Codynex editor payload class $editor_descriptor"
 done
 
 # Generic MCP event-bus and relay diagnostics must survive in the signed DEX.
@@ -539,11 +511,9 @@ forbid_entry '^lib/[^/]+/libcodynex_mc2a_host\.so$'
 forbid_entry '^lib/[^/]+/libriftpp_app0_host\.so$'
 forbid_entry '^lib/[^/]+/libriftpp_compiler_host\.so$'
 
-# The one permanent Rift++ editor keeps its narrow JNI bridge for both supported ARM ABIs.
-require_entry "lib/arm64-v8a/libriftpp_editor_bridge.so"
-require_entry "lib/armeabi-v7a/libriftpp_editor_bridge.so"
-forbid_entry '^lib/x86/libriftpp_editor_bridge\.so$'
-forbid_entry '^lib/x86_64/libriftpp_editor_bridge\.so$'
+# C0.2: no project editor JNI libraries may ship for any Android ABI.
+forbid_entry '^lib/[^/]+/libriftpp_editor_bridge\.so$'
+forbid_entry '^lib/[^/]+/libcodynex_editor_vm\.so$'
 
 # Generic native-buffer compiler payloads execute through a separate crash-contained host.
 # Both supported ARM ABIs must be packaged; x86 variants and retired Rift++ names are forbidden.
@@ -552,11 +522,6 @@ require_entry "lib/armeabi-v7a/librift_native_buffer_compiler_host.so"
 forbid_entry '^lib/x86/librift_native_buffer_compiler_host\.so$'
 forbid_entry '^lib/x86_64/librift_native_buffer_compiler_host\.so$'
 forbid_entry '^lib/[^/]+/libriftpp_dynamic_compiler_host\.so$'
-
-# The mirrored Codynex editor native preview bridge remains a required ARM32 payload.
-require_entry "lib/armeabi-v7a/libcodynex_editor_vm.so"
-forbid_entry '^lib/x86/libcodynex_editor_vm\.so$'
-forbid_entry '^lib/x86_64/libcodynex_editor_vm\.so$'
 
 # RiftDevLabLocalAgent is a private top-level object inside RiftVortexLocalAgent.kt, so it is not
 # represented by a standalone Gradle source filename but is still a required structured-agent
