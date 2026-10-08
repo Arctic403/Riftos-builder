@@ -26,6 +26,14 @@ for task in (
 ):
     require(BUILD, task, "dedicated Gradle validation")
 
+# C1.2-B2-A: Core checks typed input event kind, node identity and surface generation.
+for marker in [
+    "Builder C1.2-B2-A Core typed input authority missing:",
+    "Builder C1.2-B2-A shell must handle rejected Core input.",
+    "authorizeInputTarget(attachment, event)"
+]:
+    require(BUILD, marker, "C1.2-B2-A Core input target authorization")
+
 # C1.2-B1: replaceable shell surface rendering reads generation-matched Core data.
 for marker in [
     "Builder C1.2-B1 Core snapshot shell client missing:",

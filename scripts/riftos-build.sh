@@ -449,6 +449,22 @@ grep -Fq '"surfaces" -> RiftCoreRuntime.surfaces(appContext).list()' \
   echo 'Builder C1.2-A read-only surface diagnostics missing.' >&2; exit 1;
 }
 
+# C1.2-B2-A: Core validates typed UI input target against current published
+# surface generation before the event enters the Core-owned bounded FIFO.
+for marker in 'private fun authorizeInputTarget(' \
+  'RiftAppAbi.EventKind.HOST_EFFECT_RESULT' \
+  'RiftAppAbi.EventKind.ACTION -> RiftAppAbi.NodeKind.ACTION' \
+  'RiftAppAbi.EventKind.TEXT_INPUT -> RiftAppAbi.NodeKind.TEXT_INPUT' \
+  'surface.attachmentGeneration == attachment.token' \
+  'authorizeInputTarget(attachment, event)'; do
+  grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/RiftCoreAppSessions.kt" || {
+    echo "Builder C1.2-B2-A Core typed input authority missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq 'Core rejected application input' "$riftapp_host_source" || {
+  echo 'Builder C1.2-B2-A shell must handle rejected Core input.' >&2; exit 1;
+}
+
 # C1.2-B1: generic RiftShell view client consumes the verified Core surface
 # snapshot rather than a frame returned directly through interpreter callback.
 for marker in 'coreSurfaces.snapshot(session.id)' \
