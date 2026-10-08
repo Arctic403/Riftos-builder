@@ -54,7 +54,7 @@ fi
 
 # Builder-owned syntax preflight for the source-gate entrypoints. This runs before the
 # source-owned validator so a malformed validator cannot hide its own parse failure.
-for source_gate_script in   scripts/validate-rift-wiring.mjs   scripts/validate-rift-transport.mjs   scripts/validate-rift-docs.mjs   scripts/test-rift-cli-push-channel.mjs   scripts/test-rift-cli-batch-v2.mjs   scripts/test-rift-local-agent-batch.mjs   scripts/test-rift-mcp-operation-journal.mjs   scripts/test-rift-debug-hub.mjs   scripts/test-riftbuild-native.mjs   scripts/test-riftpp-shell.mjs   scripts/test-rift-shell-bridge.mjs   scripts/test-riftllm-bridge.mjs   scripts/test-semnexis-bootstrap.mjs   scripts/test-semnexis-arm32-exec.mjs   scripts/test-semnexis-shell.mjs; do
+for source_gate_script in   scripts/validate-rift-wiring.mjs   scripts/validate-rift-transport.mjs   scripts/validate-rift-docs.mjs   scripts/test-rift-mcp-event-channel.mjs    scripts/test-rift-local-agent-batch.mjs   scripts/test-rift-mcp-operation-journal.mjs   scripts/test-rift-debug-hub.mjs   scripts/test-riftbuild-native.mjs   scripts/test-riftpp-shell.mjs   scripts/test-rift-shell-bridge.mjs   scripts/test-riftllm-bridge.mjs   scripts/test-semnexis-bootstrap.mjs   scripts/test-semnexis-arm32-exec.mjs   scripts/test-semnexis-shell.mjs; do
   node --check "$source_gate_script" >>"$LOG_DIR/source-syntax.log" 2>&1 || {
     echo "RiftOS source-gate syntax failed: $source_gate_script" >&2
     exit 1
@@ -73,8 +73,7 @@ node -e '
     "node scripts/validate-rift-wiring.mjs",
     "node scripts/validate-rift-transport.mjs",
     "node scripts/validate-rift-docs.mjs",
-    "node scripts/test-rift-cli-push-channel.mjs",
-    "node scripts/test-rift-cli-batch-v2.mjs",
+    "node scripts/test-rift-mcp-event-channel.mjs",
     "node scripts/test-rift-local-agent-batch.mjs",
     "node scripts/test-rift-mcp-operation-journal.mjs",
     "node scripts/test-rift-debug-hub.mjs",
@@ -685,28 +684,34 @@ if grep -Eq 'compilerA|selfhost_compiler|compiler\.cx0|Fixed-point preview' \
   exit 1
 fi
 
-# Required native subsystems must remain real C++ builds, not Kotlin-only placeholders.
+# Required retained native owners; permanently retired RiftCLI native/JNI source must stay absent.
 for native_source in \
   android/app/src/main/cpp/CMakeLists.txt \
-  android/app/src/main/cpp/riftcli/rift_cli_core.cpp \
-  android/app/src/main/cpp/riftcli/rift_cli_core.h \
-  android/app/src/main/cpp/riftcli/rift_cli_jni.cpp \
   android/app/src/main/cpp/compiler/rift_native_buffer_compiler_host.cpp \
-  android/app/src/main/cpp/editor/editor_vm_bridge.cpp \
-  android/app/src/main/java/com/riftos/app/RiftCliHost.kt; do
+  android/app/src/main/cpp/editor/editor_vm_bridge.cpp; do
   test -f "$native_source" || {
     echo "Builder contract preflight missing required native source: $native_source" >&2
     exit 1
   }
 done
+for retired_cli_source in \
+  android/app/src/main/cpp/riftcli/rift_cli_core.cpp \
+  android/app/src/main/cpp/riftcli/rift_cli_core.h \
+  android/app/src/main/cpp/riftcli/rift_cli_jni.cpp \
+  android/app/src/main/java/com/riftos/app/RiftCliHost.kt; do
+  if test -e "$retired_cli_source"; then
+    echo "Builder contract failed: retired RiftCLI source resurfaced: $retired_cli_source" >&2
+    exit 1
+  fi
+done
 grep -Fq 'add_library(' android/app/src/main/cpp/CMakeLists.txt || {
-  echo 'Builder contract is stale: RiftCLI CMake must declare a native library.' >&2
+  echo 'Builder contract failed: expected native targets missing.' >&2
   exit 1
 }
-grep -Fq 'riftcli' android/app/src/main/cpp/CMakeLists.txt || {
-  echo 'Builder contract is stale: RiftCLI CMake must build libriftcli.' >&2
+if grep -Fq 'riftcli' android/app/src/main/cpp/CMakeLists.txt; then
+  echo 'Builder contract failed: retired RiftCLI CMake target resurfaced.' >&2
   exit 1
-}
+fi
 for retired_codynex_native in \
   codynex_mc0_host \
   codynex_mc1a_host \

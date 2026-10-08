@@ -507,18 +507,13 @@ for editor_descriptor in \
   require_dex_string "$editor_descriptor" "Codynex editor payload class $editor_descriptor"
 done
 
-# N1.5 final-artifact proof: the final signed DEX must contain the passive event/relay
-# diagnostics that distinguish local event creation, device WSS queueing, replay and relay ACK.
-for marker in   'riftcli.event-bus'   'mcp.relay'   'event.created'   'cli.event.send'   'relay.ready'   'cli.replay.request'   'cli.replay.send'   'cli.ack'; do
-  require_dex_string "$marker" "RiftCLI N1.5 debug marker $marker"
+# Generic MCP event-bus and relay diagnostics must survive in the signed DEX.
+# cli.* markers are intentionally preserved relay wire compatibility, not CLI execution.
+for marker in 'mcp.event-bus' 'mcp.relay' 'event.created' 'cli.event.send' 'relay.ready' 'cli.replay.request' 'cli.replay.send' 'cli.ack'; do
+  require_dex_string "$marker" "MCP relay debug marker $marker"
 done
-
-# RiftCLI is a real native C++ subsystem. Bootstrap-0 is not proven unless the final
-# signed APK contains the exact native library for both supported ARM ABIs.
-require_entry "lib/arm64-v8a/libriftcli.so"
-require_entry "lib/armeabi-v7a/libriftcli.so"
-forbid_entry '^lib/x86/libriftcli\.so$'
-forbid_entry '^lib/x86_64/libriftcli\.so$'
+# Permanently retired RiftCLI must not ship native libraries in any ABI.
+forbid_entry '^lib/[^/]+/libriftcli\.so$'
 
 # Retired Codynex machine-proof hosts must not re-enter any APK ABI.
 forbid_entry '^lib/[^/]+/libcodynex_mc0_host\.so$'
