@@ -490,8 +490,6 @@ done
 for bridge_marker in \
   'com.codynex.editor.bridge.v1' \
   'codynex-editor' \
-  'codynex-editor-folder-push/1' \
-  'codynex-editor-folder-pull/1' \
   'codynex-editor-bridge-status/1' \
   'codynex-editor-bridge-compile/1' \
   'codynex-editor-bridge-preview/1' \
@@ -499,6 +497,14 @@ for bridge_marker in \
   'codynex-editor-bridge-build-apk/1' \
   'folderTransport'; do
   require_dex_string "$bridge_marker" "Codynex Editor bridge marker $bridge_marker"
+done
+
+# C0.1: these two folder-transfer receipt schemas belonged solely to the
+# removed RiftOS-side Codynex editor Binder client. They must not ship in DEX.
+for retired_editor_client_marker in \
+  'codynex-editor-folder-push/1' \
+  'codynex-editor-folder-pull/1'; do
+  forbid_dex_string "$retired_editor_client_marker" "retired project editor client marker $retired_editor_client_marker"
 done
 
 for editor_descriptor in \

@@ -306,6 +306,18 @@ for forbidden_marker in dex_forbidden:
                 + repr(forbidden_marker) + " is inside required " + repr(required_marker)
             )
 
+# C0.1 APK gate: removed editor client schema is forbidden, while the
+# still-shipping mirrored editor service protocols remain positively verified.
+require(VERIFY, "for bridge_marker in ", "Codynex service marker loop")
+client_marker_block = VERIFY.split("for bridge_marker in ", 1)[1].split("; do", 1)[0]
+for marker in ("codynex-editor-folder-push/1", "codynex-editor-folder-pull/1"):
+    if marker in client_marker_block:
+        raise AssertionError("Retired editor client marker must not be required in APK: " + marker)
+    require(VERIFY, "'" + marker + "'", "retired editor client negative DEX marker")
+require(VERIFY, "for retired_editor_client_marker in", "signed DEX editor-client absence gate")
+require(VERIFY, 'forbid_dex_string "$retired_editor_client_marker"', "signed DEX editor-client absence call")
+require(VERIFY, "'codynex-editor-bridge-compile/1'", "still-present editor service proof")
+
 # C0.1 correction: source graph requires deleting unused editor Binder clients.
 # Restore neither the files nor Gradle declarations to bypass reachability.
 for marker in (
