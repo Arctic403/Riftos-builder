@@ -433,7 +433,8 @@ for marker in 'riftos.core.capability-consent/1' 'riftos.core.ui-effect/1' \
   }
 done
 for marker in 'fun executeChained(' 'capabilityBroker.execute(' \
-    'HOST_EFFECT_RESULT' 'maxEffectDepth = 1024'; do
+    'HOST_EFFECT_RESULT' 'maxEffectDepth = 1024' \
+    'RAPP Core effect chain exceeded bound'; do
   grep -Fq "$marker" "$core_executor_source" || {
     echo "Builder C1.1-B2-B Core effect chain missing: $marker" >&2; exit 1;
   }

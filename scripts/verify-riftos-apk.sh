@@ -339,7 +339,7 @@ for marker in \
   'riftpp-generic-v1' \
   'Generic Rift++ response magic is invalid' \
   'RAPP pending event queue exceeded bound' \
-  'RAPP host effect chain exceeded bound' \
+  'RAPP Core effect chain exceeded bound' \
   'state.bin' \
   'RAPP persisted state is out of bounds' \
   'RAPP persisted state escaped program root' \

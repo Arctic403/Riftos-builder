@@ -40,6 +40,10 @@ for marker in [
 for marker in ["'riftos.core.capability-consent/1'", "'riftos.core.ui-effect/1'"]:
     require(VERIFY, marker, "C1.1-B2-B signed APK consent/effect protocol")
 
+require(BUILD, "'RAPP Core effect chain exceeded bound'", "C1.1-B2-B early source marker guard")
+require(VERIFY, "'RAPP Core effect chain exceeded bound'", "C1.1-B2-B final signed DEX marker")
+forbid(VERIFY, "'RAPP host effect chain exceeded bound'", "C1.1-B2-B retired desktop effect marker")
+
 # C1.1-P: Core installed RAPP lifecycle and replaceable shell package client.
 for marker in (
     "RiftCorePackageEvents.kt",
@@ -298,7 +302,7 @@ for marker in (
     "riftpp-generic-v1",
     "Generic Rift++ response magic is invalid",
     "RAPP pending event queue exceeded bound",
-    "RAPP host effect chain exceeded bound",
+    "RAPP Core effect chain exceeded bound",
     "state.bin",
     "RAPP persisted state is out of bounds",
     "RAPP persisted state escaped program root",
