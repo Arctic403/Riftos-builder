@@ -285,8 +285,43 @@ if grep -Fq 'Single-request GitHub push cannot safely preserve mode' "$riftgit_s
   echo 'Builder RiftGit contract regressed to the old 100644-only push rejection.' >&2
   exit 1
 fi
+# C0.2.5: only a generic, signer-pinned external runtime-provider boundary
+# may enter the OS; no language-specific provider code or fixed package IDs.
+runtime_provider_source="android/app/src/main/java/com/riftos/app/RiftExternalRuntimeProviders.kt"
+rapp_host_source="android/app/src/main/java/com/riftos/app/RiftRappHost.kt"
+test -f "$runtime_provider_source" || {
+  echo 'Builder generic runtime provider source is missing.' >&2
+  exit 1
+}
+for required_runtime_provider_marker in \
+  'riftos-runtime-providers/1' \
+  'riftos-runtime-exec/1' \
+  'com.riftos.runtime.EXECUTE_V1' \
+  'riftos.runtime.provider/1' \
+  'GET_SIGNING_CERTIFICATES' \
+  'verifyInstalled(' \
+  'bindService(' \
+  '?: return fallback()'; do
+  grep -Fq "$required_runtime_provider_marker" "$runtime_provider_source" || {
+    echo "Builder generic runtime provider contract missing: $required_runtime_provider_marker" >&2
+    exit 1
+  }
+done
+grep -Fq 'externalRuntimeProviders.execute(' "$rapp_host_source" || {
+  echo 'Builder generic RAPP runtime-provider dispatch missing.' >&2
+  exit 1
+}
+if grep -Eq 'com\.codynex\.editor|com\.riftpp\.editor' "$runtime_provider_source"; then
+  echo 'Builder generic runtime provider regained project-specific package identity.' >&2
+  exit 1
+fi
+
 # C0.2: RiftOS owns generic platform services, not mirrored editor payloads.
 manifest_contract="android/app/src/main/AndroidManifest.xml"
+grep -Fq '<action android:name="com.riftos.runtime.EXECUTE_V1" />' "$manifest_contract" || {
+  echo 'Builder generic runtime provider Android query action missing.' >&2
+  exit 1
+}
 riftos_main_activity="android/app/src/main/java/com/riftos/app/MainActivity.kt"
 native_shell="android/app/src/main/java/com/riftos/app/RiftNativeShell.kt"
 riftbuild_capability_source="android/app/src/main/java/com/riftos/app/RiftLocalBuildCapability.kt"
@@ -446,6 +481,7 @@ for required_riftbuild_gradle_source in \
   '"src/main/java/com/riftos/app/RiftBuildManagedToolchains.kt"' \
   '"src/main/java/com/riftos/app/RiftManagedJvmToolService.kt"' \
   '"src/main/java/com/riftos/app/RiftNativeBufferCompilerService.kt"' \
+  '"src/main/java/com/riftos/app/RiftExternalRuntimeProviders.kt"' \
   'sourceSets["main"].jniLibs.directories.add("build/generated/riftosJniLibs")' \
   'syncRiftBuildKotlinToolchain' \
   'generated/riftosAssets/riftbuild/kotlin-toolchain' \

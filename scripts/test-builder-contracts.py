@@ -26,6 +26,26 @@ for task in (
 ):
     require(BUILD, task, "dedicated Gradle validation")
 
+# C0.2.5 generic installed runtime-provider contract; NEVER bake in an
+# editor/QuickJS package or mark a provider ready without signer validation.
+for marker in (
+    "riftos-runtime-providers/1",
+    "riftos-runtime-exec/1",
+    "com.riftos.runtime.EXECUTE_V1",
+    "riftos.runtime.provider/1",
+    "GET_SIGNING_CERTIFICATES",
+    "verifyInstalled(",
+    "bindService(",
+    "?: return fallback()",
+    "externalRuntimeProviders.execute(",
+    "Builder generic runtime provider source is missing.",
+):
+    require(BUILD, marker, "C0.2.5 generic runtime provider preflight")
+for marker in ("'riftos-runtime-providers/1'", "'riftos-runtime-exec/1'",
+               "'riftos-runtime-status/1'", "'runtime-status'",
+               "external runtime provider visibility is absent"):
+    require(VERIFY, marker, "C0.2.5 signed APK runtime-provider proof")
+
 # C0.2: no mirrored application/editor descriptor derivation remains.
 for source_namespace in ("com\\/riftpp\\/editor", "com\\/riftpp\\/apphost", "com\\/codynex"):
     forbid(BUILD, source_namespace, "mirrored editor source derivation")

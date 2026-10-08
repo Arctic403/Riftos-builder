@@ -55,6 +55,12 @@ Compiler authority remains external to RiftOS recipes. The generic registry can 
 
 Long generic compiler operations use persistent RiftShell jobs. `rift_shell_exec` auto-submits supported long operations such as `compiler-run` and `jvm-dex`, with bounded submit/status/result/cancel/list lifecycle. Retired `kotlin-compile`, native clang compile/prep, embedded `pack`, and embedded `sign` commands are not part of the live shell surface.
 
+## C0.2.5 external runtime-provider migration
+
+RiftOS now sources the generic `RiftExternalRuntimeProviders` registry and signer-pinned Binder execution boundary; the external installed package advertises `com.riftos.runtime.EXECUTE_V1`. Builder requires source, Gradle reachability, manifest query visibility and final signed-DEX proof. Runtime provider registration is a separate platform installation gate, not language-specific Builder logic. `riftbuild runtime-status` is the read-only diagnostic.
+
+**Important:** This is migration gate A only. Standalone QuickJS provider APK/installation, external shell runtime migration and deleting `quickjs-kt` from the OS APK have NOT been promoted. The existing RAPP fallback and compiler tooling remain for the next manual device build. No independent provider is marked ready without a pinned signer certificate.
+
 ## Rift++ editor boundary
 
 **C0.2:** RiftOS no longer compiles or packages mirrored Rift++ and Codynex editor classes or their native JNI bridges. Builder enforces absence of those project-specific Kotlin sources, Gradle SHA-lock tasks, DEX descriptors and libraries. The standalone Rift++ editor remains independently maintained and owns its canonical compile → preflight → pack/sign pipeline; this cleanup does not modify that editor.

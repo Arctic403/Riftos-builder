@@ -193,6 +193,13 @@ if grep -Eq 'CodynexCompilerProvider|com\.riftos\.app\.codynexcompiler|com\.cody
   echo 'APK smoke check failed: retired Codynex provider/LR0 manifest authority resurfaced.' >&2
   exit 1
 fi
+# C0.2.5: Android must permit discovery of installed generic runtime services
+# without hardcoding any particular language/runtime provider package.
+if ! grep -Fq 'com.riftos.runtime.EXECUTE_V1' <<<"$manifest_tree"; then
+  echo 'APK smoke check failed: external runtime provider visibility is absent.' >&2
+  exit 1
+fi
+
 # C0.2: no project editor package dependency is baked into the OS manifest.
 for editor_package in 'com.riftpp.editor' 'com.codynex.editor'; do
   if grep -Fq "$editor_package" <<<"$manifest_tree"; then
@@ -303,6 +310,11 @@ for marker in \
   'riftos.rapp-project/1' \
   'riftos.rapp/1' \
   'riftos-app-abi/1' \
+  'riftos-runtime-providers/1' \
+  'riftos-runtime-exec/1' \
+  'riftos-runtime-status/1' \
+  'riftos.runtime.provider/1' \
+  'runtime-status' \
   'riftpp-rws2-rui3-v1' \
   'riftpp-generic-v1' \
   'Generic Rift++ response magic is invalid' \
