@@ -118,6 +118,22 @@ for marker in (
 ):
     require(VERIFY, marker, "C1.4-A signed Core admin policy schema")
 
+# C1.4-B: exact signer- and caller-bound Core admin approval is
+# ephemeral, single-use, visually confirmed and has zero real side effects.
+for marker in (
+    "Builder C1.4-B mandatory Core/native UI source missing:",
+    "Builder C1.4-B mandatory Gradle source missing:",
+    "Builder C1.4-B exact signed process + ephemeral ticket guard missing:",
+    "Builder C1.4-B durable Core ticket audit missing:",
+    "Builder C1.4-B authenticated Core consent IPC missing:",
+    "Builder C1.4-B native user consent lifecycle missing:",
+    "Builder C1.4-B Core admin ticket introspection missing",
+    "Builder C1.4-B Core token revocation on shell process restart missing",
+):
+    require(BUILD, marker, "C1.4-B trusted Core admin consent-only source gate")
+require(VERIFY, "'riftos.core.admin-consent/1'",
+        "C1.4-B signed Core ephemeral admin-consent schema")
+
 # C1.3-B: only validated, independent remote proof process may terminate itself.
 for marker in [
     "Builder C1.3-B remote-only process-loss guard missing:",

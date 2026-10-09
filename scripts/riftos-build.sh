@@ -593,6 +593,67 @@ for marker in 'RiftCoreSystemCapabilities.recordDenied(' \
   }
 done
 
+# C1.4-B: trusted native graphical one-use administrator consent
+# lives in Core and performs ZERO privileged effects in this gate.
+admin_tickets_src="android/app/src/main/java/com/riftos/app/RiftCoreAdminConsent.kt"
+admin_ui_src="android/app/src/main/java/com/riftos/app/RiftNativeAdminApprovals.kt"
+for source in "$admin_tickets_src" "$admin_ui_src"; do
+  test -f "$source" || {
+    echo "Builder C1.4-B mandatory Core/native UI source missing: $source" >&2; exit 1;
+  }
+  filename="${source##*/}"
+  grep -Fq "\"src/main/java/com/riftos/app/$filename\"" "$gradle_contract" || {
+    echo "Builder C1.4-B mandatory Gradle source missing: $filename" >&2; exit 1;
+  }
+done
+for marker in 'const val SCHEMA = "riftos.core.admin-consent/1"' \
+  'private const val TTL_MS = 45_000L' \
+  'private const val MAX_TICKETS = 8' \
+  'SecureRandom()' \
+  'Binder.getCallingPid() == pid' \
+  'manager.runningAppProcesses?.any' \
+  'PackageManager.GET_SIGNING_CERTIFICATES' \
+  'context.packageName + ":riftShell"' \
+  'fun revokeForShellReplacement(' \
+  'fun consumeProof(' \
+  '"grantPersistence", "none"' \
+  'executedPrivilegedEffect'; do
+  grep -Fq "$marker" "$admin_tickets_src" || {
+    echo "Builder C1.4-B exact signed process + ephemeral ticket guard missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'fun recordDecision(' \
+  '"requested", "approved", "denied", "revoked", "expired", "consumed"'; do
+  grep -Fq "$marker" "$core_system_policy_src" || {
+    echo "Builder C1.4-B durable Core ticket audit missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'METHOD_SHELL_ADMIN_CONSENT' \
+  'RiftCoreAdminConsent.consumeProof(' \
+  'RiftCoreAdminConsent.request(ctx, caller, operation, target)'; do
+  grep -Fq "$marker" "$shell_core_ipc_src" || {
+    echo "Builder C1.4-B authenticated Core consent IPC missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'RiftOS administrator approvals' \
+  'activity.hasWindowFocus()' \
+  '.setPositiveButton("Allow once")' \
+  '.setNegativeButton("Deny")' \
+  '.setNeutralButton("Cancel")' \
+  'Consume once — no privileged effect' \
+  'Revoke current approval'; do
+  grep -Fq "$marker" "$admin_ui_src" || {
+    echo "Builder C1.4-B native user consent lifecycle missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq '"adminConsent", RiftCoreAdminConsent.status(context)' \
+  "android/app/src/main/java/com/riftos/app/RiftCoreRuntime.kt" || {
+  echo 'Builder C1.4-B Core admin ticket introspection missing' >&2; exit 1;
+}
+grep -Fq 'RiftCoreAdminConsent.revokeForShellReplacement(' "$shell_recovery_src" || {
+  echo 'Builder C1.4-B Core token revocation on shell process restart missing' >&2; exit 1;
+}
+
 # C1.1-B2-A: Core owns bounded event FIFO; desktop owns UI callbacks only.
 for marker in 'data class EventTicket(' 'MAX_PENDING_EVENTS = 64' \
   'MAX_PENDING_EVENT_BYTES = 1024 * 1024' \
