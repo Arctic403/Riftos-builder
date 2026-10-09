@@ -50,6 +50,30 @@ for marker in [
     require(BUILD, marker, "C1.2-C1 Core-owned RAPP lifecycle")
 require(VERIFY, "'riftos.core.apps/1'", "C1.2-C1 signed lifecycle schema")
 
+# C1.3-D: production desktop and graphical RAPP renderer leave Core.
+for marker in (
+    "Builder C1.3-D mandatory production shell source missing:",
+    "Builder C1.3-D Gradle mandatory source missing:",
+    "Builder C1.3-D real separate-shell launch manifest missing:",
+    "Builder C1.3-D real graphical shell missing:",
+    "Builder C1.3-D remote UI regained Core execution:",
+    "Builder C1.3-D remote surface/input path missing:",
+    "Builder C1.3-D Core IPC identity/input authorization missing:",
+    "Builder C1.3-D remote Core ticket ownership missing:",
+    "Builder C1.3-D remote UI consent/effect missing:",
+    "Builder C1.3-D MCP-to-remote-desktop bridge missing:",
+    "Builder C1.3-D Core-first RAPP remote presentation queue missing",
+    "Builder C1.3-D separate Android WebView process data directory missing",
+):
+    require(BUILD, marker, "C1.3-D actual process-separated desktop and Core IPC")
+for marker in (
+    "'riftos.core.shell-control/1'",
+    "'riftos.core.shell-ui/1'",
+    "'riftos.shell.desktop-ipc/1'",
+    "'riftos.shell.event/1'",
+):
+    require(VERIFY, marker, "C1.3-D installed signed DEX separate-process IPC")
+
 # C1.3-B: only validated, independent remote proof process may terminate itself.
 for marker in [
     "Builder C1.3-B remote-only process-loss guard missing:",

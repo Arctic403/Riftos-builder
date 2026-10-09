@@ -387,6 +387,95 @@ for forbidden in 'coreSessions.attach(' 'coreSessions.detach(' 'coreSessions.clo
   fi
 done
 
+# C1.3-D: real desktop/window manager/RAPP UI launched from :riftShell,
+# while executable app/Core state, MCP relay and capabilities stay in Core.
+shell_activity_src="android/app/src/main/java/com/riftos/app/RiftShellActivity.kt"
+shell_rapp_src="android/app/src/main/java/com/riftos/app/RiftShellRappHost.kt"
+shell_ipc_client_src="android/app/src/main/java/com/riftos/app/RiftShellCoreClient.kt"
+shell_ui_client_src="android/app/src/main/java/com/riftos/app/RiftRemoteShellUiClient.kt"
+shell_core_ipc_src="android/app/src/main/java/com/riftos/app/RiftCoreSurfaceIpcProvider.kt"
+shell_ui_broker_src="android/app/src/main/java/com/riftos/app/RiftCoreShellRemoteUiBroker.kt"
+shell_window_bridge_src="android/app/src/main/java/com/riftos/app/RiftCoreShellWindowBridge.kt"
+shell_launch_queue_src="android/app/src/main/java/com/riftos/app/RiftCoreShellLaunchQueue.kt"
+for source in "$shell_activity_src" "$shell_rapp_src" "$shell_ipc_client_src" \
+  "$shell_ui_client_src" "$shell_core_ipc_src" "$shell_ui_broker_src" \
+  "$shell_window_bridge_src" "$shell_launch_queue_src" \
+  "android/app/src/main/java/com/riftos/app/RiftRemoteShellExecutor.kt"; do
+  test -f "$source" || {
+    echo "Builder C1.3-D mandatory production shell source missing: $source" >&2; exit 1;
+  }
+  name="${source##*/}"
+  grep -Fq "\"src/main/java/com/riftos/app/$name\"" "$gradle_contract" || {
+    echo "Builder C1.3-D Gradle mandatory source missing: $name" >&2; exit 1;
+  }
+done
+for marker in 'android:name=".RiftShellActivity"' 'android:process=":riftShell"' \
+  'android.intent.action.MAIN' 'android.intent.category.LAUNCHER' \
+  'android:name=".RiftRemoteShellProbeActivity"' 'android:process=":riftShellProbe"'; do
+  grep -Fq "$marker" "$manifest_contract" || {
+    echo "Builder C1.3-D real separate-shell launch manifest missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'RiftNativeDesktop(' 'RiftNativeSystemApps(' \
+  'RiftNativeWorkspaceApps(' 'RiftBrowserAppHost(' 'RiftShellRappHost(' \
+  'RiftRemoteShellUiClient(' 'core.reportDesktop(state)'; do
+  grep -Fq "$marker" "$shell_activity_src" || {
+    echo "Builder C1.3-D real graphical shell missing: $marker" >&2; exit 1;
+  }
+done
+for forbidden in 'RiftCoreRuntime.' 'RiftCoreAppExecutor(' \
+  'RiftMcpRuntime.relayClient('; do
+  if grep -Fq "$forbidden" "$shell_activity_src" || \
+    grep -Fq "$forbidden" "$shell_rapp_src"; then
+    echo "Builder C1.3-D remote UI regained Core execution: $forbidden" >&2; exit 1;
+  fi
+done
+for marker in 'core.installed()' 'core.start(id)' 'core.snapshot(id)' \
+  'core.offerEvent(session.id, session.generation, event)' \
+  'core.stop(id, session.generation)' 'RiftRappAbsoluteView('; do
+  grep -Fq "$marker" "$shell_rapp_src" || {
+    echo "Builder C1.3-D remote surface/input path missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'Binder.getCallingUid()' 'Binder.getCallingPid()' \
+  'uid == ctx.applicationInfo.uid' 'pid != Process.myPid()' \
+  'ctx.packageName + ":riftShell"' \
+  'RiftCoreRuntime.lifecycle(ctx).offerEvent(id, generation, event)' \
+  'RiftCoreShellRemoteUiBroker.respond(' \
+  'RiftCoreShellWindowBridge.report('; do
+  grep -Fq "$marker" "$shell_core_ipc_src" || {
+    echo "Builder C1.3-D Core IPC identity/input authorization missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'RiftCoreShellCapabilityRequests.respondConsent(' \
+  'RiftCoreShellCapabilityRequests.respondUiEffect(' \
+  'private const val MAX_QUEUE = 64'; do
+  grep -Fq "$marker" "$shell_ui_broker_src" || {
+    echo "Builder C1.3-D remote Core ticket ownership missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'ipc.respondConsent(' 'ipc.respondEffect(' \
+  'AlertDialog.Builder(activity)' 'dispatchCommand(method, arg)'; do
+  grep -Fq "$marker" "$shell_ui_client_src" || {
+    echo "Builder C1.3-D remote UI consent/effect missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'RiftCoreShellWindowBridge.status()' \
+  'RiftCoreShellWindowBridge.offer("close", id)' \
+  'RiftCoreShellWindowBridge.offer("open", id)'; do
+  grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/RiftNativeShell.kt" || {
+    echo "Builder C1.3-D MCP-to-remote-desktop bridge missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq 'RiftCoreShellLaunchQueue.offer(id)' \
+  "android/app/src/main/java/com/riftos/app/RiftRappManager.kt" || {
+  echo 'Builder C1.3-D Core-first RAPP remote presentation queue missing' >&2; exit 1;
+}
+grep -Fq 'WebView.setDataDirectorySuffix("riftShell")' \
+  "android/app/src/main/java/com/riftos/app/RiftCoreApplication.kt" || {
+  echo 'Builder C1.3-D separate Android WebView process data directory missing' >&2; exit 1;
+}
+
 # C1.1-B2-A: Core owns bounded event FIFO; desktop owns UI callbacks only.
 for marker in 'data class EventTicket(' 'MAX_PENDING_EVENTS = 64' \
   'MAX_PENDING_EVENT_BYTES = 1024 * 1024' \
