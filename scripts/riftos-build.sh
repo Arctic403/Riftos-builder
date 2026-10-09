@@ -628,6 +628,17 @@ for marker in 'fun recordDecision(' \
     echo "Builder C1.4-B durable Core ticket audit missing: $marker" >&2; exit 1;
   }
 done
+# User Builder C1.4-B Kotlin release fix: JSONObject.getString returns
+# nullable String? in Kotlin; normalize each before bounded access.
+for marker in 'val bearer = request.getString("ticket").orEmpty()' \
+  'require(bearer.length <= 64)' \
+  'val operation = request.getString("operation").orEmpty()' \
+  'val target = request.getString("target").orEmpty()' \
+  'require(operation.length <= 64 && target.length <= 128)'; do
+  grep -Fq "$marker" "$shell_core_ipc_src" || {
+    echo "Builder C1.4-B Kotlin nullable admin request parsing missing: $marker" >&2; exit 1;
+  }
+done
 for marker in 'METHOD_SHELL_ADMIN_CONSENT' \
   'RiftCoreAdminConsent.consumeProof(' \
   'RiftCoreAdminConsent.request(ctx, caller, operation, target)'; do

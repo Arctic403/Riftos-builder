@@ -126,6 +126,7 @@ for marker in (
     "Builder C1.4-B exact signed process + ephemeral ticket guard missing:",
     "Builder C1.4-B durable Core ticket audit missing:",
     "Builder C1.4-B authenticated Core consent IPC missing:",
+    "Builder C1.4-B Kotlin nullable admin request parsing missing:",
     "Builder C1.4-B native user consent lifecycle missing:",
     "Builder C1.4-B Core admin ticket introspection missing",
     "Builder C1.4-B Core token revocation on shell process restart missing",
