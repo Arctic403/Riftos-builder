@@ -335,6 +335,7 @@ for marker in \
   'riftos.shell.client.graphical/1' \
   'riftos.core.surface-ipc/1' \
   'riftos.core.shell-control/1' \
+  'riftos.core.shell-recovery/1' \
   'riftos.core.shell-ui/1' \
   'riftos.shell.desktop-ipc/1' \
   'riftos.shell.event/1' \

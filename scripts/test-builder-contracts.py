@@ -84,6 +84,24 @@ for marker in (
 ):
     require(VERIFY, marker, "C1.3-D installed signed DEX separate-process IPC")
 
+# C1.3-E: real graphical process crash/restart, Core-owned bounded
+# watchdog and no-BOOT generation-scoped desktop reconstruction.
+for marker in (
+    "Builder C1.3-E mandatory Core-owned recovery source missing:",
+    "Builder C1.3-E Android mandatory source missing:",
+    "Builder C1.3-E default Core recovery watchdog missing:",
+    "Builder C1.3-E real Core-owned bounded recovery guard missing:",
+    "Builder C1.3-E authenticated recovery Core IPC missing:",
+    "Builder C1.3-E forbidden Core RAPP reboot on recovery:",
+    "Builder C1.3-E real desktop restore path missing:",
+    "Builder C1.3-E same-generation graphical reattach missing:",
+    "Builder C1.3-E native window geometry restore method missing",
+    "Builder C1.3-E guarded real process death QA proof missing",
+):
+    require(BUILD, marker, "C1.3-E real production shell recovery and Core-state continuity")
+require(VERIFY, "'riftos.core.shell-recovery/1'",
+        "C1.3-E signed Core-owned remote shell recovery schema")
+
 # C1.3-B: only validated, independent remote proof process may terminate itself.
 for marker in [
     "Builder C1.3-B remote-only process-loss guard missing:",

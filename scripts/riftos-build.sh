@@ -485,6 +485,76 @@ for browser_marker in 'fun prepareRemoteShellWebViewDirectory()' \
   }
 done
 
+# C1.3-E independently gated: Core-owned, bounded recovery of the ACTUAL
+# graphical :riftShell PID. A replacement must never BOOT a Core RAPP again.
+shell_recovery_src="android/app/src/main/java/com/riftos/app/RiftCoreShellRecovery.kt"
+core_lifecycle_qa_src="android/app/src/main/java/com/riftos/app/RiftVortexLocalAgent.kt"
+for source in "$shell_recovery_src" "$core_lifecycle_qa_src"; do
+  test -f "$source" || {
+    echo "Builder C1.3-E mandatory Core-owned recovery source missing: $source" >&2; exit 1;
+  }
+  basename="${source##*/}"
+  grep -Fq "\"src/main/java/com/riftos/app/$basename\"" "$gradle_contract" || {
+    echo "Builder C1.3-E Android mandatory source missing: $basename" >&2; exit 1;
+  }
+done
+for marker in 'RiftCoreShellRecovery.initialize(this)' \
+  'RiftMcpRuntime.relayClient(this).start()'; do
+  grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/RiftCoreApplication.kt" || {
+    echo "Builder C1.3-E default Core recovery watchdog missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'const val SCHEMA = "riftos.core.shell-recovery/1"' \
+  'private const val MAX_ATTEMPTS = 3' \
+  'private const val ATTEMPT_COOLDOWN_MS = 5_000L' \
+  'it.processName == context.packageName + ":riftShell"' \
+  'context.startActivity(intent)' \
+  'RiftCoreRuntime.sessions(context).requestFocusFromShell(null)' \
+  'fun claim(pid: Int, context: Context)' \
+  'Process.killProcess(old)' \
+  'disposableId == "c12b2a-input-probe-20261008"' \
+  'now - connectedSince >= 15_000L'; do
+  grep -Fq "$marker" "$shell_recovery_src" || {
+    echo "Builder C1.3-E real Core-owned bounded recovery guard missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'METHOD_SHELL_RECOVERY_CLAIM' 'METHOD_SHELL_REATTACH' \
+  'RiftCoreShellRecovery.claim(' \
+  'RiftCoreShellRecovery.noteReport(' \
+  'reattachForShell(id, expected)'; do
+  grep -Fq "$marker" "$shell_core_ipc_src" || {
+    echo "Builder C1.3-E authenticated recovery Core IPC missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'fun reattachForShell(id: String, expectedGeneration: Long)' \
+  'Recovery cannot BOOT a stopped app'; do
+  grep -Fq "$marker" "$core_lifecycle_source" || {
+    echo "Builder C1.3-E forbidden Core RAPP reboot on recovery: $marker" >&2; exit 1;
+  }
+done
+for marker in 'core.claimRecovery()' \
+  'restoreDesktopWindows(restorePlan)' \
+  'rapps.openFromRecovery(id, gen)' \
+  'desktop.window.recoverBounds' \
+  'riftShellForeground'; do
+  grep -Fq "$marker" "$shell_activity_src" || {
+    echo "Builder C1.3-E real desktop restore path missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'fun openFromRecovery(id: String, generation: Long)' \
+  'core.reattach(id, recoveryGeneration)'; do
+  grep -Fq "$marker" "$shell_rapp_src" || {
+    echo "Builder C1.3-E same-generation graphical reattach missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq '"desktop.window.recoverBounds" -> recoverBounds(args)' \
+  "android/app/src/main/java/com/riftos/app/RiftNativeDesktop.kt" || {
+  echo "Builder C1.3-E native window geometry restore method missing" >&2; exit 1;
+}
+grep -Fq 'kill-real-riftshell-process-proof' "$core_lifecycle_qa_src" || {
+  echo "Builder C1.3-E guarded real process death QA proof missing" >&2; exit 1;
+}
+
 # C1.1-B2-A: Core owns bounded event FIFO; desktop owns UI callbacks only.
 for marker in 'data class EventTicket(' 'MAX_PENDING_EVENTS = 64' \
   'MAX_PENDING_EVENT_BYTES = 1024 * 1024' \
