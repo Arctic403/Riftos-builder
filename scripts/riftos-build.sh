@@ -491,7 +491,7 @@ for marker in 'sessions.offerEvent(entry.attachment, event)' 'sessions.finishEve
     echo "Builder C1.3-C Core queue driver missing: $marker" >&2; exit 1;
   }
 done
-if grep -Eq 'val pendingEvents =|var eventBusy:|data class PendingEvent\\(' "$rapp_host_source"; then
+if grep -Eq 'val pendingEvents =|var eventBusy:|data class PendingEvent\(' "$rapp_host_source"; then
   echo 'Builder C1.1-B2-A desktop regained Core event queue authority.' >&2
   exit 1
 fi
@@ -1260,7 +1260,7 @@ for marker in 'class RiftCoreAppExecutor' 'RiftBoundedAsync.submit(' \
     exit 1
   }
 done
-if grep -Eq 'RiftRappQuickJsExecutor\\(|RiftBoundedAsync\\.submit\\(|RiftNativeBufferCompilerService\\.compile\\(' "$riftapp_host_source"; then
+if grep -Eq 'RiftRappQuickJsExecutor\(|RiftBoundedAsync\.submit\(|RiftNativeBufferCompilerService\.compile\(' "$riftapp_host_source"; then
   echo 'Builder C1.1-B1 desktop regained runtime authority.' >&2
   exit 1
 fi

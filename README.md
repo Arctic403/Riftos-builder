@@ -1,5 +1,10 @@
 # Riftos-builder
 
+## C1.3-D initial source-gate failure and correction (2026-10-09)
+
+User-manual Builder run `37886597455` / source `edb53286a09c90d79493417de2ca8e07df8a46a1` failed in `npm run check:transport` at `validate-rift-wiring.mjs:721`: `ReferenceError: Cannot access 'rappManager' before initialization`. The real source error is in RiftOS validator ordering, which now places `rappManager` and `nativeSystemApps` declarations before C1.3-D checks. Two ancillary Builder preflight `grep -E` patterns also carried double backslashes before literal `(` and emitted `grep: Unmatched (`; those are corrected to one backslash in `scripts/riftos-build.sh`. This failed run never reached Kotlin/Gradle, signing or an installed C1.3-D APK. Do NOT alter the user-manual Builder dispatch flow; next manual run should test corrected source and Builder HEAD together, report any next first failure, and only after green signed install begin D device proof. C1.3-E stays untouched.
+
+
 ## 2026-10-09 — C1.3-D production separate-process RiftShell SOURCE CANDIDATE (not built/device-proven)
 
 Last device-promoted gate is **C1.3-C**, user-manual signed Builder #655/RiftOS source `8d7608f`. RiftOS C1.3-D source replaces the actual Android launcher with `RiftShellActivity` in `:riftShell`, hosting `RiftNativeDesktop` taskbar/window manager and browser/native app/RAPP rendering. Generic RAPP BOOT, session generation, state, events, Core capability grants and execution remain in the default Android Core process; `RiftCoreSurfaceIpcProvider` authenticates exact same-UID named shell PID and exposes bounded versioned Binder operations. Remote shell consumes immutable frames, offers generation-bound input and shows Core-issued, single-use permission/effect UI tickets. The source includes native terminal/install delegation, a bounded Core-first app-launch queue, Core read-only remote window state for MCP `ps` and typed `open/kill/browser` commands, Core-owned MCP relay bootstrap, a separate WebView process data directory, and native workspace watcher. The remote `:riftShellProbe` is still read-only and **not** the actual desktop.
