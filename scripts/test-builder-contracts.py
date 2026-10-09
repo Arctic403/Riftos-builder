@@ -102,6 +102,22 @@ for marker in (
 require(VERIFY, "'riftos.core.shell-recovery/1'",
         "C1.3-E signed Core-owned remote shell recovery schema")
 
+# C1.4-A Core default-deny admin foundation is independently gate-checked.
+for marker in (
+    "Builder C1.4-A mandatory Core admin policy source missing",
+    "Builder C1.4-A mandatory Gradle system policy source missing",
+    "Builder C1.4-A system policy deny/audit bound missing:",
+    "Builder C1.4-A Core policy status missing",
+    "Builder C1.4-A RAPP path-escape denial audit missing",
+    "Builder C1.4-A terminal policy/denial audit missing:",
+):
+    require(BUILD, marker, "C1.4-A bounded Core admin policy and denial audit")
+for marker in (
+    "'riftos.core.system-capabilities/1'",
+    "'riftos.core.system-capability-audit/1'",
+):
+    require(VERIFY, marker, "C1.4-A signed Core admin policy schema")
+
 # C1.3-B: only validated, independent remote proof process may terminate itself.
 for marker in [
     "Builder C1.3-B remote-only process-loss guard missing:",

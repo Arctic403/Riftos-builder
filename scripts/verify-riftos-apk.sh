@@ -336,6 +336,8 @@ for marker in \
   'riftos.core.surface-ipc/1' \
   'riftos.core.shell-control/1' \
   'riftos.core.shell-recovery/1' \
+  'riftos.core.system-capabilities/1' \
+  'riftos.core.system-capability-audit/1' \
   'riftos.core.shell-ui/1' \
   'riftos.shell.desktop-ipc/1' \
   'riftos.shell.event/1' \

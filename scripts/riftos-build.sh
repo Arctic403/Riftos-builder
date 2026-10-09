@@ -555,6 +555,44 @@ grep -Fq 'kill-real-riftshell-process-proof' "$core_lifecycle_qa_src" || {
   echo "Builder C1.3-E guarded real process death QA proof missing" >&2; exit 1;
 }
 
+# C1.4-A: default-deny Core system/admin policy foundation; no elevation
+# enabled in this source gate. Existing manual install/sign path unchanged.
+core_system_policy_src="android/app/src/main/java/com/riftos/app/RiftCoreSystemCapabilities.kt"
+test -f "$core_system_policy_src" || {
+  echo 'Builder C1.4-A mandatory Core admin policy source missing' >&2; exit 1;
+}
+grep -Fq '"src/main/java/com/riftos/app/RiftCoreSystemCapabilities.kt"' "$gradle_contract" || {
+  echo 'Builder C1.4-A mandatory Gradle system policy source missing' >&2; exit 1;
+}
+for marker in 'const val SCHEMA = "riftos.core.system-capabilities/1"' \
+  'const val AUDIT_SCHEMA = "riftos.core.system-capability-audit/1"' \
+  '"system.fs.read"' '"system.fs.write"' '"software.install"' \
+  '"runtime.register"' '"process.protected.kill"' \
+  'MAX_ENTRIES = 64' 'MAX_SERIALIZED_BYTES = 24 * 1024' \
+  '"adminElevationEnabled", false' '"defaultDecision", "deny"' \
+  'fun recordDenied(context: Context, actor: String, operation: String)' \
+  'fun requireElevated(' 'throw SecurityException(' \
+  'fun audit(context: Context, limit: Int = 16)' '.commit()'; do
+  grep -Fq "$marker" "$core_system_policy_src" || {
+    echo "Builder C1.4-A system policy deny/audit bound missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq '"systemCapabilities", RiftCoreSystemCapabilities.status(context)' \
+  "android/app/src/main/java/com/riftos/app/RiftCoreRuntime.kt" || {
+  echo 'Builder C1.4-A Core policy status missing' >&2; exit 1;
+}
+grep -Fq 'RiftCoreSystemCapabilities.recordDenied(' \
+  "android/app/src/main/java/com/riftos/app/RiftRappCapabilityBroker.kt" || {
+  echo 'Builder C1.4-A RAPP path-escape denial audit missing' >&2; exit 1;
+}
+for marker in 'RiftCoreSystemCapabilities.recordDenied(' \
+  'RiftCoreSystemCapabilities.status(appContext)' \
+  'RiftCoreSystemCapabilities.audit(appContext)'; do
+  grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/RiftNativeShell.kt" || {
+    echo "Builder C1.4-A terminal policy/denial audit missing: $marker" >&2; exit 1;
+  }
+done
+
 # C1.1-B2-A: Core owns bounded event FIFO; desktop owns UI callbacks only.
 for marker in 'data class EventTicket(' 'MAX_PENDING_EVENTS = 64' \
   'MAX_PENDING_EVENT_BYTES = 1024 * 1024' \
