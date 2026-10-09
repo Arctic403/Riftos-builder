@@ -1,5 +1,11 @@
 # Riftos-builder
 
+## 2026-10-09 — C2-A signed #676 registry transaction failure instrumentation (Builder source-contract update)
+
+USER built/installed #676 source `30bebf009e88`; Core's C2-A safe empty-registry test consumed its exact permission ticket and failed without leaving a registry or pending journal. C2-B1 no-provider discovery passed. The old Core IPC response hid the exact registry error. Updated RiftOS source uses Java NIO create-only hardlink with Android `Os.link` same-security fallback for unsupported Java API/FileSystemException, and adds first-failure-stage/exception-class/errno Core status. Typed `transactionCommitted:false` can be returned only after confirming no live registry, temporary scratch or pending recovery journal. Trusted native UI displays bounded diagnostics, never a false pass. Builder shell preflight checks the non-overwriting publish, journal recovery, safe failure reply and UI marker. **No Builder compilation/signing workflow changes.** New signed user-manual build/physical proof required before declaring C2-A PASS or starting C2-B2. Two RAPPs absent from device count were intentionally uninstalled by user.
+
+
+
 ## 2026-10-09 — User-directed milestone device cadence; C2-B1 read-only provider discovery preflight
 
 User elected SOURCE validation on small RiftOS patches and combined comprehensive **major** C2/C3/C1.5 signed Android checks rather than demanding a fresh device installation for every minor edit. Exceptions: early real-device checks whenever Android-specific Binder/service, process recovery, installer, privileged filesystem or rollback feasibility/safety depends on actual Android behavior. The user exclusively triggers manual Builder and installs signed APKs; builder scripts remain the canonical compile/preflight/sign/verify pipeline, and SOURCE PASS never implies BUILD or DEVICE PASS.

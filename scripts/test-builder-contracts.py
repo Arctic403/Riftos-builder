@@ -167,8 +167,19 @@ for marker in (
     require(BUILD, marker, "C1.4-C2-A reversible, no-provider registry proof")
 require(VERIFY, "'riftos.core.admin-registry-proof/1'",
         "C1.4-C2-A signed APK registry proof schema")
+# C2-A #676 failed after ticket consumption; fail-closed Android publication
+# fallback and truthful error reporting are mandatory, not just UI prose.
+for marker in (
+    "'android.system.Os.link(scratch.absolutePath, target.absolutePath)'",
+    "'\"lastFailureErrno\", lastFailureErrno'",
+    "'\"pathStatusAvailable\", files != null'",
+    "'diagnostic.optBoolean(\"temporaryRegistryExists\", true)'",
+    "'Core C2-A registry transaction FAILED at $stage ($kind)'",
+):
+    require(BUILD, marker, "C1.4-C2-A no-overwrite fallback and bounded failure state")
 
-# C1.3-B: only validated, independent remote proof process may terminate itself.# C1.4-C2-B1 read-only installed runtime discovery remains source-only
+# C1.3-B: only validated, independent remote proof process may terminate itself.
+# C1.4-C2-B1 read-only installed runtime discovery remains source-only
 # until C2-A + C2-B2 are integrated and physically accepted as ONE C2 milestone.
 for marker in (
     "Builder C1.4-C2-B1 installed provider discovery guard missing:",

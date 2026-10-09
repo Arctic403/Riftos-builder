@@ -752,6 +752,12 @@ for marker in 'const val SCHEMA = "riftos.core.admin-registry-proof/1"' \
   'prefs.edit().putBoolean(PENDING, true)' \
   'stream.fd.sync()' \
   'java.nio.file.Files.createLink(target.toPath(), scratch.toPath())' \
+  'android.system.Os.link(scratch.absolutePath, target.absolutePath)' \
+  'transactionFailureStage = stage' \
+  '"pathStatusAvailable", files != null' \
+  '"temporaryRegistryExists", files?.second?.exists() ?: true' \
+  '"lastFailureStage", lastFailureStage' \
+  '"lastFailureErrno", lastFailureErrno' \
   'published.getJSONArray("providers").length() == 0' \
   '.remove(PENDING).remove(DIR_CREATED).commit()' \
   '"providerRegistered", false' \
@@ -764,7 +770,13 @@ done
 for marker in 'RiftCoreAdminRegistryProof.OPERATION' \
   'fun executeRegistryProof(' \
   'RiftCoreAdminRegistryProof.writeAndRollback(context)' \
-  '"isolated-registry-proof"'; do
+  '"isolated-registry-proof"' \
+  'diagnostic.optBoolean("pendingJournal", true)' \
+  'diagnostic.optBoolean("registryExists", true)' \
+  'diagnostic.optBoolean("temporaryRegistryExists", true)' \
+  '.put("transactionCommitted", false)' \
+  '.put("failureStage", diagnostic.optString("lastFailureStage", "unknown"))' \
+  '.put("failureErrno", diagnostic.optInt("lastFailureErrno", 0))'; do
   grep -Fq "$marker" "$admin_tickets_src" || {
     echo "Builder C1.4-C2-A exact one-use Core ticket missing: $marker" >&2; exit 1;
   }
@@ -776,7 +788,8 @@ for marker in '"execute-registry-proof" -> RiftCoreAdminConsent.executeRegistryP
 done
 for marker in 'Select isolated runtime registry proof scope' \
   'Execute Core empty registry and rollback once' \
-  'client.adminConsent("execute-registry-proof"'; do
+  'client.adminConsent("execute-registry-proof"' \
+  'Core C2-A registry transaction FAILED at $stage ($kind)'; do
   grep -Fq "$marker" "$admin_ui_src" || {
     echo "Builder C1.4-C2-A native Core registry consent/rollback UI missing: $marker" >&2; exit 1;
   }
