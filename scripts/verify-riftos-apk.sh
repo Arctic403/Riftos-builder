@@ -338,6 +338,8 @@ for marker in \
   'rift-core-rapp-event' \
   'eventExecutorOwner' \
   'eventQueueOwner' \
+  'eventDispatchOwner' \
+  'fullAppExecutionIndependentOfDesktop' \
   'headlessExecution' \
   'appExecutionIndependentOfDesktop' \
   'riftos.runtime.provider/1' \

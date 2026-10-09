@@ -339,7 +339,7 @@ grep -Fq 'android:name=".RiftCoreApplication"' "$manifest_contract" || {
 for core_marker in 'object RiftCoreRuntime' 'fun packages(context: Context)' \
   'fun runtimes(context: Context)' 'fun buildPlatform(context: Context)' \
   'riftos.core.status/1' '"desktopRequired", false' \
-  '"appExecutionIndependentOfDesktop", false'; do
+  '"appExecutionIndependentOfDesktop", true'; do
   grep -Fq "$core_marker" "$core_runtime_source" || {
     echo "Builder C1.0 core contract missing: $core_marker" >&2; exit 1;
   }
@@ -364,20 +364,27 @@ grep -Fq '"src/main/java/com/riftos/app/RiftCoreAppSessions.kt"' android/app/bui
   exit 1
 }
 for marker in 'riftos.core.sessions/1' 'fun nextEventSequence()' \
-  'fun detach(attachment: Attachment)' '"headlessExecution", false'; do
+  'fun detach(attachment: Attachment)' '"headlessExecution", true'; do
   grep -Fq "$marker" "$core_sessions_source" || {
     echo "Builder C1.1 Core session ABI missing: $marker" >&2
     exit 1
   }
 done
-for marker in 'coreSessions.attach(payload, adapter)' \
-  'coreSessions.detach(it.coreAttachment)' \
-  'coreSessions.close(session.coreAttachment)' \
-  'coreExecutor.executeChained('; do
-  grep -Fq "$marker" "$rapp_host_source" || {
-    echo "Builder C1.1 RAPP UI/Core attachment contract missing: $marker" >&2
-    exit 1
+core_lifecycle_source="android/app/src/main/java/com/riftos/app/RiftCoreAppLifecycle.kt"
+for marker in 'fun openForShell(id: String): JSONObject = start(id)' 'fun offerEvent(id: String, generation: Long, event: RiftAppAbi.Event)' 'private fun dispatch(entry: Entry, ticket: RiftCoreAppSessions.EventTicket)' 'executor.executeChained('; do
+  grep -Fq "$marker" "$core_lifecycle_source" || {
+    echo "Builder C1.3-C Core execution ownership missing: $marker" >&2; exit 1;
   }
+done
+for marker in 'coreLifecycle.openForShell(id)' 'coreLifecycle.offerEvent(session.id, session.generation, event)' 'coreSurfaces.subscribe { change ->' 'coreSurfaces.unsubscribe(surfaceSubscription)'; do
+  grep -Fq "$marker" "$rapp_host_source" || {
+    echo "Builder C1.3-C presentation client missing: $marker" >&2; exit 1;
+  }
+done
+for forbidden in 'coreSessions.attach(' 'coreSessions.detach(' 'coreSessions.close(' 'coreSessions.offerEvent(' 'coreSessions.finishEvent(' 'coreExecutor.executeChained(' 'dispatchCoreEvent(' 'RiftAppAbi.RuntimePayload('; do
+  if grep -Fq "$forbidden" "$rapp_host_source"; then
+    echo "Builder C1.3-C desktop regained execution: $forbidden" >&2; exit 1;
+  fi
 done
 
 # C1.1-B2-A: Core owns bounded event FIFO; desktop owns UI callbacks only.
@@ -390,11 +397,9 @@ for marker in 'data class EventTicket(' 'MAX_PENDING_EVENTS = 64' \
     echo "Builder C1.1-B2-A Core event queue missing: $marker" >&2; exit 1;
   }
 done
-for marker in 'coreSessions.offerEvent(session.coreAttachment, event)' \
-  'coreSessions.finishEvent(session.coreAttachment, ticket)' \
-  'pendingUiCompletions' 'dispatchCoreEvent(session, offered.ticket)'; do
-  grep -Fq "$marker" "$rapp_host_source" || {
-    echo "Builder C1.1-B2-A UI ticket dispatch missing: $marker" >&2; exit 1;
+for marker in 'sessions.offerEvent(entry.attachment, event)' 'sessions.finishEvent(entry.attachment, ticket)' 'sessions.authorizeQueuedEventDispatch(entry.attachment, ticket)'; do
+  grep -Fq "$marker" "$core_lifecycle_source" || {
+    echo "Builder C1.3-C Core queue driver missing: $marker" >&2; exit 1;
   }
 done
 if grep -Eq 'val pendingEvents =|var eventBusy:|data class PendingEvent\\(' "$rapp_host_source"; then
@@ -502,22 +507,16 @@ grep -Fq '.put("coreApps", lifecycle(context).status())' \
   echo 'Builder C1.2-C1 Core lifecycle health missing' >&2; exit 1;
 }
 
-# C1.2-C2: attaching RiftShell to Core-running app preserves its
-# generation and immutable surface; it must never duplicate BOOT.
-for marker in 'fun claimForShell(' \
-  'sessions.matchesExecution(entry.attachment, payload, adapter)' \
-  'surface.attachmentGeneration == entry.attachment.token' \
-  'return entry.attachment'; do
+# C1.3-C: shell presentation reuses Core generation and published surface;
+# unlike the retired C2 claim, this never transfers execution out of Core.
+for marker in 'return entryJson(prior).put("accepted", false)' 'fun openForShell(id: String): JSONObject = start(id)' 'sessions.close(entry.attachment)'; do
   grep -Fq "$marker" "$core_lifecycle_source" || {
-    echo "Builder C1.2-C2 Core attachment transfer missing: $marker" >&2; exit 1;
+    echo "Builder C1.3-C Core-running app reuse missing: $marker" >&2; exit 1;
   }
 done
-for marker in '.claimForShell(payload, adapter)' \
-  'val attachment = claimed ?: coreSessions.attach(payload, adapter)' \
-  'if (claimed != null) {' \
-  'desktop.attachContent(id, render(session, published.frame))'; do
+for marker in 'coreLifecycle.openForShell(id)' 'state.getLong("attachmentGeneration")' 'it.attachmentGeneration == session.generation'; do
   grep -Fq "$marker" "$riftapp_host_source" || {
-    echo "Builder C1.2-C2 shell attachment consumer missing: $marker" >&2; exit 1;
+    echo "Builder C1.3-C shell surface attach missing: $marker" >&2; exit 1;
   }
 done
 
@@ -644,9 +643,8 @@ for marker in 'val admittedFocusRevision: Long? = null' \
     echo "Builder B2-B2 focused input queue guard missing: $marker" >&2; exit 1;
   }
 done
-grep -Fq 'coreSessions.authorizeQueuedEventDispatch(session.coreAttachment, ticket)' \
-  "$riftapp_host_source" || {
-  echo 'Builder B2-B2 shell input dequeue guard missing' >&2; exit 1;
+grep -Fq 'sessions.authorizeQueuedEventDispatch(entry.attachment, ticket)' "$core_lifecycle_source" || {
+  echo 'Builder C1.3-C Core input dequeue guard missing' >&2; exit 1;
 }
 
 # C1.2-B2-A: Core validates typed UI input target against current published
@@ -667,12 +665,9 @@ grep -Fq 'Core rejected application input' "$riftapp_host_source" || {
 
 # C1.2-B1: generic RiftShell view client consumes the verified Core surface
 # snapshot rather than a frame returned directly through interpreter callback.
-for marker in 'coreSurfaces.snapshot(session.id)' \
-  'it.attachmentGeneration == session.coreAttachment.token' \
-  'frame = surface?.frame' \
-  'Core application surface unavailable for current attachment'; do
+for marker in 'coreSurfaces.snapshot(session.id)' 'it.attachmentGeneration == session.generation' 'coreSurfaces.subscribe { change ->' 'session.onFrame = { next -> applyFrame(next) }'; do
   grep -Fq "$marker" "$riftapp_host_source" || {
-    echo "Builder C1.2-B1 Core snapshot shell client missing: $marker" >&2; exit 1;
+    echo "Builder C1.3-C Core surface shell client missing: $marker" >&2; exit 1;
   }
 done
 if grep -Fq 'EventOutcome(frame = result.frame' "$riftapp_host_source"; then
@@ -747,6 +742,8 @@ for marker in 'fun uninstall(id: String)' 'isManagedRapp(target, id)' \
   'RiftCoreRuntime.sessions(appContext).invalidateInstalled(id)' \
   'RiftCorePackageEvents.publish(id, "uninstalled")' \
   'RiftCoreAppLaunchRequests.requestLaunch(id)' \
+  'RiftCoreRuntime.lifecycle(appContext).start(id)' \
+  'presentationDispatched' 'core-running' \
   'Files.isSymbolicLink('; do
   grep -Fq "$marker" "$riftapp_manager_source" || {
     echo "Builder C1.1-P uninstall integrity missing: $marker" >&2; exit 1;
@@ -1046,14 +1043,15 @@ for required_rapp_source in \
     exit 1
   }
 done
-for required_rapp_lifecycle_contract in \
-  'rappHost.onResume()' \
-  'rappHost.onPause()'; do
-  grep -Fq "$required_rapp_lifecycle_contract" "$riftos_main_activity" || {
-    echo "Builder generic RAPP lifecycle contract missing: $required_rapp_lifecycle_contract" >&2
-    exit 1
-  }
-done
+# C1.3-C: Activity recreation never forwards RAPP execution lifecycle.
+if grep -Eq 'rappHost\.onResume\(\)|rappHost\.onPause\(\)' "$riftos_main_activity"; then
+  echo 'Builder C1.3-C MainActivity still controls RAPP execution lifecycle.' >&2
+  exit 1
+fi
+grep -Fq 'requestFocusFromShell(null)' "$riftos_main_activity" || {
+  echo 'Builder C1.3-C Activity teardown must revoke Core input focus.' >&2
+  exit 1
+}
 
 for required_rapp_abi_contract in \
   'const val SCHEMA = "riftos-app-abi/1"' \
@@ -1125,13 +1123,18 @@ if grep -Eq 'RiftVolumePaths|ProcessBuilder|Runtime\.getRuntime|PackageInstaller
   exit 1
 fi
 
-for required_rapp_host_contract in \
-  'pendingUiCompletions' \
-  'coreExecutor.executeChained('; do
+# C1.3-C: the UI remains an immutable Core surface consumer, never executor.
+for required_rapp_host_contract in 'coreSurfaces.subscribe { change ->' 'coreLifecycle.openForShell(id)' 'coreLifecycle.offerEvent(session.id, session.generation, event)'; do
   grep -Fq "$required_rapp_host_contract" "$riftapp_host_source" || {
-    echo "Builder generic RAPP host contract missing: $required_rapp_host_contract" >&2
+    echo "Builder C1.3-C shell presentation contract missing: $required_rapp_host_contract" >&2
     exit 1
   }
+done
+for forbidden in 'pendingUiCompletions' 'coreExecutor.executeChained('; do
+  if grep -Fq "$forbidden" "$riftapp_host_source"; then
+    echo "Builder C1.3-C GUI retained execution callback state: $forbidden" >&2
+    exit 1
+  fi
 done
 
 # C1.1-B1: app-context Core owns runtime selection, bounded execution,

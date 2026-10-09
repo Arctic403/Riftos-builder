@@ -89,20 +89,19 @@ for marker in [
 ]:
     require(BUILD, marker, "C1.2-D1 alternate renderer source boundary")
 
-# C1.2-C2: renderer attaches to a verified Core BOOT session without reboot.
+# C1.3-C: reusable Core app execution and non-owning GUI presentation.
 for marker in [
-    "Builder C1.2-C2 Core attachment transfer missing:",
-    "Builder C1.2-C2 shell attachment consumer missing:",
-    "sessions.matchesExecution(entry.attachment, payload, adapter)",
-    "val attachment = claimed ?: coreSessions.attach(payload, adapter)",
+    "Builder C1.3-C Core-running app reuse missing:",
+    "Builder C1.3-C shell surface attach missing:",
+    "fun openForShell(id: String): JSONObject = start(id)",
 ]:
-    require(BUILD, marker, "C1.2-C2 running Core session graphical attachment")
+    require(BUILD, marker, "C1.3-C Core generation reuse")
 
 # C1.2-B2-B2: real focused input admission and queue lease revision enforcement.
 for marker in [
     "Builder B2-B2 enforced focus lease missing:",
     "Builder B2-B2 focused input queue guard missing:",
-    "Builder B2-B2 shell input dequeue guard missing",
+    "Builder C1.3-C Core input dequeue guard missing",
     "ticket.admittedFocusRevision == inputFocus.current()?.revision",
 ]:
     require(BUILD, marker, "C1.2-B2-B2 focused input authority")
@@ -117,7 +116,7 @@ for marker in [
 
 # C1.2-B1: replaceable shell surface rendering reads generation-matched Core data.
 for marker in [
-    "Builder C1.2-B1 Core snapshot shell client missing:",
+    "Builder C1.3-C Core surface shell client missing:",
     "Builder C1.2-B1 shell still renders raw executor callback frames.",
     "coreSurfaces.snapshot(session.id)",
 ]:
@@ -167,6 +166,9 @@ for marker in (
     "fun uninstall(id: String)",
     "RiftCorePackageEvents.publish(id, \"uninstalled\")",
     "RiftCoreRuntime.sessions(appContext).invalidateInstalled(id)",
+    "RiftCoreRuntime.lifecycle(appContext).start(id)",
+    "presentationDispatched",
+    "core-running",
     "'\"uninstall-rapp\" -> {'",
 ):
     require(BUILD, marker, "C1.1-P Core managed RAPP package contract")
@@ -179,18 +181,19 @@ for marker in (
 ):
     require(VERIFY, marker, "C1.1-P signed APK package lifecycle")
 
-# C1.1-B2-A: Core ticket/FIFO owns event scheduling; UI only keeps callbacks.
+# C1.3-C: Core runs its own FIFO; the UI cannot drive dispatch.
 for marker in (
-    "Builder C1.1-B2-A Core event queue missing:",
-    "Builder C1.1-B2-A UI ticket dispatch missing:",
-    "Builder C1.1-B2-A desktop regained Core event queue authority.",
-    "MAX_PENDING_EVENT_BYTES = 1024 * 1024",
-    "coreSessions.offerEvent(session.coreAttachment, event)",
-    "coreSessions.finishEvent(session.coreAttachment, ticket)",
-    "dispatchCoreEvent(session, offered.ticket)",
+    "Builder C1.3-C Core execution ownership missing:",
+    "Builder C1.3-C presentation client missing:",
+    "Builder C1.3-C desktop regained execution:",
+    "Builder C1.3-C Core queue driver missing:",
+    "sessions.offerEvent(entry.attachment, event)",
+    "coreLifecycle.offerEvent(session.id, session.generation, event)",
 ):
-    require(BUILD, marker, "C1.1-B2-A Core event FIFO source gate")
-require(VERIFY, "'eventQueueOwner'", "C1.1-B2-A signed APK queue owner proof")
+    require(BUILD, marker, "C1.3-C Core dispatcher source gate")
+require(VERIFY, "'eventQueueOwner'", "C1.3-C Core event queue signed DEX")
+for marker in ("'eventDispatchOwner'", "'fullAppExecutionIndependentOfDesktop'"):
+    require(VERIFY, marker, "C1.3-C signed Core execution independence proof")
 
 # C1.1-B1: bounded RAPP runtime/event execution belongs to Core, not UI.
 for marker in (
@@ -208,20 +211,18 @@ for marker in (
 for marker in ("'rift-core-rapp-event'", "'eventExecutorOwner'"):
     require(VERIFY, marker, "C1.1-B1 signed APK Core execution proof")
 
-# C1.1-A: Core identity/state records remain independent of desktop hosts.
+# C1.3-C: Core identity/state records and execution survive UI teardown.
 for marker in (
     "RiftCoreAppSessions.kt",
     "Builder C1.1 Core session registry missing.",
     "Builder C1.1 Core session source not mandatory in Gradle.",
-    "Builder C1.1 RAPP UI/Core attachment contract missing:",
-    "coreSessions.attach(payload, adapter)",
-    "coreSessions.detach(it.coreAttachment)",
-    "coreSessions.close(session.coreAttachment)",
-    "coreExecutor.executeChained(",
+    "Builder C1.3-C Core execution ownership missing:",
+    "coreLifecycle.openForShell(id)",
+    "coreSurfaces.unsubscribe(surfaceSubscription)",
 ):
-    require(BUILD, marker, "C1.1-A Core session source gate")
+    require(BUILD, marker, "C1.3-C Core session source gate")
 for marker in ("'riftos.core.sessions/1'", "'headlessExecution'"):
-    require(VERIFY, marker, "C1.1-A Core session signed APK proof")
+    require(VERIFY, marker, "C1.3-C Core session signed APK proof")
 
 # C1.0: Core bootstrap and package/runtime/build services must be owned
 # independently of the desktop Activity and source-verified in the signed APK.
@@ -232,7 +233,7 @@ for marker in (
     "object RiftCoreRuntime",
     "RiftCoreRuntime.buildPlatform(appContext)",
     "RiftCoreRuntime.packages(activity.applicationContext)",
-    '"appExecutionIndependentOfDesktop", false',
+    '"appExecutionIndependentOfDesktop", true',
 ):
     require(BUILD, marker, "C1.0 Core/Shell source ownership")
 for marker in ("RiftCoreApplication", "'riftos.core.status/1'",
@@ -334,8 +335,8 @@ for marker in (
     '"src/main/java/com/riftos/app/RiftRappAbsoluteView.kt"',
     '"src/main/java/com/riftos/app/RiftRappHost.kt"',
     '"src/main/java/com/riftos/app/RiftRappManager.kt"',
-    "rappHost.onResume()",
-    "rappHost.onPause()",
+    "Builder C1.3-C MainActivity still controls RAPP execution lifecycle.",
+    "Builder C1.3-C Activity teardown must revoke Core input focus.",
     'const val SCHEMA = "riftos-app-abi/1"',
     'const val HOST_EFFECT_RESULT = 13',
     '"riftpp-rws2-rui3-v1"',
@@ -350,7 +351,7 @@ for marker in (
     "private const val RPE4_MAGIC",
     "private const val RWS4_MAGIC",
     "decodeOutput(",
-    "pendingUiCompletions",
+    "Builder C1.3-C GUI retained execution callback state:",
     "RiftCoreShellCapabilityRequests.requestConsent(",
     "sessions.commitFromExecution(",
     'private const val STATE_ENTRY = "state.bin"',

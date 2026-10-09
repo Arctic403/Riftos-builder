@@ -1,5 +1,14 @@
 # Riftos-builder
 
+## 2026-10-08 — C1.3-C Core RAPP execution independent of desktop (SOURCE CANDIDATE; DEVICE PENDING)
+
+The user superseded the earlier combined C1.3-C/D/E migration with **three separately implemented and device-proven gates**. C1.3-C is the only active implementation; C1.3-D (production RiftShell separate process) and C1.3-E (automatic real-shell restart/reconstruction) are not started. RiftOS baseline: `100d0cde`, Builder baseline: `486e2388`, last physically installed and verified source: `31f4a8d4` from manual Builder #653. Existing pre-change archives in `workspace/AI-Handoffs/Backups/` must be preserved.
+
+C1.3-C source moves both graphical and Core-only RAPP BOOT, bounded queued events, focus revalidation and `executeChained` dispatch into process-owned `RiftCoreAppLifecycle`. Generic `RiftRappManager.launch(id)` must start the installed program in Core even when no graphical host exists and only then optionally dispatch `RiftCoreAppLaunchRequests` for presentation; `core-running` is a valid shell-less launch state. `RiftRappHost` is now an immutable `RiftCoreAppSurfaces` observer and an input requester carrying the current Core generation, not an execution/session/effect owner. `MainActivity` does not forward RAPP resume/pause or close Core sessions on ordinary Activity teardown; only the focus lease is revoked. Explicit window close/stop/uninstall still removes the correct Core session and surface. Source guards and final signed APK DEX markers check Core event-dispatch ownership; Builder tests must reject old host-owned `pendingUiCompletions`, `dispatchCoreEvent`, and GUI `executeChained`.
+
+**Only the user dispatches the existing manual Android Builder.** Before that, source and Builder tests/checks plus coherent local RiftGit commits must pass, and all touched canonical docs/handoff must be synchronized. Device acceptance uses **only a disposable RAPP**: Core-only boot, GUI reattach without duplicate BOOT, typed input/actions and persistent state, Activity destruction/recreation with unchanged Core PID/session/generation, focus revocation/reacquisition, explicit Core stop while a window exists, cleanup/uninstall, and exactly the original `rapp-notepad`, `rift-os-native` and `riftbuild-hosted` intact. Mark C1.3-C DEVICE PASS only after actual signed APK installation and manual device proof. Nothing here claims real RiftShell process separation, external authenticated input IPC, automatic recovery, or Core process-death persistence.
+
+
 Public GitHub Actions worker for building the private `Arctic403/RiftOS` Android source.
 
 The workflow is manual (`workflow_dispatch`). It resolves the requested RiftOS ref to an exact commit SHA, checks out that exact source, runs the source-owned gates, builds the Android release APK, signs the RiftOS APK for distribution, verifies the final signed artifact, and publishes `RiftOS-Android-debug.apk` to the private RiftOS prerelease.
