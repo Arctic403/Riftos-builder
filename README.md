@@ -1,5 +1,12 @@
 # Riftos-builder
 
+## 2026-10-09 — manual signed Builder #660 GREEN LIVE: C1.3-D real process split/IPC functional, native terminal smoke pending
+
+User manually built and installed RiftOS executable source `d43a30e29ae2d98abbcf7a54ccbe9a8841613e55` through **Builder #660** run `37891844448`. Real device Core PID25396 and graphical production :riftShell PID25436 distinct; remote Installed Apps read all four protected original RAPPs, Core ps exposed PID/window state. Native Files and RiftBrowser WebView windows rendered. Verified disposable Core-only RAPP gen1 reattached through remote graphical window without duplicate BOOT, real ACTION and TEXT_INPUT `C13D_660_REMOTE` committed, Core surface rev6; Core RAPP stopped on actual remote GUI close, and uninstall cleaned runtime; all four originals preserved. This resolves #659 Core Binder auth failure; **no further build needed for these proven properties**.
+
+C1.3-D held short of full promotion only for manual native RiftShell terminal Core-command execution: window opens but Local Agent could not focus editable command field; user must type `ps` and screenshot result. No automatic Worker, no code changes for an unproven keyboard-agent limitation, no C1.3-E process-kill/auto-recovery.
+
+
 ## 2026-10-09 — signed manual Builder #659 device Core IPC auth failure, source follow-up
 
 User manually compiled/installed #659 run 37889666166 RiftOS bd6e0b13. Actual remote desktop UI exists, but Installed Apps says 'Core IPC caller is not the production RiftShell process'; Core pid 22863, native ps remote shell PID null. D DEVICE FAIL/PARTIAL, though Android signed build is green. Four installed protected RAPPs, including Rift++ Compiler Lab, untouched. Android /proc cross-process cmdline read may be restricted. Core provider now checks Android ActivityManager process registry for exact Binder UID, PID and production ':riftShell' process name; if no record, strict /proc name fallback remains. No UID-only access or riftShellProbe mutation. Builder source guard and selftest updated. USER ONLY next manual compile/pack/sign/install; no automated Worker. C1.3-E untouched.
