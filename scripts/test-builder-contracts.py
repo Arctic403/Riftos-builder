@@ -49,6 +49,17 @@ for marker in [
     require(BUILD, marker, "C1.2-C1 Core-owned RAPP lifecycle")
 require(VERIFY, "'riftos.core.apps/1'", "C1.2-C1 signed lifecycle schema")
 
+# C1.3-A: bounded Core snapshot Binder IPC with independent shell PID.
+for marker in [
+    "Builder C1.3-A Core IPC or remote shell source missing",
+    "Builder C1.3-A main/remote IPC manifest missing:",
+    "Builder C1.3-A mandatory IPC Kotlin source missing:",
+    "Builder C1.3-A Core snapshot endpoint missing:",
+    "Builder C1.3-A remote client proof missing:",
+    "Builder C1.3-A IPC viewer launch control missing",
+]:
+    require(BUILD, marker, "C1.3-A private Core/shell process IPC")
+
 # C1.2-D2: independent graphical client consumes Core surface snapshots.
 for marker in [
     "Builder C1.2-D2 graphical shell source missing",

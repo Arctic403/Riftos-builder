@@ -574,6 +574,47 @@ for marker in 'RiftAlternateGraphicalShellActivity::class.java' \
   }
 done
 
+# C1.3-A: bounded read-only Android Binder IPC between main Core process
+# and isolated :riftShellProbe Activity; no executable/input authority.
+core_ipc_source="android/app/src/main/java/com/riftos/app/RiftCoreSurfaceIpcProvider.kt"
+remote_shell_source="android/app/src/main/java/com/riftos/app/RiftRemoteShellProbeActivity.kt"
+test -f "$core_ipc_source" && test -f "$remote_shell_source" || {
+  echo 'Builder C1.3-A Core IPC or remote shell source missing' >&2; exit 1;
+}
+for marker in 'android:name=".RiftCoreSurfaceIpcProvider"' \
+  'android:authorities="com.riftos.app.core-surface-ipc"' \
+  'android:name=".RiftRemoteShellProbeActivity"' \
+  'android:process=":riftShellProbe"'; do
+  grep -Fq "$marker" "android/app/src/main/AndroidManifest.xml" || {
+    echo "Builder C1.3-A main/remote IPC manifest missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'RiftCoreSurfaceIpcProvider.kt' \
+  'RiftRemoteShellProbeActivity.kt'; do
+  grep -Fq "$marker" "$gradle_contract" || {
+    echo "Builder C1.3-A mandatory IPC Kotlin source missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'riftos.core.surface-ipc/1' \
+  'RiftCoreRuntime.surfaces(ctx).snapshot(id)' \
+  'MAX_REPLY_BYTES = 256 * 1024' \
+  'Core IPC insert forbidden'; do
+  grep -Fq "$marker" "$core_ipc_source" || {
+    echo "Builder C1.3-A Core snapshot endpoint missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'contentResolver.call(' \
+  'Process.myPid()' 'Separate Android processes:' \
+  'mainHandler.removeCallbacks(poll)'; do
+  grep -Fq "$marker" "$remote_shell_source" || {
+    echo "Builder C1.3-A remote client proof missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq 'RiftRemoteShellProbeActivity::class.java' \
+  "android/app/src/main/java/com/riftos/app/RiftNativeShell.kt" || {
+  echo 'Builder C1.3-A IPC viewer launch control missing' >&2; exit 1;
+}
+
 # C1.2-B2-B2: Core authorizes focused input at enqueue AND dispatch,
 # retaining the admitted lease revision to block switch-away/refocus ABA.
 for marker in 'fun requireCurrentLease(appId: String, attachmentGeneration: Long)' \
