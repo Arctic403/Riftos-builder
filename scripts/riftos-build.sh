@@ -720,6 +720,18 @@ grep -Fq 'RiftCoreAdminRollbackProof.recover(this)' \
   echo 'Builder C1.4-C1 interrupted Core journal recovery missing' >&2; exit 1;
 }
 
+# A successful C1 canary executes BEFORE the shell receives its Binder reply.
+# Rejecting the dedicated rollback schema would falsely report failed execution
+# after consuming the ticket. B request/decide/revoke/status keep consent schema.
+for marker in 'METHOD_SHELL_ADMIN_CONSENT ->' \
+  'if (extras?.getString("action") == "execute-rollback-proof") {' \
+  'RiftCoreAdminRollbackProof.SCHEMA' \
+  'RiftCoreAdminConsent.SCHEMA'; do
+  grep -Fq "$marker" "$shell_ipc_client_src" || {
+    echo "Builder C1.4-C1 exact action-dependent response schema missing: $marker" >&2; exit 1;
+  }
+done
+
 # C1.1-B2-A: Core owns bounded event FIFO; desktop owns UI callbacks only.
 for marker in 'data class EventTicket(' 'MAX_PENDING_EVENTS = 64' \
   'MAX_PENDING_EVENT_BYTES = 1024 * 1024' \

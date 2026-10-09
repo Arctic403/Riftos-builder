@@ -145,6 +145,7 @@ for marker in (
     "Builder C1.4-C1 exact production-shell Binder authorization missing:",
     "Builder C1.4-C1 native Core rollback approval UI missing:",
     "Builder C1.4-C1 interrupted Core journal recovery missing",
+    "Builder C1.4-C1 exact action-dependent response schema missing:",
 ):
     require(BUILD, marker, "C1.4-C1 exact, reversible system-file canary")
 require(VERIFY, "'riftos.core.admin-rollback-proof/1'",
