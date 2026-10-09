@@ -1,5 +1,10 @@
 # Riftos-builder
 
+## C1.3-C #654 device PARTIAL PASS — pending focus and Activity recreation follow-up
+
+User-manual Builder #654/run 37880614808 signed source 130dea17 installed. Core PID 4542, disposable RAPP Core-booted independently, GUI reused same generation with real ACTION and TEXT_INPUT, and all Core state cleaned after explicit close/uninstall; original three survived. **Not full C1.3-C:** Android Back left GUI subscriber and Core focus lease active while backgrounded, and no actual MainActivity destroy/recreate was proved. Next C1.3-C source gates focus requests on Android foreground, revokes pause/blur leases, safely restores visible focus, and adds guarded QA-only Local Agent Dev Lab `recreate-main-activity-proof` for a live disposable RAPP. Builder source and final DEX contract `riftos.qa.activity-recreate/1` require these. User dispatches next manual Builder and real-device acceptance. C1.3-D/E remain untouched.
+
+
 ## 2026-10-08 — C1.3-C Core RAPP execution independent of desktop (SOURCE CANDIDATE; DEVICE PENDING)
 
 The user superseded the earlier combined C1.3-C/D/E migration with **three separately implemented and device-proven gates**. C1.3-C is the only active implementation; C1.3-D (production RiftShell separate process) and C1.3-E (automatic real-shell restart/reconstruction) are not started. RiftOS baseline: `100d0cde`, Builder baseline: `486e2388`, last physically installed and verified source: `31f4a8d4` from manual Builder #653. Existing pre-change archives in `workspace/AI-Handoffs/Backups/` must be preserved.

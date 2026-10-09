@@ -339,6 +339,7 @@ for marker in \
   'eventExecutorOwner' \
   'eventQueueOwner' \
   'eventDispatchOwner' \
+  'riftos.qa.activity-recreate/1' \
   'fullAppExecutionIndependentOfDesktop' \
   'headlessExecution' \
   'appExecutionIndependentOfDesktop' \

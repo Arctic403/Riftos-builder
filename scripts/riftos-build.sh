@@ -473,9 +473,22 @@ done
 grep -Fq 'focusRequestSink(visibleFocusId)' "android/app/src/main/java/com/riftos/app/RiftNativeDesktop.kt" || {
   echo 'Builder B2-B1 desktop focus notifier missing' >&2; exit 1;
 }
-grep -Fq 'requestFocusFromShell(id)' "android/app/src/main/java/com/riftos/app/MainActivity.kt" || {
-  echo 'Builder B2-B1 Activity focus client missing' >&2; exit 1;
-}
+for marker in 'id.takeIf { hasWindowFocus() && !isFinishing && !isDestroyed }' \
+  'restoreCoreWindowFocus()' 'window.optBoolean("focused")' \
+  '!window.optBoolean("minimized")' 'requestFocusFromShell(null)'; do
+  grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/MainActivity.kt" || {
+    echo "Builder C1.3-C foreground focus lifecycle missing: $marker" >&2; exit 1;
+  }
+done
+os_local_agent_source="android/app/src/main/java/com/riftos/app/RiftVortexLocalAgent.kt"
+for marker in 'recreate-main-activity-proof' \
+  'context is MainActivity && context.hasWindowFocus()' \
+  'context.recreate()' 'riftos.qa.activity-recreate/1' \
+  'coreProcessTermination", false'; do
+  grep -Fq "$marker" "$os_local_agent_source" || {
+    echo "Builder C1.3-C real Activity recreation diagnostic missing: $marker" >&2; exit 1;
+  }
+done
 grep -Fq '"focus" -> RiftCoreRuntime.sessions(appContext).focusStatus()' \
   "android/app/src/main/java/com/riftos/app/RiftNativeShell.kt" || {
   echo 'Builder B2-B1 read-only focus report missing' >&2; exit 1;

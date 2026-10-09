@@ -32,7 +32,8 @@ for marker in [
     "Builder B2-B1 Core focus lease missing:",
     "Builder B2-B1 session focus guard missing:",
     "Builder B2-B1 desktop focus notifier missing",
-    "Builder B2-B1 Activity focus client missing",
+    "Builder C1.3-C foreground focus lifecycle missing:",
+    "Builder C1.3-C real Activity recreation diagnostic missing:",
     "Builder B2-B1 read-only focus report missing",
 ]:
     require(BUILD, marker, "C1.2-B2-B1 Core focus lease source")
@@ -192,7 +193,7 @@ for marker in (
 ):
     require(BUILD, marker, "C1.3-C Core dispatcher source gate")
 require(VERIFY, "'eventQueueOwner'", "C1.3-C Core event queue signed DEX")
-for marker in ("'eventDispatchOwner'", "'fullAppExecutionIndependentOfDesktop'"):
+for marker in ("'eventDispatchOwner'", "'fullAppExecutionIndependentOfDesktop'", "'riftos.qa.activity-recreate/1'"):
     require(VERIFY, marker, "C1.3-C signed Core execution independence proof")
 
 # C1.1-B1: bounded RAPP runtime/event execution belongs to Core, not UI.
