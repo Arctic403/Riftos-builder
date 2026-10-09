@@ -440,6 +440,8 @@ done
 for marker in 'Binder.getCallingUid()' 'Binder.getCallingPid()' \
   'uid == ctx.applicationInfo.uid' 'pid != Process.myPid()' \
   'ctx.packageName + ":riftShell"' \
+  'manager.runningAppProcesses' 'process.pid == pid && process.uid == uid' \
+  'registryName == expected' 'procName == expected' \
   'RiftCoreRuntime.lifecycle(ctx).offerEvent(id, generation, event)' \
   'RiftCoreShellRemoteUiBroker.respond(' \
   'RiftCoreShellWindowBridge.report('; do

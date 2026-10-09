@@ -67,6 +67,15 @@ for marker in (
     "Builder C1.3-D browser-owned process data directory missing:",
 ):
     require(BUILD, marker, "C1.3-D actual process-separated desktop and Core IPC")
+# C1.3-D #659: Binder UID alone is never enough. Trusted OS process records
+# must attest that the Binder PID is exactly the production :riftShell PID.
+for marker in (
+    "'manager.runningAppProcesses'",
+    "'process.pid == pid && process.uid == uid'",
+    "'registryName == expected'",
+    "'procName == expected'",
+):
+    require(BUILD, marker, "C1.3-D #659 exact Android process caller authentication")
 for marker in (
     "'riftos.core.shell-control/1'",
     "'riftos.core.shell-ui/1'",

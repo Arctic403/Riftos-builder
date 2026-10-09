@@ -1,5 +1,10 @@
 # Riftos-builder
 
+## 2026-10-09 — signed manual Builder #659 device Core IPC auth failure, source follow-up
+
+User manually compiled/installed #659 run 37889666166 RiftOS bd6e0b13. Actual remote desktop UI exists, but Installed Apps says 'Core IPC caller is not the production RiftShell process'; Core pid 22863, native ps remote shell PID null. D DEVICE FAIL/PARTIAL, though Android signed build is green. Four installed protected RAPPs, including Rift++ Compiler Lab, untouched. Android /proc cross-process cmdline read may be restricted. Core provider now checks Android ActivityManager process registry for exact Binder UID, PID and production ':riftShell' process name; if no record, strict /proc name fallback remains. No UID-only access or riftShellProbe mutation. Builder source guard and selftest updated. USER ONLY next manual compile/pack/sign/install; no automated Worker. C1.3-E untouched.
+
+
 ## 2026-10-09 — C1.3-D manual Builder #3: source-documentation ledger repaired
 
 User-manual Worker run `37888463412` on RiftOS input source `b9b708a1d4fa7de26166deafe2cc76408209e1b3` successfully passed native wiring and transport validation after the prior WebKit fix, then failed **`scripts/validate-rift-docs.mjs`** because eight new C1.3-D source files were missing from `docs/SOURCE_OWNERSHIP.md`. RiftOS now registers all eight separate-process Shell/Core IPC files under their appropriate existing documentation owners; source validator and Builder runtime/build scripts remain unchanged for this failure. Focused check verified eight unique ledger entries. This run stopped before Gradle compile, signing or real installed D device proof. **No changes to the normal user-manual Builder/pack/sign/verify flow.** User manually starts the next Builder after synchronized heads are pushed; C1.3-E remains unstarted.
