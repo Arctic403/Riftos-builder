@@ -1,5 +1,10 @@
 # Riftos-builder
 
+## 2026-10-09 — C1.3-C DEVICE PASS (#655), C1.3-D next independent manual build
+
+The user manually built and installed RiftOS source `8d7608f67e1551a0c774b12d4d89edec61fb6629` via existing Builder **#655**, run `37882347339`. Installed source SHA matched. Disposable RAPP Core-only BOOT gen1/surface rev1, same-gen GUI attach, guarded Android `MainActivity.recreate()` preserved Core PID7528, Core session/gen1 and frame rev3. User manual screenshot demonstrated ACTION count2 and `C13C_MANUAL_655` typed input after recreation; independent Core subscriber later confirmed persisted input/action and surface revision50 on the same gen1. Stable background Core input focus became null; Core stop + uninstall cleaned all RAPP state, original three applications intact. **C1.3-C DEVICE PASS**. Builder's manual workflow and signing/packaging remain unchanged. **C1.3-D NEXT**, but requires its own source/Builder/desktop-process IPC ownership contract and separate user-built APK/device proof. C1.3-E later. The previous C1.3-C #654 focus defect, #655 follow-up and source-only candidate notes below are history.
+
+
 ## C1.3-C #654 device PARTIAL PASS — pending focus and Activity recreation follow-up
 
 User-manual Builder #654/run 37880614808 signed source 130dea17 installed. Core PID 4542, disposable RAPP Core-booted independently, GUI reused same generation with real ACTION and TEXT_INPUT, and all Core state cleaned after explicit close/uninstall; original three survived. **Not full C1.3-C:** Android Back left GUI subscriber and Core focus lease active while backgrounded, and no actual MainActivity destroy/recreate was proved. Next C1.3-C source gates focus requests on Android foreground, revokes pause/blur leases, safely restores visible focus, and adds guarded QA-only Local Agent Dev Lab `recreate-main-activity-proof` for a live disposable RAPP. Builder source and final DEX contract `riftos.qa.activity-recreate/1` require these. User dispatches next manual Builder and real-device acceptance. C1.3-D/E remain untouched.
