@@ -665,6 +665,61 @@ grep -Fq 'RiftCoreAdminConsent.revokeForShellReplacement(' "$shell_recovery_src"
   echo 'Builder C1.4-B Core token revocation on shell process restart missing' >&2; exit 1;
 }
 
+# C1.4-C1: first operation-level system authorization is ONLY a dedicated
+# Core-owned temporary C: canary; audit + journal + mandatory rollback.
+# This does not unlock arbitrary filesystem writes, installation or process kill.
+rollback_proof_src="android/app/src/main/java/com/riftos/app/RiftCoreAdminRollbackProof.kt"
+test -f "$rollback_proof_src" || {
+  echo 'Builder C1.4-C1 isolated Core rollback source missing' >&2; exit 1;
+}
+grep -Fq '"src/main/java/com/riftos/app/RiftCoreAdminRollbackProof.kt"' "$gradle_contract" || {
+  echo 'Builder C1.4-C1 mandatory Gradle source registration missing' >&2; exit 1;
+}
+for marker in 'const val SCHEMA = "riftos.core.admin-rollback-proof/1"' \
+  'const val OPERATION = "system.fs.write"' \
+  'const val TARGET = "/C:/RiftOS/.c14c-rollback.txt"' \
+  'RiftVolumePaths.resolveRelative(TARGET)' \
+  'check(parent.isDirectory)' \
+  'prefs.edit().putBoolean(PENDING, true).commit()' \
+  'file.createNewFile()' 'output.fd.sync()' \
+  'file.readBytes().contentEquals(MARKER)' \
+  'file.delete()' \
+  'prefs.edit().remove(PENDING).commit()' \
+  'fun recover(context: Context)' \
+  'fun writeAndRollback(context: Context)' \
+  '"rolledBack", true' \
+  '"generalAdminEffectsEnabled", false'; do
+  grep -Fq "$marker" "$rollback_proof_src" || {
+    echo "Builder C1.4-C1 bounded journalled write rollback missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'fun executeRollbackProof(' \
+  'shell.optBoolean("foregroundLease", false)' \
+  'RiftCoreAdminRollbackProof.writeAndRollback(context)' \
+  'fun revokeForWindowClose('; do
+  grep -Fq "$marker" "$admin_tickets_src" || {
+    echo "Builder C1.4-C1 one-use Core admin authorization/revocation missing: $marker" >&2; exit 1;
+  }
+done
+for marker in '"execute-rollback-proof" -> RiftCoreAdminConsent.executeRollbackProof(' \
+  '"window-closed" -> RiftCoreAdminConsent.revokeForWindowClose('; do
+  grep -Fq "$marker" "$shell_core_ipc_src" || {
+    echo "Builder C1.4-C1 exact production-shell Binder authorization missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'Toggle isolated rollback proof scope' \
+  'Execute Core write and rollback once' \
+  'client.adminConsent("execute-rollback-proof"' \
+  'core?.adminConsent("window-closed")'; do
+  grep -Fq "$marker" "$admin_ui_src" || {
+    echo "Builder C1.4-C1 native Core rollback approval UI missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq 'RiftCoreAdminRollbackProof.recover(this)' \
+  'android/app/src/main/java/com/riftos/app/RiftCoreApplication.kt' || {
+  echo 'Builder C1.4-C1 interrupted Core journal recovery missing' >&2; exit 1;
+}
+
 # C1.1-B2-A: Core owns bounded event FIFO; desktop owns UI callbacks only.
 for marker in 'data class EventTicket(' 'MAX_PENDING_EVENTS = 64' \
   'MAX_PENDING_EVENT_BYTES = 1024 * 1024' \

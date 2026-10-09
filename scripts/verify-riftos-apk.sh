@@ -339,6 +339,7 @@ for marker in \
   'riftos.core.system-capabilities/1' \
   'riftos.core.system-capability-audit/1' \
   'riftos.core.admin-consent/1' \
+  'riftos.core.admin-rollback-proof/1' \
   'riftos.core.shell-ui/1' \
   'riftos.shell.desktop-ipc/1' \
   'riftos.shell.event/1' \

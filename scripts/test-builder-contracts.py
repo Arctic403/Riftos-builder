@@ -135,6 +135,21 @@ for marker in (
 require(VERIFY, "'riftos.core.admin-consent/1'",
         "C1.4-B signed Core ephemeral admin-consent schema")
 
+# C1.4-C1 is narrowly restricted to a journalled, reversible Core-owned
+# virtual C: canary; no arbitrary files/installs/runtime registration/kill.
+for marker in (
+    "Builder C1.4-C1 isolated Core rollback source missing",
+    "Builder C1.4-C1 mandatory Gradle source registration missing",
+    "Builder C1.4-C1 bounded journalled write rollback missing:",
+    "Builder C1.4-C1 one-use Core admin authorization/revocation missing:",
+    "Builder C1.4-C1 exact production-shell Binder authorization missing:",
+    "Builder C1.4-C1 native Core rollback approval UI missing:",
+    "Builder C1.4-C1 interrupted Core journal recovery missing",
+):
+    require(BUILD, marker, "C1.4-C1 exact, reversible system-file canary")
+require(VERIFY, "'riftos.core.admin-rollback-proof/1'",
+        "C1.4-C1 signed installed Core rollback transaction schema")
+
 # C1.3-B: only validated, independent remote proof process may terminate itself.
 for marker in [
     "Builder C1.3-B remote-only process-loss guard missing:",
