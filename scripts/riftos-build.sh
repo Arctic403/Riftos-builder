@@ -471,10 +471,17 @@ grep -Fq 'RiftCoreShellLaunchQueue.offer(id)' \
   "android/app/src/main/java/com/riftos/app/RiftRappManager.kt" || {
   echo 'Builder C1.3-D Core-first RAPP remote presentation queue missing' >&2; exit 1;
 }
-grep -Fq 'WebView.setDataDirectorySuffix("riftShell")' \
+grep -Fq 'RiftBrowserWindow.prepareRemoteShellWebViewDirectory()' \
   "android/app/src/main/java/com/riftos/app/RiftCoreApplication.kt" || {
-  echo 'Builder C1.3-D separate Android WebView process data directory missing' >&2; exit 1;
+  echo 'Builder C1.3-D remote shell Application browser owner handoff missing' >&2; exit 1;
 }
+for browser_marker in 'fun prepareRemoteShellWebViewDirectory()' \
+  'WebView.setDataDirectorySuffix("riftShell")'; do
+  grep -Fq "$browser_marker" \
+    "android/app/src/main/java/com/riftos/app/RiftBrowserWindow.kt" || {
+    echo "Builder C1.3-D browser-owned process data directory missing: $browser_marker" >&2; exit 1;
+  }
+done
 
 # C1.1-B2-A: Core owns bounded event FIFO; desktop owns UI callbacks only.
 for marker in 'data class EventTicket(' 'MAX_PENDING_EVENTS = 64' \

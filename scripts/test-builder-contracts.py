@@ -63,7 +63,8 @@ for marker in (
     "Builder C1.3-D remote UI consent/effect missing:",
     "Builder C1.3-D MCP-to-remote-desktop bridge missing:",
     "Builder C1.3-D Core-first RAPP remote presentation queue missing",
-    "Builder C1.3-D separate Android WebView process data directory missing",
+    "Builder C1.3-D remote shell Application browser owner handoff missing",
+    "Builder C1.3-D browser-owned process data directory missing:",
 ):
     require(BUILD, marker, "C1.3-D actual process-separated desktop and Core IPC")
 for marker in (

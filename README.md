@@ -1,5 +1,10 @@
 # Riftos-builder
 
+## C1.3-D second manual Builder RED — RiftBrowser WebKit owner repair (2026-10-09)
+
+User-manual Builder run `37887642001` cleared the prior C1.3-D validator initialization failure, then stopped with `WebKit ownership escaped RiftBrowser: android/app/src/main/java/com/riftos/app/RiftCoreApplication.kt`. The remote Android process needs a dedicated WebView data-directory suffix, but the WebKit API may only be owned by existing `RiftBrowser*` sources. The C1.3-D patch now has Core `Application.onCreate` detect actual `:riftShell` (API 28+) and call `RiftBrowserWindow.prepareRemoteShellWebViewDirectory()`; `RiftBrowserWindow.kt` performs `WebView.setDataDirectorySuffix("riftShell")` before WebView construction. No Core-side `android.webkit` import or expanded ownership allowlist. Builder source guards and self-tests check both halves, alongside the unchanged original Gradle owner gate. Focused 14/14 and JS parse checks passed; the next full build is **USER-MANUAL ONLY**, and C1.3-D remains not installed/device-proven. C1.3-E not started.
+
+
 ## C1.3-D initial source-gate failure and correction (2026-10-09)
 
 User-manual Builder run `37886597455` / source `edb53286a09c90d79493417de2ca8e07df8a46a1` failed in `npm run check:transport` at `validate-rift-wiring.mjs:721`: `ReferenceError: Cannot access 'rappManager' before initialization`. The real source error is in RiftOS validator ordering, which now places `rappManager` and `nativeSystemApps` declarations before C1.3-D checks. Two ancillary Builder preflight `grep -E` patterns also carried double backslashes before literal `(` and emitted `grep: Unmatched (`; those are corrected to one backslash in `scripts/riftos-build.sh`. This failed run never reached Kotlin/Gradle, signing or an installed C1.3-D APK. Do NOT alter the user-manual Builder dispatch flow; next manual run should test corrected source and Builder HEAD together, report any next first failure, and only after green signed install begin D device proof. C1.3-E stays untouched.
