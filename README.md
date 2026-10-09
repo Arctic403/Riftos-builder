@@ -1,5 +1,12 @@
 # Riftos-builder
 
+## 2026-10-09 — C1.3-D DEVICE PASS on signed installed Builder #660; C1.3-E separate later
+
+**User-manual Builder #660**, run `37891844448`, installed RiftOS executable `d43a30e29ae2d98abbcf7a54ccbe9a8841613e55`. Android proved Core PID25396 and actual production graphical `:riftShell` PID25436 distinct. Remote Installed Apps lists four preserved RAPPs, native Files and browser WebView work, disposable Core-owned RAPP gen1 rendered/action+TEXT_INPUT `C13D_660_REMOTE` via remote shell and cleaned through generation-bound GUI close/stop and uninstall. The **final acceptance** was user's manual native graphical RiftShell terminal screenshot showing entered `ps` and real process/task output: protected kernel, protected desktop, protected shell, focused terminal. Post-screenshot native `ps` reports same remote shell PID, clean Core RAPP state confirmed. **C1.3-D fully DEVICE PASS / PROMOTED.** This is a docs-only sign-off; no changes to Builder dispatch/pack/sign, and NO additional build needed for D. Four original RAPPs (`rapp-notepad`, `rift-os-native`, `riftbuild-hosted`, `riftpp-compiler-lab`) untouched.
+
+**C1.3-E NOT STARTED**: independent source gate and separate user-manual signed Builder for actual production shell crash/restart plus automatic graphical reconstruction with Core and Core-running RAPP still alive. Do not claim those properties from #660's D proof.
+
+
 ## 2026-10-09 — manual signed Builder #660 GREEN LIVE: C1.3-D real process split/IPC functional, native terminal smoke pending
 
 User manually built and installed RiftOS executable source `d43a30e29ae2d98abbcf7a54ccbe9a8841613e55` through **Builder #660** run `37891844448`. Real device Core PID25396 and graphical production :riftShell PID25436 distinct; remote Installed Apps read all four protected original RAPPs, Core ps exposed PID/window state. Native Files and RiftBrowser WebView windows rendered. Verified disposable Core-only RAPP gen1 reattached through remote graphical window without duplicate BOOT, real ACTION and TEXT_INPUT `C13D_660_REMOTE` committed, Core surface rev6; Core RAPP stopped on actual remote GUI close, and uninstall cleaned runtime; all four originals preserved. This resolves #659 Core Binder auth failure; **no further build needed for these proven properties**.
