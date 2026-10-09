@@ -49,6 +49,17 @@ for marker in [
     require(BUILD, marker, "C1.2-C1 Core-owned RAPP lifecycle")
 require(VERIFY, "'riftos.core.apps/1'", "C1.2-C1 signed lifecycle schema")
 
+# C1.2-D2: independent graphical client consumes Core surface snapshots.
+for marker in [
+    "Builder C1.2-D2 graphical shell source missing",
+    "Builder C1.2-D2 graphical Activity manifest entry missing",
+    "Builder C1.2-D2 graphical client not in mandatory Kotlin sources",
+    "Builder C1.2-D2 graphical Core consumer missing:",
+    "Builder C1.2-D2 graphical client launch missing:",
+    "RiftAlternateGraphicalShellActivity::class.java",
+]:
+    require(BUILD, marker, "C1.2-D2 alternate native graphical shell")
+
 # C1.2-D1: independent read-only alternate terminal shell renderer.
 for marker in [
     "Builder C1.2-D1 alternate shell source missing",

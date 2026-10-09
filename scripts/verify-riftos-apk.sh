@@ -332,6 +332,7 @@ for marker in \
   'riftos.core.input-focus/1' \
   'riftos.core.apps/1' \
   'riftos.shell.client.terminal/1' \
+  'riftos.shell.client.graphical/1' \
   'rift-core-rapp-event' \
   'eventExecutorOwner' \
   'eventQueueOwner' \

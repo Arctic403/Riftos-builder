@@ -546,6 +546,34 @@ for marker in 'alternateShellClient.attach(args[1])' \
   }
 done
 
+# C1.2-D2: alternate graphical shell is a separate non-exported
+# Android client of immutable Core app surfaces, not a second executor.
+alt_graphical_source="android/app/src/main/java/com/riftos/app/RiftAlternateGraphicalShellActivity.kt"
+test -f "$alt_graphical_source" || {
+  echo 'Builder C1.2-D2 graphical shell source missing' >&2; exit 1;
+}
+grep -Fq 'android:name=".RiftAlternateGraphicalShellActivity"' \
+  "android/app/src/main/AndroidManifest.xml" || {
+  echo 'Builder C1.2-D2 graphical Activity manifest entry missing' >&2; exit 1;
+}
+grep -Fq '"src/main/java/com/riftos/app/RiftAlternateGraphicalShellActivity.kt"' "$gradle_contract" || {
+  echo 'Builder C1.2-D2 graphical client not in mandatory Kotlin sources' >&2; exit 1;
+}
+for marker in 'RiftCoreRuntime.surfaces(applicationContext)' \
+  'surfaces.subscribe { change ->' 'surfaces.snapshot(appId)' \
+  'RiftAppAbi.NodeKind.TEXT_INPUT' 'RiftAppAbi.NodeKind.ACTION' \
+  'subscription?.let(surfaces::unsubscribe)'; do
+  grep -Fq "$marker" "$alt_graphical_source" || {
+    echo "Builder C1.2-D2 graphical Core consumer missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'RiftAlternateGraphicalShellActivity::class.java' \
+  'Intent.FLAG_ACTIVITY_NEW_TASK' '"riftos.shell.client.graphical/1"'; do
+  grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/RiftNativeShell.kt" || {
+    echo "Builder C1.2-D2 graphical client launch missing: $marker" >&2; exit 1;
+  }
+done
+
 # C1.2-B2-B2: Core authorizes focused input at enqueue AND dispatch,
 # retaining the admitted lease revision to block switch-away/refocus ABA.
 for marker in 'fun requireCurrentLease(appId: String, attachmentGeneration: Long)' \
