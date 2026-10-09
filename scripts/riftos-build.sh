@@ -732,6 +732,70 @@ for marker in 'METHOD_SHELL_ADMIN_CONSENT ->' \
   }
 done
 
+# C1.4-C2-A: exact Core-only signer-stamped EMPTY provider registry
+# publish-and-rollback. Never register a live provider or modify an existing
+# external registry; run only after a user-approved one-use Core consent.
+registry_proof_src="android/app/src/main/java/com/riftos/app/RiftCoreAdminRegistryProof.kt"
+test -f "$registry_proof_src" || {
+  echo 'Builder C1.4-C2-A Core registry proof source missing' >&2; exit 1;
+}
+grep -Fq '"src/main/java/com/riftos/app/RiftCoreAdminRegistryProof.kt"' "$gradle_contract" || {
+  echo 'Builder C1.4-C2-A mandatory Gradle source registration missing' >&2; exit 1;
+}
+for marker in 'const val SCHEMA = "riftos.core.admin-registry-proof/1"' \
+  'const val OPERATION = "runtime.register"' \
+  'const val TARGET = "core://runtime-providers/registry.json#empty-c2a"' \
+  'GET_SIGNING_CERTIFICATES' \
+  'File(base, "system/runtime-providers/registry.json")' \
+  '"providers", JSONArray()' \
+  'check(!target.exists() && !scratch.exists())' \
+  'prefs.edit().putBoolean(PENDING, true)' \
+  'stream.fd.sync()' \
+  'java.nio.file.Files.createLink(target.toPath(), scratch.toPath())' \
+  'published.getJSONArray("providers").length() == 0' \
+  '.remove(PENDING).remove(DIR_CREATED).commit()' \
+  '"providerRegistered", false' \
+  '"registryRestored", true' \
+  '"generalRuntimeRegistrationEnabled", false'; do
+  grep -Fq "$marker" "$registry_proof_src" || {
+    echo "Builder C1.4-C2-A signer-attested journalled empty registry proof missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'RiftCoreAdminRegistryProof.OPERATION' \
+  'fun executeRegistryProof(' \
+  'RiftCoreAdminRegistryProof.writeAndRollback(context)' \
+  '"isolated-registry-proof"'; do
+  grep -Fq "$marker" "$admin_tickets_src" || {
+    echo "Builder C1.4-C2-A exact one-use Core ticket missing: $marker" >&2; exit 1;
+  }
+done
+for marker in '"execute-registry-proof" -> RiftCoreAdminConsent.executeRegistryProof('; do
+  grep -Fq "$marker" "$shell_core_ipc_src" || {
+    echo "Builder C1.4-C2-A production-shell authenticated Binder missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'Select isolated runtime registry proof scope' \
+  'Execute Core empty registry and rollback once' \
+  'client.adminConsent("execute-registry-proof"'; do
+  grep -Fq "$marker" "$admin_ui_src" || {
+    echo "Builder C1.4-C2-A native Core registry consent/rollback UI missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq 'RiftCoreAdminRegistryProof.recover(this)' \
+  'android/app/src/main/java/com/riftos/app/RiftCoreApplication.kt' || {
+  echo 'Builder C1.4-C2-A interrupted registry journal recovery missing' >&2; exit 1;
+}
+grep -Fq '"adminRegistryProof", RiftCoreAdminRegistryProof.status(context)' \
+  'android/app/src/main/java/com/riftos/app/RiftCoreRuntime.kt' || {
+  echo 'Builder C1.4-C2-A isolated registry status missing' >&2; exit 1;
+}
+for marker in 'if (extras?.getString("action") == "execute-registry-proof") {' \
+  'RiftCoreAdminRegistryProof.SCHEMA'; do
+  grep -Fq "$marker" "$shell_ipc_client_src" || {
+    echo "Builder C1.4-C2-A dedicated effect response schema missing: $marker" >&2; exit 1;
+  }
+done
+
 # C1.1-B2-A: Core owns bounded event FIFO; desktop owns UI callbacks only.
 for marker in 'data class EventTicket(' 'MAX_PENDING_EVENTS = 64' \
   'MAX_PENDING_EVENT_BYTES = 1024 * 1024' \

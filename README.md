@@ -1,5 +1,11 @@
 # Riftos-builder
 
+## 2026-10-09 — C1.4-C2-A Core registry proof preflight (source only)
+
+C1.4-C1 FULL signed/device PASS on user-built Builder #669 included actual OS-attested production RiftShell PID replacement and expired/consumed/window-close/old-PID ticket revocation. The next C1.4-C2-A **source candidate is not yet Kotlin built or device-proven**. Builder preflight now requires the explicit Gradle source `RiftCoreAdminRegistryProof.kt`, installed RiftOS APK signer-stamped and **EMPTY** provider registry only when original registry is absent, journal-before-write/fsync/verify/remove/recover, exact Core PID/signer-bound one-use native `runtime.register` ticket, action-specific Binder reply schema `riftos.core.admin-registry-proof/1` and native zero-provider approval UI. Signed APK verification requires that schema marker. Existing external provider enrollment, RAPP install, protected-process kill and Android privilege escalation remain inaccessible through C2-A. User alone manually dispatches/builds/signs/installs APK. Never run CI automatically. Follow-on C2-B real signer-pinned provider enrollment/rollback must be designed and device-proven separately.
+
+
+
 ## 2026-10-09 — #668 live baseline; C1.4-C1 rollback response schema source fix
 
 User-manual signed Builder #668 (run 37982033247, RiftOS source 631961bc) is GREEN/installed, Core PID19417 and production Shell PID19392 with four protected RAPPs and zero canary/journal. Actual C1 effect was NOT run. Code review found a Shell client false error: Core execute-rollback-proof returns its dedicated rollback-proof schema, while Shell required consent schema unconditionally after the effect had already executed and consumed its ticket. RiftOS now chooses rollback-proof only for the exact action and consent schema otherwise. Builder script preflight enforces both branches and test-builder-contracts checks the preflight gate; final APK still verifies both schema markers. This is SOURCE ONLY until the user manually builds/signs/installs a new APK and device-proves the exact effect. Workflow/manual dispatch unchanged; no automation, app changes, or process kill.

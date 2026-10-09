@@ -151,6 +151,23 @@ for marker in (
 require(VERIFY, "'riftos.core.admin-rollback-proof/1'",
         "C1.4-C1 signed installed Core rollback transaction schema")
 
+# C1.4-C2-A only publishes an Android signer-stamped EMPTY runtime registry
+# inside a Core-atomic disposable transaction. Existing registry fail-closed.
+for marker in (
+    "Builder C1.4-C2-A Core registry proof source missing",
+    "Builder C1.4-C2-A mandatory Gradle source registration missing",
+    "Builder C1.4-C2-A signer-attested journalled empty registry proof missing:",
+    "Builder C1.4-C2-A exact one-use Core ticket missing:",
+    "Builder C1.4-C2-A production-shell authenticated Binder missing:",
+    "Builder C1.4-C2-A native Core registry consent/rollback UI missing:",
+    "Builder C1.4-C2-A interrupted registry journal recovery missing",
+    "Builder C1.4-C2-A isolated registry status missing",
+    "Builder C1.4-C2-A dedicated effect response schema missing:",
+):
+    require(BUILD, marker, "C1.4-C2-A reversible, no-provider registry proof")
+require(VERIFY, "'riftos.core.admin-registry-proof/1'",
+        "C1.4-C2-A signed APK registry proof schema")
+
 # C1.3-B: only validated, independent remote proof process may terminate itself.
 for marker in [
     "Builder C1.3-B remote-only process-loss guard missing:",
