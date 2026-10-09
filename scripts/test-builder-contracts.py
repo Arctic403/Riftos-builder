@@ -168,7 +168,18 @@ for marker in (
 require(VERIFY, "'riftos.core.admin-registry-proof/1'",
         "C1.4-C2-A signed APK registry proof schema")
 
-# C1.3-B: only validated, independent remote proof process may terminate itself.
+# C1.3-B: only validated, independent remote proof process may terminate itself.# C1.4-C2-B1 read-only installed runtime discovery remains source-only
+# until C2-A + C2-B2 are integrated and physically accepted as ONE C2 milestone.
+for marker in (
+    "Builder C1.4-C2-B1 installed provider discovery guard missing:",
+    "Builder C1.4-C2-B1 Core authenticated read-only discovery missing:",
+    "Builder C1.4-C2-B1 read-only Binder route missing",
+    "Builder C1.4-C2-B1 Shell reply/allowlist missing:",
+    "Builder C1.4-C2-B1 native read-only inventory missing:",
+):
+    require(BUILD, marker, "C1.4-C2-B1 discovery-only provider proposal")
+
+
 for marker in [
     "Builder C1.3-B remote-only process-loss guard missing:",
     "lastVerifiedCorePid > 0 && pid != lastVerifiedCorePid",

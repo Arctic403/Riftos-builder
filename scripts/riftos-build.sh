@@ -796,6 +796,45 @@ for marker in 'if (extras?.getString("action") == "execute-registry-proof") {' \
   }
 done
 
+# C1.4-C2-B1: safe READ-ONLY discovery of Android-installed runtime services,
+# no provider admission/registry mutation before separate C2-B2 gate.
+for marker in 'fun discoverCandidates(): JSONObject' \
+  'PackageManager.GET_META_DATA' \
+  'meta.getString("riftos.runtime.provider.id")' \
+  'meta.getString("riftos.runtime.executor.kind")' \
+  'kind !in RiftAppExecutionKind.SUPPORTED' \
+  'installedSignerSha256(pkg)' \
+  'verifyInstalled(provider)' \
+  '"admissionTarget", "core://runtime-providers/admit/$digest"' \
+  '"enrollmentEnabled", false' \
+  '"registryModified", false'; do
+  grep -Fq "$marker" "$runtime_provider_source" || {
+    echo "Builder C1.4-C2-B1 installed provider discovery guard missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'fun discoverProviderCandidates(context: Context, callerPid: Int)' \
+  'RiftCoreRuntime.runtimes(context).discoverCandidates()'; do
+  grep -Fq "$marker" "$admin_tickets_src" || {
+    echo "Builder C1.4-C2-B1 Core authenticated read-only discovery missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq '"discover-providers" -> RiftCoreAdminConsent.discoverProviderCandidates(ctx, caller)' \
+  "$shell_core_ipc_src" || {
+  echo 'Builder C1.4-C2-B1 read-only Binder route missing' >&2; exit 1;
+}
+for marker in '"discover-providers"' \
+  '"riftos.core.runtime-candidates/1"'; do
+  grep -Fq "$marker" "$shell_ipc_client_src" || {
+    echo "Builder C1.4-C2-B1 Shell reply/allowlist missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'Discover installed runtime candidates (read-only)' \
+  'client.adminConsent("discover-providers")'; do
+  grep -Fq "$marker" "$admin_ui_src" || {
+    echo "Builder C1.4-C2-B1 native read-only inventory missing: $marker" >&2; exit 1;
+  }
+done
+
 # C1.1-B2-A: Core owns bounded event FIFO; desktop owns UI callbacks only.
 for marker in 'data class EventTicket(' 'MAX_PENDING_EVENTS = 64' \
   'MAX_PENDING_EVENT_BYTES = 1024 * 1024' \

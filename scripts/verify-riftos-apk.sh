@@ -341,6 +341,7 @@ for marker in \
   'riftos.core.admin-consent/1' \
   'riftos.core.admin-rollback-proof/1' \
   'riftos.core.admin-registry-proof/1' \
+  'riftos.core.runtime-candidates/1' \
   'riftos.core.shell-ui/1' \
   'riftos.shell.desktop-ipc/1' \
   'riftos.shell.event/1' \

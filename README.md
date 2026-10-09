@@ -1,5 +1,13 @@
 # Riftos-builder
 
+## 2026-10-09 — User-directed milestone device cadence; C2-B1 read-only provider discovery preflight
+
+User elected SOURCE validation on small RiftOS patches and combined comprehensive **major** C2/C3/C1.5 signed Android checks rather than demanding a fresh device installation for every minor edit. Exceptions: early real-device checks whenever Android-specific Binder/service, process recovery, installer, privileged filesystem or rollback feasibility/safety depends on actual Android behavior. The user exclusively triggers manual Builder and installs signed APKs; builder scripts remain the canonical compile/preflight/sign/verify pipeline, and SOURCE PASS never implies BUILD or DEVICE PASS.
+
+C2-B1 read-only discovery inspects PackageManager-installed generic runtime Binder service id/kind/signing identity, returns bounded exact candidate targets through authenticated Core `discover-providers`, and displays a native inventory. It neither authorizes runtime registration nor mutates the existing external provider registry. Builder preflight and signed APK verifier check the `riftos.core.runtime-candidates/1` schema. C2-B2 transactional enrollment/rollback is still pending, and C2-A remains unproven on device.
+
+
+
 ## 2026-10-09 — C1.4-C2-A Core registry proof preflight (source only)
 
 C1.4-C1 FULL signed/device PASS on user-built Builder #669 included actual OS-attested production RiftShell PID replacement and expired/consumed/window-close/old-PID ticket revocation. The next C1.4-C2-A **source candidate is not yet Kotlin built or device-proven**. Builder preflight now requires the explicit Gradle source `RiftCoreAdminRegistryProof.kt`, installed RiftOS APK signer-stamped and **EMPTY** provider registry only when original registry is absent, journal-before-write/fsync/verify/remove/recover, exact Core PID/signer-bound one-use native `runtime.register` ticket, action-specific Binder reply schema `riftos.core.admin-registry-proof/1` and native zero-provider approval UI. Signed APK verification requires that schema marker. Existing external provider enrollment, RAPP install, protected-process kill and Android privilege escalation remain inaccessible through C2-A. User alone manually dispatches/builds/signs/installs APK. Never run CI automatically. Follow-on C2-B real signer-pinned provider enrollment/rollback must be designed and device-proven separately.
