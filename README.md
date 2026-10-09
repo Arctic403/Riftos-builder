@@ -1,5 +1,10 @@
 # Riftos-builder
 
+## 2026-10-09 — C1.3-D manual Builder #3: source-documentation ledger repaired
+
+User-manual Worker run `37888463412` on RiftOS input source `b9b708a1d4fa7de26166deafe2cc76408209e1b3` successfully passed native wiring and transport validation after the prior WebKit fix, then failed **`scripts/validate-rift-docs.mjs`** because eight new C1.3-D source files were missing from `docs/SOURCE_OWNERSHIP.md`. RiftOS now registers all eight separate-process Shell/Core IPC files under their appropriate existing documentation owners; source validator and Builder runtime/build scripts remain unchanged for this failure. Focused check verified eight unique ledger entries. This run stopped before Gradle compile, signing or real installed D device proof. **No changes to the normal user-manual Builder/pack/sign/verify flow.** User manually starts the next Builder after synchronized heads are pushed; C1.3-E remains unstarted.
+
+
 ## C1.3-D second manual Builder RED — RiftBrowser WebKit owner repair (2026-10-09)
 
 User-manual Builder run `37887642001` cleared the prior C1.3-D validator initialization failure, then stopped with `WebKit ownership escaped RiftBrowser: android/app/src/main/java/com/riftos/app/RiftCoreApplication.kt`. The remote Android process needs a dedicated WebView data-directory suffix, but the WebKit API may only be owned by existing `RiftBrowser*` sources. The C1.3-D patch now has Core `Application.onCreate` detect actual `:riftShell` (API 28+) and call `RiftBrowserWindow.prepareRemoteShellWebViewDirectory()`; `RiftBrowserWindow.kt` performs `WebView.setDataDirectorySuffix("riftShell")` before WebView construction. No Core-side `android.webkit` import or expanded ownership allowlist. Builder source guards and self-tests check both halves, alongside the unchanged original Gradle owner gate. Focused 14/14 and JS parse checks passed; the next full build is **USER-MANUAL ONLY**, and C1.3-D remains not installed/device-proven. C1.3-E not started.
