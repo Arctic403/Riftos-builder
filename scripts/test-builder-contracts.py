@@ -49,6 +49,14 @@ for marker in [
     require(BUILD, marker, "C1.2-C1 Core-owned RAPP lifecycle")
 require(VERIFY, "'riftos.core.apps/1'", "C1.2-C1 signed lifecycle schema")
 
+# C1.3-B: only validated, independent remote proof process may terminate itself.
+for marker in [
+    "Builder C1.3-B remote-only process-loss guard missing:",
+    "lastVerifiedCorePid > 0 && pid != lastVerifiedCorePid",
+    'packageName + ":riftShellProbe"',
+]:
+    require(BUILD, marker, "C1.3-B remote-only process death guard")
+
 # C1.3-A: bounded Core snapshot Binder IPC with independent shell PID.
 for marker in [
     "Builder C1.3-A Core IPC or remote shell source missing",

@@ -615,6 +615,19 @@ grep -Fq 'RiftRemoteShellProbeActivity::class.java' \
   echo 'Builder C1.3-A IPC viewer launch control missing' >&2; exit 1;
 }
 
+# C1.3-B: shell process-loss test can kill ONLY its own verified
+# :riftShellProbe process after observing a separate real Core PID.
+for marker in 'Terminate isolated shell probe (test)' \
+  'lastVerifiedCorePid > 0 && pid != lastVerifiedCorePid' \
+  'isExactRemoteProbeProcess()' \
+  'Process.killProcess(pid)' \
+  'packageName + ":riftShellProbe"' \
+  'File("/proc/self/cmdline")'; do
+  grep -Fq "$marker" "$remote_shell_source" || {
+    echo "Builder C1.3-B remote-only process-loss guard missing: $marker" >&2; exit 1;
+  }
+done
+
 # C1.2-B2-B2: Core authorizes focused input at enqueue AND dispatch,
 # retaining the admitted lease revision to block switch-away/refocus ABA.
 for marker in 'fun requireCurrentLease(appId: String, attachmentGeneration: Long)' \
