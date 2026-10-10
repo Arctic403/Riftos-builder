@@ -515,7 +515,7 @@ for marker in 'Binder.getCallingUid()' 'Binder.getCallingPid()' \
   'ctx.packageName + ":riftShell"' \
   'manager.runningAppProcesses' 'process.pid == pid && process.uid == uid' \
   'registryName == expected' 'procName == expected' \
-  'RiftCoreRuntime.lifecycle(ctx).offerEvent(id, generation, event)' \
+  'RiftHostCoreComponents.core().event(ctx, id, generation, event)' \
   'RiftCoreShellRemoteUiBroker.respond(' \
   'RiftCoreShellWindowBridge.report('; do
   grep -Fq "$marker" "$shell_core_ipc_src" || {
@@ -1172,13 +1172,40 @@ for marker in 'RiftCoreSurfaceIpcProvider.kt' \
   }
 done
 for marker in 'riftos.core.surface-ipc/1' \
-  'RiftCoreRuntime.surfaces(ctx).snapshot(id)' \
+  'RiftHostCoreComponents.core().snapshot(ctx, id)' \
   'MAX_REPLY_BYTES = 256 * 1024' \
   'Core IPC insert forbidden'; do
   grep -Fq "$marker" "$core_ipc_source" || {
     echo "Builder C1.3-A Core snapshot endpoint missing: $marker" >&2; exit 1;
   }
 done
+# E0 Core/Shell class-ownership boundary: keep signed host-side Android
+# caller authentication and all current Core APIs while selecting ONLY
+# the embedded V1 implementation until independently verified replacement.
+host_component_src="android/app/src/main/java/com/riftos/app/RiftHostComponentAbiV1.kt"
+test -f "$host_component_src" || {
+  echo 'Builder E0 versioned host Core ABI source missing' >&2; exit 1;
+}
+grep -Fq '"src/main/java/com/riftos/app/RiftHostComponentAbiV1.kt"' "$gradle_contract" || {
+  echo 'Builder E0 host Core ABI missing from exact Gradle source allowlist' >&2; exit 1;
+}
+for marker in 'interface RiftCoreComponentV1' 'interface RiftShellPresentationV1' \
+  'fun core(): RiftCoreComponentV1 = embedded' \
+  'externalCoreEnabled", false' 'externalShellEnabled", false' \
+  'RiftCoreRuntime.surfaces(context).snapshot(id)' \
+  'RiftCoreRuntime.lifecycle(context).offerEvent(id, generation, event)'; do
+  grep -Fq "$marker" "$host_component_src" || {
+    echo "Builder E0 embedded-only host Core adapter contract missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq 'RiftHostCoreComponents.core().initialize(application)' \
+  "android/app/src/main/java/com/riftos/app/RiftBootstrapHost.kt" || {
+  echo 'Builder E0 default Core startup did not select versioned embedded adapter' >&2; exit 1;
+}
+grep -Fq '.put("hostComponents", RiftHostCoreComponents.status())' \
+  "android/app/src/main/java/com/riftos/app/RiftCoreRuntime.kt" || {
+  echo 'Builder E0 read-only component provenance status missing' >&2; exit 1;
+}
 for marker in 'contentResolver.call(' \
   'Process.myPid()' 'Separate Android processes:' \
   'mainHandler.removeCallbacks(poll)'; do

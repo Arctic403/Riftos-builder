@@ -1,5 +1,10 @@
 # Riftos-builder
 
+## 2026-10-10 — E0 host Core V1 ABI source preflight aligned (LOCAL, UNPUSHED)
+
+The user resumed actual Core/Shell code extraction, not third-party Python/Node runtime-provider development. RiftOS now introduces `RiftHostComponentAbiV1.kt` and moves the **existing, unchanged embedded** RAPP surface snapshot and event dispatch through `RiftHostCoreComponents.core()` in `RiftCoreSurfaceIpcProvider`. Existing Builder C1.3-A/D preflight expected literal direct calls to `RiftCoreRuntime` and would reject the correct E0 refactor before Kotlin compilation. `scripts/riftos-build.sh` now checks the new exact V1 adapter calls and independently checks the ABI file, Gradle source allowlist, unchanged embedded-only component selector, critical bootstrap path, native snapshot code and Core status. `scripts/test-builder-contracts.py` asserts the new diagnostics/markers. All existing production Shell Binder PID/signer authentication, protected admin scope, Core response bounds, UI process recovery and manual signed Builder workflow stay unchanged. **No new Builder run, Kotlin compilation, APK installation, git commit or push yet.** E0 remains source-only and external Core/Shell activation remains disabled.
+
+
 ## 2026-10-09 — Bootstrap Probe trusted import / manual external DEX source checks
 
 User-approved local SOURCE-only patch extends fixed Core-managed one-use consent with `bootstrap.probe.stage` and SHA256-bound `bootstrap.probe.activate`, and native Admin Approvals SAF picker with read-only Binder FD forwarding. Builder source preflight and selftest require the guarded Core/Shell source contracts and the nonexported probe Service. A separate **workflow_dispatch only** javac+D8 DEX artifact job is available but is NOT a prerequisite for the manually signed RiftOS APK Builder. Existing manually triggered RiftOS signed APK Builder, signer, Gradle, pack/sign/verify, RAPP hot compiler and C2-A Core registry proof are unchanged. **No new APK/DEX build or device verification yet; user manually dispatches both artifact builds as needed.** No real C2-B2 provider enrollment.

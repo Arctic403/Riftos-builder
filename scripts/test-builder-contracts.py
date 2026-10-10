@@ -216,6 +216,18 @@ for marker in [
 ]:
     require(BUILD, marker, "C1.3-A private Core/shell process IPC")
 
+# E0 Core/Shell extracted-implementation ABI; still embedded-only until signed proof.
+for marker in [
+    "Builder E0 versioned host Core ABI source missing",
+    "Builder E0 host Core ABI missing from exact Gradle source allowlist",
+    "Builder E0 embedded-only host Core adapter contract missing:",
+    "Builder E0 default Core startup did not select versioned embedded adapter",
+    "Builder E0 read-only component provenance status missing",
+    "'RiftHostCoreComponents.core().snapshot(ctx, id)'",
+    "'RiftHostCoreComponents.core().event(ctx, id, generation, event)'",
+]:
+    require(BUILD, marker, "E0 component ABI + protected Core Binder adapter")
+
 # C1.2-D2: independent graphical client consumes Core surface snapshots.
 for marker in [
     "Builder C1.2-D2 graphical shell source missing",
