@@ -1,5 +1,9 @@
 # Riftos-builder
 
+## 2026-10-10 — Main-branch coordinated Core/Shell integration (UNBUILT SOURCE)
+
+User clarified the GitHub backup is for disaster recovery **only**; RiftOS/Builder engineering continues on their respective ordinary `main` branches. This coordinated source checkpoint extends Builder preflight/Python selftest/signed DEX requirements for Core/Shell `RiftComponentReleaseLedger.kt`, nonexported `:riftCoreSupervisor` service, genuine graphical Shell V1 ABI and guarded Shell candidate loader. Runtime remains embedded by default. Signed/installed baseline remains user-verified RiftOS #697 from `812dd80d1e0e`; this migration source has **not** been user-manually built or device-proven. The new ledger and observer are not proof of full automatic N-1 rollback or a standalone compiled Core/Shell. Keep the current user-triggered signed RiftOS APK workflow unchanged.
+
 ## 2026-10-10 — H Core bounded failure-evidence source preflight (pending user manual build)
 
 Builder and RiftOS now share a fixed mandatory Android Core diagnostic owner `RiftCoreRecoveryDiagnostics.kt`: Builder checks its exact Gradle source declaration, bounded AtomicFile/Android historical exit and original uncaught Java handler preservation, main bootstrap + candidate startup connection, and Core status diagnostic schema. Python Builder selftest guards the preflight markers and signed APK DEX verifier requires `riftos.core.recovery-diagnostics/1` before release. Normal manually triggered GitHub Builder → preflight/compile/pack/sign/verify/install remains unchanged. Last user-proven #697 source `812dd80d1e0e`; new Kotlin isn't compiled or installed until another user-run signed APK. There is still no real independent Core/Dex build, host qualification writer, surviving process supervisor or previous external N-1 rollback; H not accepted.

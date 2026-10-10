@@ -1296,6 +1296,87 @@ for pair in \
     echo "Builder H Core recovery evidence integration missing: $owner $marker" >&2; exit 1;
   }
 done
+# H2: source-only protected revision journal and best-effort separate
+# Android Core liveness observer; neither grants external Core activation.
+revision_src="android/app/src/main/java/com/riftos/app/RiftComponentReleaseLedger.kt"
+supervisor_src="android/app/src/main/java/com/riftos/app/RiftCoreRecoverySupervisorService.kt"
+for owner in "$revision_src" "$supervisor_src"; do
+  test -f "$owner" || { echo "Builder H version/observer source missing: $owner" >&2; exit 1; }
+  grep -Fq "${owner#android/app/}" "$gradle_contract" || {
+    echo "Builder H version/observer Kotlin not Gradle-mandatory: $owner" >&2; exit 1;
+  }
+done
+for marker in 'riftos.host.revisions/1' 'fun recoveryTarget(context: Context, id: String)' \
+  'fun acceptProven(context: Context, id: String, sha: String)' \
+  'Quarantined component revision cannot be reactivated' \
+  'Revision executable digest mismatch' 'AtomicFile(path)'; do
+  grep -Fq "$marker" "$revision_src" || {
+    echo "Builder H protected Core/Shell version journal missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'class RiftCoreRecoverySupervisorService : Service()' \
+  'riftos.host.core-supervisor/1' \
+  'Application.getProcessName() == packageName + ":riftCoreSupervisor"' \
+  'state", "core-process-missing"' \
+  'automaticRestartGuaranteed", false'; do
+  grep -Fq "$marker" "$supervisor_src" || {
+    echo "Builder H Core supervisor observer contract missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'android:name=".RiftCoreRecoverySupervisorService"' \
+  'android:process=":riftCoreSupervisor"'; do
+  grep -Fq "$marker" "$manifest_contract" || {
+    echo "Builder H nonexported separated Core supervisor process missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq 'RiftCoreRecoverySupervisorService::class.java' "$bootstrap_host_source" || {
+  echo 'Builder H Core observer must launch separately from main-process bootstrap' >&2; exit 1;
+}
+for marker in '.put("coreRecoverySupervisor", RiftCoreRecoverySupervisorService.status(context))' \
+  '.put("externalCoreRevisions", RiftComponentReleaseLedger.status(context, "core"))' \
+  '.put("externalShellRevisions", RiftComponentReleaseLedger.status(context, "shell"))'; do
+  grep -Fq "$marker" "$core_runtime_source" || {
+    echo "Builder H Core/Shell release status wiring missing: $marker" >&2; exit 1;
+  }
+done
+# S: real graphical Shell must be separately qualified and must own its
+# entire native desktop; preserve embedded default until source/device proof.
+shell_component_src="android/app/src/main/java/com/riftos/app/RiftShellComponentAbiV1.kt"
+shell_candidate_src="android/app/src/main/java/com/riftos/app/RiftShellCandidateSwitch.kt"
+for owner in "$shell_component_src" "$shell_candidate_src"; do
+  test -f "$owner" || {
+    echo "Builder S native external Shell source missing: $owner" >&2; exit 1;
+  }
+  grep -Fq "${owner#android/app/}" "$gradle_contract" || {
+    echo "Builder S graphical Shell Kotlin not Gradle-mandatory: $owner" >&2; exit 1;
+  }
+done
+for marker in 'interface RiftShellGraphicalComponentV1' \
+  'interface RiftShellPlatformServicesV1' \
+  'RiftShellPlatformServicesAdapter' \
+  'client.offerEvent(id, generation, RiftAppAbi.Event('; do
+  grep -Fq "$marker" "$shell_component_src" || {
+    echo "Builder S real graphical Shell V1 ABI missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'RiftBootstrapComponentStore.active(application, "shell")' \
+  'Shell candidate class shadows host APK' \
+  'Shell candidate does not implement native graphical V1 contract' \
+  'unaccepted-shell-startup' 'automaticPromotionEnabled", false'; do
+  grep -Fq "$marker" "$shell_candidate_src" || {
+    echo "Builder S external graphical Shell loader guard missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'RiftShellCandidateSwitch.selectAtBoot(application)' \
+  'candidate.attach(this, host,' 'externalShell?.onResume()' \
+  'RiftShellCandidateSwitch.fallback(application, "external-shell-attach-exception")'; do
+  grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/RiftShellActivity.kt" || {
+    echo "Builder S graphical Shell Activity missing guarded external lifecycle: $marker" >&2; exit 1;
+  }
+done
+grep -Fq 'fun resetShellToEmbedded(context: Context)' "$bootstrap_store_source" || {
+  echo 'Builder S protected embedded graphical Shell rollback missing' >&2; exit 1;
+}
 # E1-A transitive class closure remains mandatory, but external selection
 # is impossible until a separately approved exact Core qualification is made.
 e1_core_closure_src="scripts/test-e1-core-closure.mjs"
