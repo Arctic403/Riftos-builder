@@ -424,7 +424,7 @@ for marker in (
     'Builder Bootstrap Core Binder FD import guard missing:',
     'Builder Bootstrap trusted Shell request guard missing:',
     'Builder Bootstrap native consent/picker missing:',
-    'criticalExternalActivationEnabled',
+    'RiftHostCoreComponents.status().optBoolean("externalCoreEnabled", false)',
     'android:name=".RiftCoreApplication"',
     "object RiftCoreRuntime",
     "RiftCoreRuntime.buildPlatform(appContext)",
