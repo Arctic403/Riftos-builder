@@ -327,7 +327,8 @@ grep -Fq '<action android:name="com.riftos.runtime.EXECUTE_V1" />' "$manifest_co
 # package/runtime/build authority is process-owned, not Activity-owned.
 core_application_source="android/app/src/main/java/com/riftos/app/RiftCoreApplication.kt"
 core_runtime_source="android/app/src/main/java/com/riftos/app/RiftCoreRuntime.kt"
-for core_source in "$core_application_source" "$core_runtime_source"; do
+bootstrap_host_source="android/app/src/main/java/com/riftos/app/RiftBootstrapHost.kt"
+for core_source in "$core_application_source" "$core_runtime_source" "$bootstrap_host_source"; do
   test -f "$core_source" || { echo "Builder C1.0 Core source missing: $core_source" >&2; exit 1; }
   grep -Fq "${core_source#android/app/}" android/app/build.gradle.kts || {
     echo "Builder C1.0 Core Kotlin source not Gradle-mandatory: $core_source" >&2; exit 1;
@@ -473,8 +474,12 @@ grep -Fq 'RiftCoreShellLaunchQueue.offer(id)' \
   "android/app/src/main/java/com/riftos/app/RiftRappManager.kt" || {
   echo 'Builder C1.3-D Core-first RAPP remote presentation queue missing' >&2; exit 1;
 }
-grep -Fq 'RiftBrowserWindow.prepareRemoteShellWebViewDirectory()' \
+grep -Fq 'RiftBootstrapHost.prepareShell(this)' \
   "android/app/src/main/java/com/riftos/app/RiftCoreApplication.kt" || {
+  echo 'Builder remote Shell process must enter bootstrap host' >&2; exit 1;
+}
+grep -Fq 'RiftBrowserWindow.prepareRemoteShellWebViewDirectory()' \
+  "android/app/src/main/java/com/riftos/app/RiftBootstrapHost.kt" || {
   echo 'Builder C1.3-D remote shell Application browser owner handoff missing' >&2; exit 1;
 }
 for browser_marker in 'fun prepareRemoteShellWebViewDirectory()' \
@@ -498,9 +503,9 @@ for source in "$shell_recovery_src" "$core_lifecycle_qa_src"; do
     echo "Builder C1.3-E Android mandatory source missing: $basename" >&2; exit 1;
   }
 done
-for marker in 'RiftCoreShellRecovery.initialize(this)' \
-  'RiftMcpRuntime.relayClient(this).start()'; do
-  grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/RiftCoreApplication.kt" || {
+for marker in 'RiftCoreShellRecovery.initialize(application)' \
+  'RiftMcpRuntime.relayClient(application).start()'; do
+  grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/RiftBootstrapHost.kt" || {
     echo "Builder C1.3-E default Core recovery watchdog missing: $marker" >&2; exit 1;
   }
 done
@@ -715,8 +720,8 @@ for marker in 'Toggle isolated rollback proof scope' \
     echo "Builder C1.4-C1 native Core rollback approval UI missing: $marker" >&2; exit 1;
   }
 done
-grep -Fq 'RiftCoreAdminRollbackProof.recover(this)' \
-  'android/app/src/main/java/com/riftos/app/RiftCoreApplication.kt' || {
+grep -Fq 'RiftCoreAdminRollbackProof.recover(application)' \
+  'android/app/src/main/java/com/riftos/app/RiftBootstrapHost.kt' || {
   echo 'Builder C1.4-C1 interrupted Core journal recovery missing' >&2; exit 1;
 }
 
@@ -820,8 +825,8 @@ for marker in 'Select isolated runtime registry proof scope' \
     echo "Builder C1.4-C2-A native Core registry consent/rollback UI missing: $marker" >&2; exit 1;
   }
 done
-grep -Fq 'RiftCoreAdminRegistryProof.recover(this)' \
-  'android/app/src/main/java/com/riftos/app/RiftCoreApplication.kt' || {
+grep -Fq 'RiftCoreAdminRegistryProof.recover(application)' \
+  'android/app/src/main/java/com/riftos/app/RiftBootstrapHost.kt' || {
   echo 'Builder C1.4-C2-A interrupted registry journal recovery missing' >&2; exit 1;
 }
 grep -Fq '"adminRegistryProof", RiftCoreAdminRegistryProof.status(context)' \

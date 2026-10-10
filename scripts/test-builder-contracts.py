@@ -377,6 +377,7 @@ for marker in ("'riftos.core.sessions/1'", "'headlessExecution'"):
 for marker in (
     'RiftCoreApplication.kt',
     'RiftCoreRuntime.kt',
+    'RiftBootstrapHost.kt',
     'android:name=".RiftCoreApplication"',
     "object RiftCoreRuntime",
     "RiftCoreRuntime.buildPlatform(appContext)",

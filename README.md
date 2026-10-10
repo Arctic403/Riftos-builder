@@ -1,5 +1,9 @@
 # Riftos-builder
 
+## 2026-10-09 — Bootstrap Host source-only checkpoint
+
+Builder source preflight now follows C1.3-E/C1.4-C1/C2-A startup and rollback code into `RiftBootstrapHost.kt`, which is now a required Gradle Kotlin source. The APK still uses embedded Core/Shell by default; a separate DEX component has not yet been built, installed or activated. The user manually dispatches the original signed Builder; C2-A physical proof and C2-B2 HOLD remain unchanged. Do not call this a completed migration or signed/device pass.
+
 ## 2026-10-09 — C2-A signed #678 errno13 hardlink failure: non-overwriting O_EXCL proof contracts
 
 Real user-signed RiftOS #678/`272f39b2ec11` failed exact approved C2-A proof at `atomic-create-only-publish` with Android `ErrnoException errno=13`. Source switched the **isolated EMPTY registry test only** from disallowed hard links to restrictive `Os.open(O_CREAT|O_EXCL|O_NOFOLLOW)` direct write/fsync, then exact verify/mandatory rollback, shared Core registry-reader monitor and crash-journal pending guard so partial file cannot be consumed. This is Core-visible serialization, not filesystem-atomic rename or production provider registration. Builder preflight/selftests enforce exclusive-create/no-overwrite, guarded reader, recoverable partial prefix, and reject hardlink/replacing rename; signed APK pipeline remains user-manual and unchanged. No new Kotlin/device build proved on changed source; user runs next green APK and validates exact one-use consent+registry write/rollback. Hold C2-B2 until positive physical proof.
