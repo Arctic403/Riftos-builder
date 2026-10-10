@@ -174,7 +174,9 @@ for marker in (
     "'\"lastFailureErrno\", lastFailureErrno'",
     "'\"pathStatusAvailable\", files != null'",
     "'diagnostic.optBoolean(\"temporaryRegistryExists\", true)'",
-    "'Core C2-A registry transaction FAILED at $stage ($kind)'",
+    "'val errno = response.optInt(\"failureErrno\", 0)'",
+    "'Core C2-A registry transaction FAILED at'",
+    "'No success claimed; inspect Core registry/journal status.'",
 ):
     require(BUILD, marker, "C1.4-C2-A no-overwrite fallback and bounded failure state")
 

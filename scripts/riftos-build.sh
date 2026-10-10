@@ -789,7 +789,9 @@ done
 for marker in 'Select isolated runtime registry proof scope' \
   'Execute Core empty registry and rollback once' \
   'client.adminConsent("execute-registry-proof"' \
-  'Core C2-A registry transaction FAILED at $stage ($kind)'; do
+  'val errno = response.optInt("failureErrno", 0)' \
+  'Core C2-A registry transaction FAILED at' \
+  'No success claimed; inspect Core registry/journal status.'; do
   grep -Fq "$marker" "$admin_ui_src" || {
     echo "Builder C1.4-C2-A native Core registry consent/rollback UI missing: $marker" >&2; exit 1;
   }

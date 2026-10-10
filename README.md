@@ -1,5 +1,10 @@
 # Riftos-builder
 
+## 2026-10-09 — Run 38006658730 C2-A native diagnostic assertion false positive fixed
+
+USER-built RiftOS `b87820dba3e7` encountered a Builder preflight error **before Kotlin compilation**: the Builder asserted the exact literal `Core C2-A registry transaction FAILED at $stage ($kind)`, but the actual trusted native UI formats a sanitized Android errno through the local `$type` variable. Validating one Kotlin variable name was unnecessarily brittle. Builder source preflight now checks the stable **FAILED** label, explicit `failureErrno` numeric lookup and `No success claimed` warning independently. Builder selftest enforces those updated guards. RiftOS source validator was synchronized. No executable Core/Shell implementation or Builder compile/sign/verify stage was changed by this repair. Focused source checks and project audits passed; **full signed build and physical C2-A proof remain user-manual and pending**.
+
+
 ## 2026-10-09 — C2-A signed #676 registry transaction failure instrumentation (Builder source-contract update)
 
 USER built/installed #676 source `30bebf009e88`; Core's C2-A safe empty-registry test consumed its exact permission ticket and failed without leaving a registry or pending journal. C2-B1 no-provider discovery passed. The old Core IPC response hid the exact registry error. Updated RiftOS source uses Java NIO create-only hardlink with Android `Os.link` same-security fallback for unsupported Java API/FileSystemException, and adds first-failure-stage/exception-class/errno Core status. Typed `transactionCommitted:false` can be returned only after confirming no live registry, temporary scratch or pending recovery journal. Trusted native UI displays bounded diagnostics, never a false pass. Builder shell preflight checks the non-overwriting publish, journal recovery, safe failure reply and UI marker. **No Builder compilation/signing workflow changes.** New signed user-manual build/physical proof required before declaring C2-A PASS or starting C2-B2. Two RAPPs absent from device count were intentionally uninstalled by user.
