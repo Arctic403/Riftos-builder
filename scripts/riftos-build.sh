@@ -54,7 +54,31 @@ fi
 
 # Builder-owned syntax preflight for the source-gate entrypoints. This runs before the
 # source-owned validator so a malformed validator cannot hide its own parse failure.
-for source_gate_script in   scripts/validate-rift-wiring.mjs   scripts/validate-rift-transport.mjs   scripts/validate-rift-docs.mjs   scripts/test-rift-mcp-event-channel.mjs    scripts/test-rift-local-agent-batch.mjs   scripts/test-rift-mcp-operation-journal.mjs   scripts/test-rift-debug-hub.mjs   scripts/test-riftbuild-native.mjs   scripts/test-riftpp-shell.mjs   scripts/test-rift-shell-bridge.mjs   scripts/test-riftllm-bridge.mjs   scripts/test-semnexis-bootstrap.mjs   scripts/test-semnexis-arm32-exec.mjs   scripts/test-semnexis-shell.mjs; do
+# Derive syntax gates from the exact checked-out RiftOS npm check chain, not
+# a stale Builder-side subset. Unknown/non-node commands fail closed.
+source_gate_manifest="$(node -e '
+  const pkg = require("./package.json");
+  const chain = String(pkg.scripts?.["check:transport"] || "");
+  const commands = chain.split(/\s*&&\s*/).filter(Boolean);
+  if (!commands.length) {
+    console.error("Builder source-gate chain missing from RiftOS package.json");
+    process.exit(1);
+  }
+  for (const command of commands) {
+    const match = /^node (scripts\/[A-Za-z0-9_-]+\.mjs)$/.exec(command.trim());
+    if (!match) {
+      console.error("Builder source-gate chain has unexpected command: " + command);
+      process.exit(1);
+    }
+    console.log(match[1]);
+  }
+')" || exit 1
+test -n "$source_gate_manifest" || {
+  echo 'Builder source-gate manifest is empty.' >&2
+  exit 1
+}
+mapfile -t source_gate_scripts <<<"$source_gate_manifest"
+for source_gate_script in "${source_gate_scripts[@]}"; do
   node --check "$source_gate_script" >>"$LOG_DIR/source-syntax.log" 2>&1 || {
     echo "RiftOS source-gate syntax failed: $source_gate_script" >&2
     exit 1
@@ -84,6 +108,7 @@ node -e '
     "node scripts/test-semnexis-bootstrap.mjs",
     "node scripts/test-semnexis-arm32-exec.mjs",
     "node scripts/test-semnexis-shell.mjs",
+    "node scripts/test-e1-core-closure.mjs",
   ]) {
     if (!transport.includes(required)) {
       console.error("Builder contract is stale: check:transport missing " + required);
@@ -341,7 +366,7 @@ done
 # generic Core/Shell replacement through an unproven DEX.
 for marker in 'if (id != "probe")' 'start(application, "probe"' \
   'RiftBootstrapComponentStore.recoverProbe(application)' \
-  'criticalExternalActivationEnabled", false'; do
+  'RiftHostCoreComponents.status().optBoolean("externalCoreEnabled", false)'; do
   grep -Fq "$marker" "$bootstrap_host_source" || {
     echo "Builder Bootstrap Host proof-only startup guard missing: $marker" >&2; exit 1;
   }
@@ -1190,8 +1215,8 @@ grep -Fq '"src/main/java/com/riftos/app/RiftHostComponentAbiV1.kt"' "$gradle_con
   echo 'Builder E0 host Core ABI missing from exact Gradle source allowlist' >&2; exit 1;
 }
 for marker in 'interface RiftCoreComponentV1' 'interface RiftShellPresentationV1' \
-  'fun core(): RiftCoreComponentV1 = embedded' \
-  'externalCoreEnabled", false' 'externalShellEnabled", false' \
+  'fun core(): RiftCoreComponentV1 = selected' \
+  'selectedKind == "external-unaccepted"' 'externalShellEnabled", false' \
   'RiftCoreRuntime.surfaces(context).snapshot(id)' \
   'RiftCoreRuntime.lifecycle(context).reattachForShell(id, generation)' \
   'RiftCoreRuntime.lifecycle(context).offerEvent(id, generation, event)'; do
@@ -1199,7 +1224,7 @@ for marker in 'interface RiftCoreComponentV1' 'interface RiftShellPresentationV1
     echo "Builder E0 embedded-only host Core adapter contract missing: $marker" >&2; exit 1;
   }
 done
-grep -Fq 'RiftHostCoreComponents.core().initialize(application)' \
+grep -Fq 'RiftHostCoreComponents.initializeAtBoot(application)' \
   "android/app/src/main/java/com/riftos/app/RiftBootstrapHost.kt" || {
   echo 'Builder E0 default Core startup did not select versioned embedded adapter' >&2; exit 1;
 }
@@ -1207,6 +1232,60 @@ grep -Fq '.put("hostComponents", RiftHostCoreComponents.status())' \
   "android/app/src/main/java/com/riftos/app/RiftCoreRuntime.kt" || {
   echo 'Builder E0 read-only component provenance status missing' >&2; exit 1;
 }
+# E1 guarded Core switch: the Android host may select an independently
+# qualified Core at bootstrap only. There is no trusted activation writer,
+# no in-process hot swap and no automatic promotion in this source checkpoint.
+e1_core_switch_src="android/app/src/main/java/com/riftos/app/RiftCoreCandidateSwitch.kt"
+test -f "$e1_core_switch_src" || {
+  echo 'Builder E1 safe-startup Core candidate selector source missing' >&2; exit 1;
+}
+grep -Fq '"src/main/java/com/riftos/app/RiftCoreCandidateSwitch.kt"' "$gradle_contract" || {
+  echo 'Builder E1 Core candidate selector missing from exact Gradle Kotlin source set' >&2; exit 1;
+}
+for marker in 'internal object RiftCoreCandidateSwitch' \
+  'fun selectAtBoot(application: Application)' \
+  'RiftBootstrapComponentStore.active(application, "core")' \
+  'Core candidate duplicates an APK-owned class' \
+  'Core DEX SHA mismatch' \
+  'Independent Core qualification receipt missing' \
+  'unaccepted-core-startup' \
+  'RiftBootstrapComponentStore.resetCoreToEmbedded(application)' \
+  'automaticPromotionEnabled", false' \
+  'inProcessHotSwapEnabled", false'; do
+  grep -Fq "$marker" "$e1_core_switch_src" || {
+    echo "Builder E1 Core candidate/fallback contract missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'fun resetCoreToEmbedded(context: Context)' \
+  'AtomicFile(pointer).delete()' 'core.booting'; do
+  grep -Fq "$marker" "$bootstrap_store_source" || {
+    echo "Builder E1 embedded Core rollback contract missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq 'RiftHostCoreComponents.initializeAtBoot(application)' "$bootstrap_host_source" || {
+  echo 'Builder E1 Core startup selector not wired through actual main-process host' >&2; exit 1;
+}
+if grep -Fq 'RiftHostCoreComponents.core().initialize(ctx)' "$core_ipc_source"; then
+  echo 'Builder E1 ContentProvider must not initialize embedded Core before Application' >&2; exit 1;
+fi
+# E1-A transitive class closure remains mandatory, but external selection
+# is impossible until a separately approved exact Core qualification is made.
+e1_core_closure_src="scripts/test-e1-core-closure.mjs"
+test -f "$e1_core_closure_src" || {
+  echo 'Builder E1-A transitive Core source audit is missing' >&2; exit 1;
+}
+test -f "docs/systems/android-host/E1_CORE_CANDIDATE.md" || {
+  echo 'Builder E1-A inactive external Core acceptance contract is missing' >&2; exit 1;
+}
+for marker in "RiftCoreRuntime" "RiftCoreAppLifecycle" \
+  "RiftCoreAppSessions" "RiftCoreAppSurfaces" "RiftCoreAppExecutor" \
+  "RiftCoreInputFocus" "RiftRappManager" \
+  "hostBoundaryEdgeCount:" "candidateReady: false" \
+  "externalCoreEnabled: false" "productionCore: 'embedded'"; do
+  grep -Fq "$marker" "$e1_core_closure_src" || {
+    echo "Builder E1-A Core dependency audit contract missing: $marker" >&2; exit 1;
+  }
+done
 for marker in 'contentResolver.call(' \
   'Process.myPid()' 'Separate Android processes:' \
   'mainHandler.removeCallbacks(poll)'; do

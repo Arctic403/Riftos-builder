@@ -230,6 +230,29 @@ for marker in [
 ]:
     require(BUILD, marker, "E0 component ABI + protected Core Binder adapter")
 
+# E1-A: ensure Builder source gates cannot silently omit freshly added
+# RiftOS npm tests, and no external Core candidate is claimed/selected yet.
+for marker in [
+    "source_gate_manifest",
+    "chain.split(/\\s*&&\\s*/)",
+    "mapfile -t source_gate_scripts",
+    'for source_gate_script in "${source_gate_scripts[@]}"; do',
+    '"node scripts/test-e1-core-closure.mjs"',
+    "Builder E1 safe-startup Core candidate selector source missing",
+    "Builder E1 Core candidate selector missing from exact Gradle Kotlin source set",
+    "Builder E1 Core candidate/fallback contract missing:",
+    "Builder E1 embedded Core rollback contract missing:",
+    "Builder E1 Core startup selector not wired through actual main-process host",
+    "Builder E1 ContentProvider must not initialize embedded Core before Application",
+    "Builder E1-A transitive Core source audit is missing",
+    "Builder E1-A inactive external Core acceptance contract is missing",
+    "Builder E1-A Core dependency audit contract missing:",
+    '"hostBoundaryEdgeCount:" "candidateReady: false"',
+    '"externalCoreEnabled: false" "productionCore: \'embedded\'"',
+]:
+    require(BUILD, marker, "E1-A source test/preflight parity")
+require(VERIFY, "'riftos.host.core-component/1'", "E0 ABI1 signed APK DEX evidence")
+
 # C1.2-D2: independent graphical client consumes Core surface snapshots.
 for marker in [
     "Builder C1.2-D2 graphical shell source missing",
