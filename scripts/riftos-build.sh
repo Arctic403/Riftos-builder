@@ -1268,6 +1268,34 @@ grep -Fq 'RiftHostCoreComponents.initializeAtBoot(application)' "$bootstrap_host
 if grep -Fq 'RiftHostCoreComponents.core().initialize(ctx)' "$core_ipc_source"; then
   echo 'Builder E1 ContentProvider must not initialize embedded Core before Application' >&2; exit 1;
 fi
+# H1: APK-owned, bounded Android exit/crash evidence may be read in Core
+# status, but must never swallow Android's original uncaught exception handler.
+core_recovery_source="android/app/src/main/java/com/riftos/app/RiftCoreRecoveryDiagnostics.kt"
+test -f "$core_recovery_source" || {
+  echo 'Builder H Core recovery diagnostics Kotlin source missing' >&2; exit 1;
+}
+grep -Fq '"src/main/java/com/riftos/app/RiftCoreRecoveryDiagnostics.kt"' "$gradle_contract" || {
+  echo 'Builder H Core recovery diagnostics absent from exact Gradle Kotlin list' >&2; exit 1;
+}
+for marker in 'internal object RiftCoreRecoveryDiagnostics' \
+  'getHistoricalProcessExitReasons(app.packageName, 0, 8)' \
+  'previous.uncaughtException(thread, failure)' \
+  'fullPlatformTraceGuaranteed", false' \
+  'AtomicFile(path)'; do
+  grep -Fq "$marker" "$core_recovery_source" || {
+    echo "Builder H Core recovery evidence contract missing: $marker" >&2; exit 1;
+  }
+done
+for pair in \
+  'RiftBootstrapHost.kt|RiftCoreRecoveryDiagnostics.recoverHistoricalExit(application)' \
+  'RiftHostComponentAbiV1.kt|RiftCoreRecoveryDiagnostics.installExternalCrashObserver(application)' \
+  'RiftCoreRuntime.kt|.put("coreRecoveryDiagnostics", RiftCoreRecoveryDiagnostics.status(context))'; do
+  owner="${pair%%|*}"
+  marker="${pair#*|}"
+  grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/$owner" || {
+    echo "Builder H Core recovery evidence integration missing: $owner $marker" >&2; exit 1;
+  }
+done
 # E1-A transitive class closure remains mandatory, but external selection
 # is impossible until a separately approved exact Core qualification is made.
 e1_core_closure_src="scripts/test-e1-core-closure.mjs"
