@@ -380,7 +380,7 @@ for marker in (
     'RiftBootstrapHost.kt',
     'RiftBootstrapComponentStore.kt',
     'RiftBootstrapProbeService.kt',
-    'Bootstrap DEX proof service process/manifest guard missing:'
+    'Bootstrap DEX proof service process/manifest guard missing:',
     'Bootstrap Host immutable staging/rollback guard missing:',
     'criticalExternalActivationEnabled',
     'android:name=".RiftCoreApplication"',

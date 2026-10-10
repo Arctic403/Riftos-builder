@@ -1,5 +1,9 @@
 # Riftos-builder
 
+## 2026-10-09 — Manual run 38015518816 Builder Python selftest fix
+
+The user-manual run for RiftOS source `22f52dfcc859` failed at step **Validate RiftOS Builder scripts** before Kotlin compilation. `scripts/test-builder-contracts.py` omitted the comma between two Bootstrap Host contract messages, causing Python to concatenate adjacent string literals and assert a nonexistent combined message. Added the missing comma so Builder checks the independent process/manifest and immutable-stage guards separately. Confirmed both exact markers exist in the Builder script and found no other adjacent unseparated string assertions in this Python file. **Builder-only fix**, no production RiftOS source, signing, workflow dispatch, or permission changes. Full Builder job rerun and APK compilation require the user's usual manual action.
+
 ## 2026-10-09 — Bootstrap staged proof contract (source-only)
 
 RiftOS #680 (`494be44e6348`) was user-built, installed and confirmed live. Screenshot plus Core audit confirmed C2-A positive signer-stamped EMPTY registry create/rollback without residue or grants. Source next adds `RiftBootstrapComponentStore.kt` and a noncritical only `probe` module loader confined to an inert non-exported `:riftBootstrapProbe` Service, rather than production Core/Shell. Builder now requires the exact new Kotlin source and source-level guards for immutable staged DEX, AtomicFile/previous activation, recovery and critical Core/Shell activation disabled. **No separate external module, signed APK or device proof exists for this subsequent checkpoint.** User manually dispatches Builder; signing/packaging flow and C2-B2 separate hold remain unchanged.
