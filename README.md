@@ -1,5 +1,9 @@
 # Riftos-builder
 
+## 2026-10-09 — Bootstrap Probe trusted import / manual external DEX source checks
+
+User-approved local SOURCE-only patch extends fixed Core-managed one-use consent with `bootstrap.probe.stage` and SHA256-bound `bootstrap.probe.activate`, and native Admin Approvals SAF picker with read-only Binder FD forwarding. Builder source preflight and selftest require the guarded Core/Shell source contracts and the nonexported probe Service. A separate **workflow_dispatch only** javac+D8 DEX artifact job is available but is NOT a prerequisite for the manually signed RiftOS APK Builder. Existing manually triggered RiftOS signed APK Builder, signer, Gradle, pack/sign/verify, RAPP hot compiler and C2-A Core registry proof are unchanged. **No new APK/DEX build or device verification yet; user manually dispatches both artifact builds as needed.** No real C2-B2 provider enrollment.
+
 ## 2026-10-09 — Manual run 38015518816 Builder Python selftest fix
 
 The user-manual run for RiftOS source `22f52dfcc859` failed at step **Validate RiftOS Builder scripts** before Kotlin compilation. `scripts/test-builder-contracts.py` omitted the comma between two Bootstrap Host contract messages, causing Python to concatenate adjacent string literals and assert a nonexistent combined message. Added the missing comma so Builder checks the independent process/manifest and immutable-stage guards separately. Confirmed both exact markers exist in the Builder script and found no other adjacent unseparated string assertions in this Python file. **Builder-only fix**, no production RiftOS source, signing, workflow dispatch, or permission changes. Full Builder job rerun and APK compilation require the user's usual manual action.

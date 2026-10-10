@@ -367,6 +367,45 @@ for marker in 'fun stage(context: Context, component: String, entrypoint: String
     echo "Builder Bootstrap Host immutable staging/rollback guard missing: $marker" >&2; exit 1;
   }
 done
+# Bootstrap B2 proof-only trusted native SAF import must remain separate
+# from C2-A empty-registry consent and generic software.install.
+probe_admin_source="android/app/src/main/java/com/riftos/app/RiftCoreAdminConsent.kt"
+probe_policy_source="android/app/src/main/java/com/riftos/app/RiftCoreSystemCapabilities.kt"
+probe_client_source="android/app/src/main/java/com/riftos/app/RiftShellCoreClient.kt"
+probe_provider_source="android/app/src/main/java/com/riftos/app/RiftCoreSurfaceIpcProvider.kt"
+probe_ui_source="android/app/src/main/java/com/riftos/app/RiftNativeAdminApprovals.kt"
+for marker in 'PROBE_STAGE = "bootstrap.probe.stage"' \
+  'PROBE_ACTIVATE = "bootstrap.probe.activate"' \
+  'fun executeProbeStage(' 'fun executeProbeActivate(' \
+  'RiftBootstrapComponentStore.activateProbe(' \
+  'RiftBootstrapComponentStore.rollbackProbe(context)' \
+  'FileInputStream(descriptor.fileDescriptor)'; do
+  grep -Fq "$marker" "$probe_admin_source" || {
+    echo "Builder Bootstrap signed one-use probe permission guard missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'PROBE_ONLY_AUDIT' 'operation in RESTRICTED || operation in PROBE_ONLY_AUDIT'; do
+  grep -Fq "$marker" "$probe_policy_source" || {
+    echo "Builder Bootstrap proof audit guard missing: $marker" >&2; exit 1;
+  }
+done
+for marker in '"execute-probe-stage" ->' '"execute-probe-activate" ->' \
+  'getParcelable<android.os.ParcelFileDescriptor>("dexFd")'; do
+  grep -Fq "$marker" "$probe_provider_source" || {
+    echo "Builder Bootstrap Core Binder FD import guard missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'putParcelable("dexFd", dexFd)' 'RiftCoreAdminConsent.PROBE_SCHEMA'; do
+  grep -Fq "$marker" "$probe_client_source" || {
+    echo "Builder Bootstrap trusted Shell request guard missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'Intent.ACTION_OPEN_DOCUMENT' 'PROBE_PICK_REQUEST' \
+  'execute-probe-stage' 'execute-probe-activate'; do
+  grep -Fq "$marker" "$probe_ui_source" || {
+    echo "Builder Bootstrap native consent/picker missing: $marker" >&2; exit 1;
+  }
+done
 grep -Fq 'android:name=".RiftCoreApplication"' "$manifest_contract" || {
   echo 'Builder C1.0 Android Application bootstrap missing.' >&2; exit 1;
 }
