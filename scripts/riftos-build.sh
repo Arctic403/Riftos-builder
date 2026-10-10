@@ -751,8 +751,14 @@ for marker in 'const val SCHEMA = "riftos.core.admin-registry-proof/1"' \
   'check(!target.exists() && !scratch.exists())' \
   'prefs.edit().putBoolean(PENDING, true)' \
   'stream.fd.sync()' \
-  'java.nio.file.Files.createLink(target.toPath(), scratch.toPath())' \
-  'android.system.Os.link(scratch.absolutePath, target.absolutePath)' \
+  'stage = "exclusive-create-only-publish"' \
+  'android.system.Os.open(target.absolutePath, flags, 0x180)' \
+  'android.system.OsConstants.O_CREAT' \
+  'android.system.OsConstants.O_EXCL' \
+  'android.system.OsConstants.O_NOFOLLOW' \
+  'fun <T> withSafeRegistryRead(context: Context, read: () -> T): T' \
+  'scratchExact' \
+  'expected.copyOfRange(0, bytes.size)' \
   'transactionFailureStage = stage' \
   '"pathStatusAvailable", files != null' \
   '"temporaryRegistryExists", files?.second?.exists() ?: true' \
@@ -766,6 +772,24 @@ for marker in 'const val SCHEMA = "riftos.core.admin-registry-proof/1"' \
   grep -Fq "$marker" "$registry_proof_src" || {
     echo "Builder C1.4-C2-A signer-attested journalled empty registry proof missing: $marker" >&2; exit 1;
   }
+done
+# A signed #678 Samsung run returned errno=13 for BOTH hard-link APIs.
+# The new exclusive-create target is visible only under a guarded Core read;
+# an interrupted write must be journal-recoverable, not readable as a provider.
+runtime_reader_src="android/app/src/main/java/com/riftos/app/RiftExternalRuntimeProviders.kt"
+for marker in 'RiftCoreAdminRegistryProof.withSafeRegistryRead(app)' \
+  'return@withSafeRegistryRead emptyList<Provider>()' \
+  'private fun providers(): List<Provider> =' \
+  'fun status(): JSONObject ='; do
+  grep -Fq "$marker" "$runtime_reader_src" || {
+    echo "Builder C1.4-C2-A Core reader lock for O_EXCL registry transaction missing: $marker" >&2; exit 1;
+  }
+done
+for forbidden in 'java.nio.file.Files.createLink(' 'android.system.Os.link(' \
+  'renameTo(' 'java.nio.file.Files.move('; do
+  if grep -Fq "$forbidden" "$registry_proof_src"; then
+    echo "Builder C1.4-C2-A forbidden registry link/replace operation: $forbidden" >&2; exit 1;
+  fi
 done
 for marker in 'RiftCoreAdminRegistryProof.OPERATION' \
   'fun executeRegistryProof(' \

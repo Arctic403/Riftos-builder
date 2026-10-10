@@ -1,5 +1,10 @@
 # Riftos-builder
 
+## 2026-10-09 — C2-A signed #678 errno13 hardlink failure: non-overwriting O_EXCL proof contracts
+
+Real user-signed RiftOS #678/`272f39b2ec11` failed exact approved C2-A proof at `atomic-create-only-publish` with Android `ErrnoException errno=13`. Source switched the **isolated EMPTY registry test only** from disallowed hard links to restrictive `Os.open(O_CREAT|O_EXCL|O_NOFOLLOW)` direct write/fsync, then exact verify/mandatory rollback, shared Core registry-reader monitor and crash-journal pending guard so partial file cannot be consumed. This is Core-visible serialization, not filesystem-atomic rename or production provider registration. Builder preflight/selftests enforce exclusive-create/no-overwrite, guarded reader, recoverable partial prefix, and reject hardlink/replacing rename; signed APK pipeline remains user-manual and unchanged. No new Kotlin/device build proved on changed source; user runs next green APK and validates exact one-use consent+registry write/rollback. Hold C2-B2 until positive physical proof.
+
+
 ## 2026-10-09 — Run 38006658730 C2-A native diagnostic assertion false positive fixed
 
 USER-built RiftOS `b87820dba3e7` encountered a Builder preflight error **before Kotlin compilation**: the Builder asserted the exact literal `Core C2-A registry transaction FAILED at $stage ($kind)`, but the actual trusted native UI formats a sanitized Android errno through the local `$type` variable. Validating one Kotlin variable name was unnecessarily brittle. Builder source preflight now checks the stable **FAILED** label, explicit `failureErrno` numeric lookup and `No success claimed` warning independently. Builder selftest enforces those updated guards. RiftOS source validator was synchronized. No executable Core/Shell implementation or Builder compile/sign/verify stage was changed by this repair. Focused source checks and project audits passed; **full signed build and physical C2-A proof remain user-manual and pending**.

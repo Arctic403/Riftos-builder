@@ -167,10 +167,15 @@ for marker in (
     require(BUILD, marker, "C1.4-C2-A reversible, no-provider registry proof")
 require(VERIFY, "'riftos.core.admin-registry-proof/1'",
         "C1.4-C2-A signed APK registry proof schema")
-# C2-A #676 failed after ticket consumption; fail-closed Android publication
-# fallback and truthful error reporting are mandatory, not just UI prose.
+# C2-A signed #678 exposed Android hard-link errno 13. The proof-only
+# O_EXCL write, Core-read serialization and truthful diagnostics are mandatory.
 for marker in (
-    "'android.system.Os.link(scratch.absolutePath, target.absolutePath)'",
+    "'android.system.Os.open(target.absolutePath, flags, 0x180)'",
+    "'android.system.OsConstants.O_EXCL'",
+    "'android.system.OsConstants.O_NOFOLLOW'",
+    "'scratchExact'",
+    "Builder C1.4-C2-A Core reader lock for O_EXCL registry transaction missing:",
+    "Builder C1.4-C2-A forbidden registry link/replace operation:",
     "'\"lastFailureErrno\", lastFailureErrno'",
     "'\"pathStatusAvailable\", files != null'",
     "'diagnostic.optBoolean(\"temporaryRegistryExists\", true)'",
