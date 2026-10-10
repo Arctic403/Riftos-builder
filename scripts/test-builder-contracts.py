@@ -256,6 +256,7 @@ for marker in [
     "Builder S real graphical Shell V1 ABI missing:",
     "Builder S external graphical Shell loader guard missing:",
     "Builder S graphical Shell Activity missing guarded external lifecycle:",
+    "externalShell?.let { it.onResume(); return }",
     "Builder S protected embedded graphical Shell rollback missing",
     "Builder H critical component source missing:",
     "Builder H critical component absent from Gradle:",

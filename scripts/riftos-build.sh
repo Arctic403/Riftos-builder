@@ -1368,7 +1368,7 @@ for marker in 'RiftBootstrapComponentStore.active(application, "shell")' \
   }
 done
 for marker in 'RiftShellCandidateSwitch.selectAtBoot(application)' \
-  'candidate.attach(this, host,' 'externalShell?.onResume()' \
+  'candidate.attach(this, host,' 'externalShell?.let { it.onResume(); return }' \
   'RiftShellCandidateSwitch.fallback(application, "external-shell-attach-exception")'; do
   grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/RiftShellActivity.kt" || {
     echo "Builder S graphical Shell Activity missing guarded external lifecycle: $marker" >&2; exit 1;
