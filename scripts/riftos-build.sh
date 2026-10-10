@@ -611,7 +611,7 @@ for marker in 'const val SCHEMA = "riftos.core.shell-recovery/1"' \
   'private const val ATTEMPT_COOLDOWN_MS = 5_000L' \
   'it.processName == context.packageName + ":riftShell"' \
   'context.startActivity(intent)' \
-  'RiftCoreRuntime.sessions(context).requestFocusFromShell(null)' \
+  'RiftHostCoreComponents.core().focus(context, null)' \
   'fun claim(pid: Int, context: Context)' \
   'Process.killProcess(old)' \
   'disposableId == "c12b2a-input-probe-20261008"' \
@@ -954,7 +954,7 @@ for marker in 'fun discoverCandidates(): JSONObject' \
   }
 done
 for marker in 'fun discoverProviderCandidates(context: Context, callerPid: Int)' \
-  'RiftCoreRuntime.runtimes(context).discoverCandidates()'; do
+  'RiftHostCoreComponents.executionView().discoverRuntimeCandidates(context)'; do
   grep -Fq "$marker" "$admin_tickets_src" || {
     echo "Builder C1.4-C2-B1 Core authenticated read-only discovery missing: $marker" >&2; exit 1;
   }
@@ -1038,7 +1038,7 @@ done
 grep -Fq 'sessions.publishSurfaceFromExecution(' "$core_executor_source" || {
   echo 'Builder C1.2-A final frame must be published by Core executor.' >&2; exit 1;
 }
-grep -Fq '"surfaces" -> RiftCoreRuntime.surfaces(appContext).list()' \
+grep -Fq '"surfaces" -> RiftHostCoreComponents.executionView().surfacesView(appContext)' \
   "android/app/src/main/java/com/riftos/app/RiftNativeShell.kt" || {
   echo 'Builder C1.2-A read-only surface diagnostics missing.' >&2; exit 1;
 }
@@ -1078,7 +1078,7 @@ for marker in 'recreate-main-activity-proof' \
     echo "Builder C1.3-C real Activity recreation diagnostic missing: $marker" >&2; exit 1;
   }
 done
-grep -Fq '"focus" -> RiftCoreRuntime.sessions(appContext).focusStatus()' \
+grep -Fq '"focus" -> RiftHostCoreComponents.executionView().focusView(appContext)' \
   "android/app/src/main/java/com/riftos/app/RiftNativeShell.kt" || {
   echo 'Builder B2-B1 read-only focus report missing' >&2; exit 1;
 }
@@ -1100,7 +1100,7 @@ for marker in 'riftos.core.apps/1' 'packages.loadInstalled(id)' \
     echo "Builder C1.2-C1 Core lifecycle missing: $marker" >&2; exit 1;
   }
 done
-grep -Fq 'RiftCoreRuntime.lifecycle(appContext).start(args[1])' \
+grep -Fq 'RiftHostCoreComponents.executionView().startApp(appContext, args[1])' \
   "android/app/src/main/java/com/riftos/app/RiftNativeShell.kt" || {
   echo 'Builder C1.2-C1 Core-only start control missing' >&2; exit 1;
 }
@@ -1216,7 +1216,7 @@ grep -Fq '"src/main/java/com/riftos/app/RiftHostComponentAbiV1.kt"' "$gradle_con
 }
 for marker in 'interface RiftCoreComponentV1' 'interface RiftShellPresentationV1' \
   'fun core(): RiftCoreComponentV1 = selected' \
-  'selectedKind == "external-unaccepted"' 'externalShellEnabled", false' \
+  'selectedKind.startsWith("external-")' 'externalShellEnabled", false' \
   'RiftCoreRuntime.surfaces(context).snapshot(id)' \
   'RiftCoreRuntime.lifecycle(context).reattachForShell(id, generation)' \
   'RiftCoreRuntime.lifecycle(context).offerEvent(id, generation, event)'; do
@@ -1247,9 +1247,9 @@ for marker in 'internal object RiftCoreCandidateSwitch' \
   'RiftBootstrapComponentStore.active(application, "core")' \
   'Core candidate duplicates an APK-owned class' \
   'Core DEX SHA mismatch' \
-  'Independent Core qualification receipt missing' \
+  'RiftProtectedRevisionRecovery.verifiedReceipt(' \
   'unaccepted-core-startup' \
-  'RiftBootstrapComponentStore.resetCoreToEmbedded(application)' \
+  'RiftProtectedRevisionRecovery.rollback(' \
   'automaticPromotionEnabled", false' \
   'inProcessHotSwapEnabled", false'; do
   grep -Fq "$marker" "$e1_core_switch_src" || {
@@ -1377,6 +1377,72 @@ done
 grep -Fq 'fun resetShellToEmbedded(context: Context)' "$bootstrap_store_source" || {
   echo 'Builder S protected embedded graphical Shell rollback missing' >&2; exit 1;
 }
+# H3: protected real Core/Shell DEX distribution uses only the trusted
+# one-use native Binder admin route, exact SHA manifest, inactive bytecode
+# reference closure, and previous accepted external N-1 recovery.
+critical_src="android/app/src/main/java/com/riftos/app"
+for name in RiftProtectedComponentManifest RiftProtectedDexVerifier \
+  RiftProtectedComponentInstaller RiftProtectedRevisionRecovery; do
+  test -f "$critical_src/$name.kt" || {
+    echo "Builder H critical component source missing: $name" >&2; exit 1;
+  }
+  grep -Fq "\"src/main/java/com/riftos/app/$name.kt\"" "$gradle_contract" || {
+    echo "Builder H critical component absent from Gradle: $name" >&2; exit 1;
+  }
+done
+for marker in 'riftos.protected-component/1' \
+  'fun identityDigest(): String' \
+  'fun activationRecord(): JSONObject'; do
+  grep -Fq "$marker" "$critical_src/RiftProtectedComponentManifest.kt" || {
+    echo "Builder H external manifest contract missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'riftos.protected-dex-closure/1' \
+  'External component references APK-owned execution' \
+  'Critical DEX defines class outside its independent namespace' \
+  'behavioralDeviceProof", false'; do
+  grep -Fq "$marker" "$critical_src/RiftProtectedDexVerifier.kt" || {
+    echo "Builder H external binary closure not enforced: $marker" >&2; exit 1;
+  }
+done
+for marker in 'riftos.protected-component-operation/1' \
+  'RiftProtectedDexVerifier.inspect(' \
+  'RiftComponentReleaseLedger.recordPrepared(' \
+  'RiftComponentReleaseLedger.acceptProven(' \
+  'fun acceptProven(context: Context, component: String, sha: String,'; do
+  grep -Fq "$marker" "$critical_src/RiftProtectedComponentInstaller.kt" || {
+    echo "Builder H protected install/accept contract missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'riftos.host.protected-recovery/1' \
+  'RiftComponentReleaseLedger.confirmRollback(' \
+  'RiftBootstrapComponentStore.clearProtectedStartupMarker(' \
+  'fun verifiedReceipt(context: Context, component: String, candidate: JSONObject)'; do
+  grep -Fq "$marker" "$critical_src/RiftProtectedRevisionRecovery.kt" || {
+    echo "Builder H external N-1 rollback contract missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'executeProtectedStage(' 'executeProtectedActivate(' \
+  'executeProtectedAccept('; do
+  grep -Fq "$marker" "$critical_src/RiftCoreAdminConsent.kt" || {
+    echo "Builder H one-use protected Core approval contract missing: $marker" >&2; exit 1;
+  }
+done
+for marker in '"execute-protected-stage"' \
+  '"execute-protected-activate"' '"execute-protected-accept"'; do
+  for owner in RiftCoreSurfaceIpcProvider RiftShellCoreClient RiftNativeAdminApprovals; do
+    grep -Fq "$marker" "$critical_src/$owner.kt" || {
+      echo "Builder H signed protected Binder/UI dispatch missing: $owner $marker" >&2; exit 1;
+    }
+  done
+done
+grep -Fq 'RiftProtectedRevisionRecovery.rollback(' "$critical_src/RiftCoreRecoveryDiagnostics.kt" || {
+  echo 'Builder H accepted Core fatal-exit N-1 recovery missing' >&2; exit 1;
+}
+grep -Fq 'RiftProtectedRevisionRecovery.rollback(' "$critical_src/RiftCoreShellRecovery.kt" || {
+  echo 'Builder H accepted graphical Shell process-loss N-1 recovery missing' >&2; exit 1;
+}
+
 # E1-A transitive class closure remains mandatory, but external selection
 # is impossible until a separately approved exact Core qualification is made.
 e1_core_closure_src="scripts/test-e1-core-closure.mjs"

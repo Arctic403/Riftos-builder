@@ -1,5 +1,9 @@
 # Riftos-builder
 
+## 2026-10-10 — Separate protected component update/rollback source contract on main
+
+The coordinated RiftOS `main` host now defines strict `component.json` + immutable `core.dex` / `shell.dex` at `/D:/Builds/Components/{core|shell}`, in-app approved staging and binary DEX type/class checks, per-SHA inactive qualification receipts, separate one-use next-start activation and **later user-approved** device acceptance; release ledger preserves accepted external N-1 and failed SHA diagnostics. Builder checks the added Kotlin and exact source/approval/rollback wiring, and its signed-APK verifier requires new protected component schemas. This does not make Builder responsible for routine external component builds: it still only packages/signs/validates the Android RiftOS APK under the existing **user-manual** workflow. Standalone external compiler pipelines/full binaries, Gradle compilation and installed-device N-1 crash proof are still pending. Recovery backup is separate, both active repos use main.
+
 ## 2026-10-10 — Main-branch coordinated Core/Shell integration (UNBUILT SOURCE)
 
 User clarified the GitHub backup is for disaster recovery **only**; RiftOS/Builder engineering continues on their respective ordinary `main` branches. This coordinated source checkpoint extends Builder preflight/Python selftest/signed DEX requirements for Core/Shell `RiftComponentReleaseLedger.kt`, nonexported `:riftCoreSupervisor` service, genuine graphical Shell V1 ABI and guarded Shell candidate loader. Runtime remains embedded by default. Signed/installed baseline remains user-verified RiftOS #697 from `812dd80d1e0e`; this migration source has **not** been user-manually built or device-proven. The new ledger and observer are not proof of full automatic N-1 rollback or a standalone compiled Core/Shell. Keep the current user-triggered signed RiftOS APK workflow unchanged.

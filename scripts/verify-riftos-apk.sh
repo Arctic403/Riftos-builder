@@ -332,6 +332,10 @@ for marker in \
   'riftos.host.revisions/1' \
   'riftos.host.core-supervisor/1' \
   'riftos.shell.candidate-switch/1' \
+  'riftos.protected-component/1' \
+  'riftos.protected-dex-closure/1' \
+  'riftos.protected-component-operation/1' \
+  'riftos.host.protected-recovery/1' \
   'riftos.core.sessions/1' \
   'riftos.core.app-surfaces/1' \
   'riftos.core.input-focus/1' \
