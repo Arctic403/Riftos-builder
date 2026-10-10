@@ -378,6 +378,11 @@ for marker in (
     'RiftCoreApplication.kt',
     'RiftCoreRuntime.kt',
     'RiftBootstrapHost.kt',
+    'RiftBootstrapComponentStore.kt',
+    'RiftBootstrapProbeService.kt',
+    'Bootstrap DEX proof service process/manifest guard missing:'
+    'Bootstrap Host immutable staging/rollback guard missing:',
+    'criticalExternalActivationEnabled',
     'android:name=".RiftCoreApplication"',
     "object RiftCoreRuntime",
     "RiftCoreRuntime.buildPlatform(appContext)",

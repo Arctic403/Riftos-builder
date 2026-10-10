@@ -1,5 +1,9 @@
 # Riftos-builder
 
+## 2026-10-09 — Bootstrap staged proof contract (source-only)
+
+RiftOS #680 (`494be44e6348`) was user-built, installed and confirmed live. Screenshot plus Core audit confirmed C2-A positive signer-stamped EMPTY registry create/rollback without residue or grants. Source next adds `RiftBootstrapComponentStore.kt` and a noncritical only `probe` module loader confined to an inert non-exported `:riftBootstrapProbe` Service, rather than production Core/Shell. Builder now requires the exact new Kotlin source and source-level guards for immutable staged DEX, AtomicFile/previous activation, recovery and critical Core/Shell activation disabled. **No separate external module, signed APK or device proof exists for this subsequent checkpoint.** User manually dispatches Builder; signing/packaging flow and C2-B2 separate hold remain unchanged.
+
 ## 2026-10-09 — Bootstrap Host source-only checkpoint
 
 Builder source preflight now follows C1.3-E/C1.4-C1/C2-A startup and rollback code into `RiftBootstrapHost.kt`, which is now a required Gradle Kotlin source. The APK still uses embedded Core/Shell by default; a separate DEX component has not yet been built, installed or activated. The user manually dispatches the original signed Builder; C2-A physical proof and C2-B2 HOLD remain unchanged. Do not call this a completed migration or signed/device pass.

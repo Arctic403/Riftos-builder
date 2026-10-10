@@ -328,10 +328,43 @@ grep -Fq '<action android:name="com.riftos.runtime.EXECUTE_V1" />' "$manifest_co
 core_application_source="android/app/src/main/java/com/riftos/app/RiftCoreApplication.kt"
 core_runtime_source="android/app/src/main/java/com/riftos/app/RiftCoreRuntime.kt"
 bootstrap_host_source="android/app/src/main/java/com/riftos/app/RiftBootstrapHost.kt"
-for core_source in "$core_application_source" "$core_runtime_source" "$bootstrap_host_source"; do
+bootstrap_store_source="android/app/src/main/java/com/riftos/app/RiftBootstrapComponentStore.kt"
+bootstrap_probe_source="android/app/src/main/java/com/riftos/app/RiftBootstrapProbeService.kt"
+for core_source in "$core_application_source" "$core_runtime_source" "$bootstrap_host_source" "$bootstrap_store_source" "$bootstrap_probe_source"; do
   test -f "$core_source" || { echo "Builder C1.0 Core source missing: $core_source" >&2; exit 1; }
   grep -Fq "${core_source#android/app/}" android/app/build.gradle.kts || {
     echo "Builder C1.0 Core Kotlin source not Gradle-mandatory: $core_source" >&2; exit 1;
+  }
+done
+# Bootstrap staging is internal-only until native consent/IPC integration.
+# Require immutable revision storage + proof-only activation, never a
+# generic Core/Shell replacement through an unproven DEX.
+for marker in 'if (id != "probe")' 'start(application, "probe"' \
+  'RiftBootstrapComponentStore.recoverProbe(application)' \
+  'criticalExternalActivationEnabled", false'; do
+  grep -Fq "$marker" "$bootstrap_host_source" || {
+    echo "Builder Bootstrap Host proof-only startup guard missing: $marker" >&2; exit 1;
+  }
+done
+# The DEX proof never starts in production Core or RiftShell.
+for marker in 'class RiftBootstrapProbeService : Service()' \
+  'Application.getProcessName() == packageName + ":riftBootstrapProbe"' \
+  'RiftBootstrapHost.startProbe(application as Application)' \
+  'START_NOT_STICKY'; do
+  grep -Fq "$marker" "$bootstrap_probe_source" || {
+    echo "Builder Bootstrap DEX proof service process/manifest guard missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq 'android:name=".RiftBootstrapProbeService"' "$manifest_contract" &&
+grep -Fq 'android:process=":riftBootstrapProbe"' "$manifest_contract" || {
+  echo 'Builder Bootstrap DEX proof service process/manifest guard missing: non-exported isolated service' >&2; exit 1;
+}
+for marker in 'fun stage(context: Context, component: String, entrypoint: String,' \
+  'fun activateProbe(context: Context, sha: String, entrypoint: String)' \
+  'fun recoverProbe(context: Context)' 'temporary.setReadOnly()' \
+  'AtomicFile(' 'probe.previous.json'; do
+  grep -Fq "$marker" "$bootstrap_store_source" || {
+    echo "Builder Bootstrap Host immutable staging/rollback guard missing: $marker" >&2; exit 1;
   }
 done
 grep -Fq 'android:name=".RiftCoreApplication"' "$manifest_contract" || {
