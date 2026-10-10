@@ -224,6 +224,8 @@ for marker in [
     "Builder E0 default Core startup did not select versioned embedded adapter",
     "Builder E0 read-only component provenance status missing",
     "'RiftHostCoreComponents.core().snapshot(ctx, id)'",
+    "'RiftHostCoreComponents.core().reattach(ctx, id, expected)'",
+    "'RiftCoreRuntime.lifecycle(context).reattachForShell(id, generation)'",
     "'RiftHostCoreComponents.core().event(ctx, id, generation, event)'",
 ]:
     require(BUILD, marker, "E0 component ABI + protected Core Binder adapter")

@@ -598,7 +598,7 @@ done
 for marker in 'METHOD_SHELL_RECOVERY_CLAIM' 'METHOD_SHELL_REATTACH' \
   'RiftCoreShellRecovery.claim(' \
   'RiftCoreShellRecovery.noteReport(' \
-  'reattachForShell(id, expected)'; do
+  'RiftHostCoreComponents.core().reattach(ctx, id, expected)'; do
   grep -Fq "$marker" "$shell_core_ipc_src" || {
     echo "Builder C1.3-E authenticated recovery Core IPC missing: $marker" >&2; exit 1;
   }
@@ -1193,6 +1193,7 @@ for marker in 'interface RiftCoreComponentV1' 'interface RiftShellPresentationV1
   'fun core(): RiftCoreComponentV1 = embedded' \
   'externalCoreEnabled", false' 'externalShellEnabled", false' \
   'RiftCoreRuntime.surfaces(context).snapshot(id)' \
+  'RiftCoreRuntime.lifecycle(context).reattachForShell(id, generation)' \
   'RiftCoreRuntime.lifecycle(context).offerEvent(id, generation, event)'; do
   grep -Fq "$marker" "$host_component_src" || {
     echo "Builder E0 embedded-only host Core adapter contract missing: $marker" >&2; exit 1;
