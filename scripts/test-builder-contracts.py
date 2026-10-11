@@ -587,6 +587,7 @@ for marker in (
     'object RiftHostNativeBufferV1',
     'context.applicationContext, runtime, input, outputLimit',
     'Lcom/riftos/app/RiftHostNativeBufferV1;',
+    'RiftHostNativeBufferV1.execute(',
 
     'Manual Recovery Patch A:',
     'Manual Recovery Patch B:',
