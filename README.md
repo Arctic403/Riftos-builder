@@ -1,5 +1,11 @@
 # Riftos-builder
 
+## 2026-10-11 — Signed host native-buffer V1 bridge required for external Core v0.5
+
+RiftOS source now publishes a zero-RAPP-authority `RiftHostNativeBufferV1` APK class. It calls only the existing isolated `RiftNativeBufferCompilerService` with bounded bytes/capacity, so external Core can choose native-buffer and QuickJS by installed RAPP adapter without importing APK Core/session/capability logic. The protected DEX verifier admits only the new exact ABI descriptor; independent component producer strips the compile-only host class before D8.
+
+Builder shell preflight and Python self-tests now pin the native-buffer service and exact DEX allowlist. **The user still runs the normal signed RiftOS Builder and installs the APK manually.** Installed #710 predates this change. A green future user-signed build + physical device runtime proof is necessary before evaluating any external Core. Standalone Core v0.5 source compiled through managed Kotlin + D8, but **is not promoted**, and its new user-consent/platform capability bridges are not complete. Do not activate it to force a proof.
+
 ## 2026-10-11 — Patch B signed Builder source contract (APK Recovery installer + manual restore)
 
 RiftOS Recovery remains a dedicated APK `:riftRecovery` Android process and is already device-proven to launch independently on signed #709 following Android force-stop. Patch B now adds a bounded Android document picker for separately produced `component.json` and Core/Shell DEX, the APK-local `RiftManualRecoveryInstaller` process gate, a verified stage followed by **separate Install confirmation**, and manually confirmed Restore controls for one SHA/receipt-verified, previously device-accepted external backup or the still-embedded migration Core/Shell. Existing `RiftProtectedComponentInstaller` saves the last accepted external revision before selecting a later update. Backup and restore synchronize the old release ledger until Patch C can safely remove it. No Core/Shell/RAPP process is hot-swapped.

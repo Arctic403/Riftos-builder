@@ -1224,6 +1224,22 @@ for marker in 'interface RiftCoreComponentV1' 'interface RiftShellPresentationV1
     echo "Builder E0 embedded-only host Core adapter contract missing: $marker" >&2; exit 1;
   }
 done
+# External Core native-buffer parity: bounded generic host execution only.
+# Preserve existing out-of-process worker; never move RAPP sessions or grants
+# back into the signed APK Core.
+for marker in 'object RiftHostNativeBufferV1' \
+  'fun abiVersion(): Int = 1' \
+  'RiftNativeBufferCompilerService.compile(' \
+  'context.applicationContext, runtime, input, outputLimit' \
+  'require(bytes.size <= outputLimit)'; do
+  grep -Fq "$marker" "$host_component_src" || {
+    echo "Builder external Core native-buffer host ABI missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq 'Lcom/riftos/app/RiftHostNativeBufferV1;' \
+  "android/app/src/main/java/com/riftos/app/RiftProtectedDexVerifier.kt" || {
+  echo 'Builder protected DEX verifier missing exact NativeBuffer host service allowlist' >&2; exit 1;
+}
 grep -Fq 'RiftHostCoreComponents.initializeAtBoot(application)' \
   "android/app/src/main/java/com/riftos/app/RiftBootstrapHost.kt" || {
   echo 'Builder E0 default Core startup did not select versioned embedded adapter' >&2; exit 1;

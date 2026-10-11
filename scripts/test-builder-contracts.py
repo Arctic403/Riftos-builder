@@ -583,6 +583,11 @@ for marker in (
     '"quickjs-v1"',
     'class RiftRappQuickJsExecutor',
     'RiftHostQuickJsV1.execute(',
+    'Builder external Core native-buffer host ABI missing:',
+    'object RiftHostNativeBufferV1',
+    'context.applicationContext, runtime, input, outputLimit',
+    'Lcom/riftos/app/RiftHostNativeBufferV1;',
+
     'Manual Recovery Patch A:',
     'Manual Recovery Patch B:',
     'RiftManualRecoveryInstaller.kt',
