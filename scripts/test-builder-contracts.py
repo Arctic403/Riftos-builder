@@ -20,6 +20,22 @@ def forbid(text: str, needle: str, label: str) -> None:
         raise AssertionError(f"{label}: stale {needle!r}")
 
 
+# A malformed extended-regex guard once stopped a signed worker before Gradle.
+# Shell single quotes already preserve backslashes: never double-escape them.
+for match in re.finditer(r"grep -Eq '([^']*)'", BUILD):
+    expression = match.group(1)
+    if "\\\\" in expression:
+        raise AssertionError(
+            "Builder grep -E pattern is double-escaped: " + repr(expression)
+        )
+    try:
+        re.compile(expression)
+    except re.error as failure:
+        raise AssertionError(
+            "Builder grep -E pattern is malformed: " + repr(expression)
+        ) from failure
+
+
 for task in (
     ":app:verifyRiftOsAndroidSources",
     ":app:validateRiftBrowserWebViewOwnership",

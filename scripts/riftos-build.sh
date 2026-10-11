@@ -1410,7 +1410,7 @@ for marker in 'riftos.host.working-backup/1' \
     echo "Builder Recovery A protected backup inspection missing: $marker" >&2; exit 1;
   }
 done
-if grep -Eq 'RiftCoreRuntime\\.|writeProtectedPointer\\(|RiftProtectedComponentInstaller\\.activate\\(' "$recovery_activity_src"; then
+if grep -Eq 'RiftCoreRuntime\.|writeProtectedPointer\(|RiftProtectedComponentInstaller\.activate\(' "$recovery_activity_src"; then
   echo 'Builder Recovery UI must never directly invoke Core or protected selector.' >&2; exit 1;
 fi
 
@@ -1967,7 +1967,7 @@ if grep -Eq 'prepare-codynex-|compileCodynexC0|codynex-c0-ref|c0_reference\.js' 
   echo 'Builder contract failed: retired project compiler authority resurfaced in generic RiftBuild.' >&2
   exit 1
 fi
-if grep -Eq 'CodynexCompilerProvider|com\\.riftos\\.app\\.codynexcompiler|com\\.codynex\\.lr0lab' "$manifest_contract"; then
+if grep -Eq 'CodynexCompilerProvider|com\.riftos\.app\.codynexcompiler|com\.codynex\.lr0lab' "$manifest_contract"; then
   echo 'Builder contract failed: retired Codynex provider resurfaced in OS manifest.' >&2
   exit 1
 fi
