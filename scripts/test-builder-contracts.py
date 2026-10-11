@@ -556,13 +556,12 @@ for marker in ("Builder C0.2 project-owned editor payload returned",
 forbid(BUILD, '"$riftbuild_source"', "retired embedded RiftBuild source variable")
 require(BUILD, "retired Kotlin compiler job routing resurfaced", "ToolHost legacy Kotlin job-route retirement")
 require(BUILD, 'riftbuild_platform_source="android/app/src/main/java/com/riftos/app/RiftBuildPlatformTools.kt"', "canonical platform owner")
-for current_command in (
-    '"compiler-status" -> buildLocal.compilerStatus(',
-    '"compiler-run" -> buildLocal.compilerRun(',
-    '"jvm-status" -> buildLocal.jvmToolchainStatus()',
-    '"jvm-dex" -> buildLocal.dexJvmClasses(',
+for current_fallback in (
+    "fun installRapp(rawArtifact: String)",
+    "fun uninstallRapp(id: String)",
+    "RiftCoreRuntime.packages(appContext)",
 ):
-    require(BUILD, current_command, "generic compiler and DEX source contract")
+    require(BUILD, current_fallback, "embedded RAPP migration fallback")
 for retired_command in (
     """'"managed-status" -> managedStatus('""",
     """'"managed-copy" -> managedCopy('""",
@@ -571,11 +570,6 @@ for retired_command in (
     forbid(BUILD, retired_command, "retired embedded compiler command contract")
 
 for marker in (
-    '"pack-rapp" -> packRapp(',
-    '"install-rapp" -> installRapp(',
-    '"uninstall-rapp" -> {',
-    '"launch-rapp" -> launchRapp(',
-    '"rapp-list" -> JSONObject()',
     '"src/main/java/com/riftos/app/RiftAppAbi.kt"',
     '"src/main/java/com/riftos/app/RiftRappRiftppWs15Adapter.kt"',
     '"src/main/java/com/riftos/app/RiftRappRiftppGenericAdapter.kt"',
@@ -691,11 +685,6 @@ for marker in (
     require(BUILD, marker, "RiftOS generic RAPP builder contract")
 
 for marker in (
-    "pack-rapp",
-    "install-rapp",
-    "uninstall-rapp",
-    "launch-rapp",
-    "rapp-list",
     "riftos.rapp-project/1",
     "riftos.rapp/1",
     "riftos-app-abi/1",
@@ -726,44 +715,23 @@ for marker in (
 ):
     require(VERIFY, marker, "final APK generic RAPP proof")
 
+# The old shell-only language and build commands are retired. Check that
+# the Builder verifies their absence while retaining generic Core/RAPP services.
 for marker in (
+    "RiftHeadlessJsRuntime.kt",
+    "retired_shell_marker",
+    "retired_asset_marker",
     "scripts/test-riftpp-shell.mjs",
-    "headlessJs.executeRiftpp(args, cwd)",
-    "riftpp-shell-self-test/3",
-    "canonicalUtf8Bytes",
-    "run-stateful",
-    "exec-stateful",
-    "run-software",
-    "exec-software",
-    "text-model-benchmark",
-    "semantic-compat",
-    "HEADLESS QUICKJS",
+    "RiftCoreRuntime.buildPlatform(appContext)",
 ):
-    require(BUILD, marker, "Rift++ headless source contract")
+    require(BUILD, marker, "retired APK language/build shell exclusion")
 
 for marker in (
-    "riftpp-shell-self-test/3",
-    "riftpp-text-model-benchmark-v2",
-    "riftpp-semantic-compat-device-suite/1",
-    "headless-quickjs",
-    "run-stateful",
-    "exec-stateful",
-    "run-software",
-    "exec-software",
-    "state.load",
-    "state.save",
-    "state.remove",
-    "software.caseId",
-    "software.source",
-    "text-model-benchmark",
-    "semantic-compat",
-    "Only SHA-256 is available",
-    "out[i] = raw[i] & 255;",
-    "Array.from(view, value => value & 255)",
+    "retired in-APK language asset",
+    "retired_language_dex",
+    "forbid_dex_string",
 ):
-    require(VERIFY, marker, "final APK Rift++ headless proof")
-
-
+    require(VERIFY, marker, "retired APK language asset exclusion")
 
 for stale in (
     "one-time Rift++ legacy-editor native bootstrap",
@@ -783,13 +751,13 @@ require(README, "no hardcoded external editor package identity", "builder docume
 require(README, "RiftLocalBuildCapability", "builder documentation build.local owner")
 require(README, "RiftJvmDexService", "builder documentation JVM DEX owner")
 require(README, "RiftBuildPlatformTools", "builder documentation platform tool owner")
-require(README, "RiftApkV2Verifier", "builder documentation verifier-only owner")
+require(BUILD, "RiftApkV2Verifier.kt", "builder explicitly retires legacy APK verifier")
 require(README, "RiftRappCapabilityBroker", "builder documentation capability broker")
 require(README, "state.bin", "builder documentation durable RAPP state")
 require(README, "riftpp-generic-v1", "builder documentation forward RAPP adapter")
 require(README, "compatibility lanes", "builder documentation compatibility adapters")
-require(README, "headless QuickJS", "builder documentation retained headless runtime")
-require(README, "test-riftpp-shell.mjs", "builder documentation headless Rift++ source gate")
+require(README, "Post-#715 source cleanup removes the obsolete APK-native", "builder documentation retired language host")
+require(README, "RiftHostQuickJsV1", "builder documentation active RAPP runtime remains")
 require(BUILD, "retired riftpp-host shell compiler surface resurfaced", "builder retired Rift++ compiler-host guard")
 require(README, "RiftOS APK worker does not use `actions/upload-artifact`", "builder documentation APK artifact policy")
 require(README, "managed compiler worker intentionally uses `actions/upload-artifact@v4`", "builder documentation compiler artifact policy")

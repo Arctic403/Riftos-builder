@@ -117,39 +117,33 @@ node -e '
   }
 '
 
-# Retained Rift++ compatibility/reference shell/headless-runtime contract. The source-owned regression remains the
-# semantic authority, but Builder locks its wiring and critical runtime boundary before npm/Gradle.
-riftpp_shell_gate="scripts/test-riftpp-shell.mjs"
-riftpp_headless_source="android/app/src/main/java/com/riftos/app/RiftHeadlessJsRuntime.kt"
+# Retired shell-only build/language command family must never be baked into RiftOS again.
+# The Core's generic RAPP execution, compiler services and embedded recovery fallback are separate.
 riftpp_native_shell_source="android/app/src/main/java/com/riftos/app/RiftNativeShell.kt"
-for riftpp_headless_file in "$riftpp_shell_gate" "$riftpp_headless_source" "$riftpp_native_shell_source"; do
-  test -f "$riftpp_headless_file" || {
-    echo "Builder Rift++ headless contract is missing source: $riftpp_headless_file" >&2
-    exit 1
-  }
-done
-for required_riftpp_headless_gate_marker in \
-  'headlessJs.executeRiftpp(args, cwd)' \
-  "schema:'riftpp-shell-self-test/3'" \
-  'private fun canonicalUtf8Bytes(value: String): ByteArray' \
-  'const out = new Uint8Array(raw.length);' \
-  'out[i] = raw[i] & 255;' \
-  'const input = Array.from(view, value => value & 255);' \
-  "if (sub === 'run-stateful')" \
-  "if (sub === 'exec-stateful')" \
-  "if (sub === 'run-software')" \
-  "if (sub === 'exec-software')" \
-  '"text-model-benchmark" -> executeTextModelBenchmark()' \
-  '"semantic-compat" -> executeSemanticCompatibilityVerifier()'; do
-  if ! grep -Fq "$required_riftpp_headless_gate_marker" "$riftpp_shell_gate" &&
-     ! grep -Fq "$required_riftpp_headless_gate_marker" "$riftpp_headless_source" &&
-     ! grep -Fq "$required_riftpp_headless_gate_marker" "$riftpp_native_shell_source"; then
-    echo "Builder Rift++ headless contract missing: $required_riftpp_headless_gate_marker" >&2
+riftpp_gradle_source="android/app/build.gradle.kts"
+test -f "$riftpp_native_shell_source" || { echo 'Builder native shell source missing' >&2; exit 1; }
+test ! -f "android/app/src/main/java/com/riftos/app/RiftHeadlessJsRuntime.kt" || {
+  echo 'Builder retired headless language runtime resurfaced in APK source' >&2
+  exit 1
+}
+for retired_shell_marker in \
+  '"riftbuild" ->' '"qjs" ->' '"semx" ->' '"riftpp" ->' '"rift-tool" ->' \
+  'headlessJs.execute' 'RiftCoreRuntime.buildPlatform(appContext)'; do
+  if grep -Fq "$retired_shell_marker" "$riftpp_native_shell_source"; then
+    echo "Builder retired shell command resurfaced: $retired_shell_marker" >&2
     exit 1
   fi
 done
-grep -Fq 'riftpp help|version|self-test|check|compile|inspect|run|exec|run-stateful|exec-stateful|run-software|exec-software   [CORE V1 / HEADLESS QUICKJS]' "$riftpp_native_shell_source" || {
-  echo 'Builder Rift++ headless contract failed: native shell command surface drifted.' >&2
+for retired_asset_marker in \
+  'include("src/riftpp-core.js")' 'include("src/riftvm.js")' \
+  'include("src/semnexis-bootstrap.js")' 'RiftHeadlessJsRuntime.kt'; do
+  if grep -Fq "$retired_asset_marker" "$riftpp_gradle_source"; then
+    echo "Builder retired APK language asset resurfaced: $retired_asset_marker" >&2
+    exit 1
+  fi
+done
+test -f "scripts/test-riftpp-shell.mjs" || {
+  echo 'Builder retired shell negative regression missing' >&2
   exit 1
 }
 
@@ -1001,7 +995,6 @@ native_shell="android/app/src/main/java/com/riftos/app/RiftNativeShell.kt"
 riftbuild_capability_source="android/app/src/main/java/com/riftos/app/RiftLocalBuildCapability.kt"
 riftbuild_jvm_dex_source="android/app/src/main/java/com/riftos/app/RiftJvmDexService.kt"
 riftbuild_platform_source="android/app/src/main/java/com/riftos/app/RiftBuildPlatformTools.kt"
-riftbuild_verifier_source="android/app/src/main/java/com/riftos/app/RiftApkV2Verifier.kt"
 riftapp_abi_source="android/app/src/main/java/com/riftos/app/RiftAppAbi.kt"
 riftapp_ws15_adapter_source="android/app/src/main/java/com/riftos/app/RiftRappRiftppWs15Adapter.kt"
 riftapp_generic_adapter_source="android/app/src/main/java/com/riftos/app/RiftRappRiftppGenericAdapter.kt"
@@ -1770,7 +1763,6 @@ grep -Fq 'LauncherApp("installed-apps", "Installed Apps",' \
   echo 'Builder C1.1-P native desktop Installed Apps launcher missing.' >&2; exit 1;
 }
 
-riftbuild_installer_source="android/app/src/main/java/com/riftos/app/RiftBuildInstaller.kt"
 for project_source in \
   android/app/src/main/java/com/codynex \
   android/app/src/main/java/com/riftpp \
@@ -1829,17 +1821,9 @@ done
 
 for required_riftbuild_platform_contract in \
   'class RiftBuildPlatformTools' \
-  '"compiler-status"' \
-  '"compiler-run"' \
-  '"jvm-status"' \
-  '"jvm-dex"' \
-  '"pack-rapp"' \
-  '"install-rapp"' \
-  '"uninstall-rapp"' \
-  '"launch-rapp"' \
-  '"rapp-list"' \
-  '"verify"' \
-  '"install-proof"'; do
+  'fun installRapp(rawArtifact: String)' \
+  'fun uninstallRapp(id: String)' \
+  'RiftCoreRuntime.packages(appContext)'; do
   grep -Fq "$required_riftbuild_platform_contract" "$riftbuild_platform_source" || {
     echo "Builder generic RiftBuild platform contract missing: $required_riftbuild_platform_contract" >&2
     exit 1
@@ -1850,53 +1834,20 @@ if grep -Eq '"toolchain-status"[[:space:]]*->|"kotlin-compile"[[:space:]]*->|"co
   exit 1
 fi
 
-for required_riftbuild_verifier_contract in \
-  'class RiftApkV2Verifier' \
-  'fun verify(' \
-  'APK Sig Block 42' \
-  'V2_BLOCK_ID = 0x7109871a' \
-  'SIGNATURE_ALGORITHM_ID = 0x0103' \
-  'SHA256withRSA'; do
-  grep -Fq "$required_riftbuild_verifier_contract" "$riftbuild_verifier_source" || {
-    echo "Builder APK verifier contract missing: $required_riftbuild_verifier_contract" >&2
-    exit 1
-  }
-done
-if grep -Eq 'AndroidKeyStore|KeyGenParameterSpec|KeyPairGenerator|fun sign\(' "$riftbuild_verifier_source"; then
-  echo 'Builder contract failed: verifier regained signing-key authority.' >&2
-  exit 1
-fi
 
 for retired_riftbuild_source in \
   android/app/src/main/java/com/riftos/app/RiftBuildLocalExecutor.kt \
   android/app/src/main/java/com/riftos/app/RiftBuildKotlinCompiler.kt \
   android/app/src/main/java/com/riftos/app/RiftBuildNativeToolchain.kt \
   android/app/src/main/java/com/riftos/app/RiftBuildNativeApp.kt \
-  android/app/src/main/java/com/riftos/app/RiftApkV2Signer.kt; do
+  android/app/src/main/java/com/riftos/app/RiftApkV2Signer.kt \
+  android/app/src/main/java/com/riftos/app/RiftApkV2Verifier.kt \
+  android/app/src/main/java/com/riftos/app/RiftBuildInstaller.kt; do
   if test -e "$retired_riftbuild_source"; then
     echo "Builder contract failed: retired embedded RiftBuild source resurfaced: $retired_riftbuild_source" >&2
     exit 1
   fi
 done
-for required_riftbuild_installer_contract in \
-  'class RiftBuildInstaller' \
-  'SAFE_PACKAGE_NAME' \
-  'requireSafePackageName' \
-  'Intent(Intent.ACTION_MAIN)' \
-  'Intent.CATEGORY_LAUNCHER' \
-  '.setPackage(safePackageName)' \
-  'launch package is not bound to the latest verified install' \
-  'PackageInstaller reported an unexpected package identity' \
-  'USER_ACTION_REQUIRED'; do
-  grep -Fq "$required_riftbuild_installer_contract" "$riftbuild_installer_source" || {
-    echo "Builder RiftBuild generic installer contract missing: $required_riftbuild_installer_contract" >&2
-    exit 1
-  }
-done
-if grep -Eq 'ALLOWED_PROOF_PACKAGES|RIFTPP_[A-Z0-9_]*TARGET_PACKAGE|TARGET_PACKAGE = "com\.riftpp|EDITOR_TARGET_PACKAGE = "com\.codynex|com\.riftpp\.editor\.adapterr1' "$riftbuild_installer_source"; then
-  echo 'Builder contract failed: generic RiftBuild installer regained project package identity.' >&2
-  exit 1
-fi
 for editor_package in com.riftpp.editor com.codynex.editor; do
   if grep -Fq "<package android:name=\"$editor_package\" />" "$manifest_contract"; then
     echo "Builder C0.2 project editor manifest visibility resurfaced: $editor_package" >&2
@@ -1911,7 +1862,6 @@ for required_riftbuild_gradle_source in \
   '"src/main/java/com/riftos/app/RiftLocalBuildCapability.kt"' \
   '"src/main/java/com/riftos/app/RiftJvmDexService.kt"' \
   '"src/main/java/com/riftos/app/RiftBuildPlatformTools.kt"' \
-  '"src/main/java/com/riftos/app/RiftApkV2Verifier.kt"' \
   '"src/main/java/com/riftos/app/RiftBuildManagedToolchains.kt"' \
   '"src/main/java/com/riftos/app/RiftManagedJvmToolService.kt"' \
   '"src/main/java/com/riftos/app/RiftNativeBufferCompilerService.kt"' \
@@ -1999,32 +1949,13 @@ grep -Fq 'android:extractNativeLibs="true"' "$manifest_contract" || {
 }
 
 # Only the generic platform compiler/DEX routes remain. Recipe and APK orchestration live in Hosted.
-for required_hot_command in \
-  '"compiler-status" -> buildLocal.compilerStatus(' \
-  '"compiler-run" -> buildLocal.compilerRun(' \
-  '"jvm-status" -> buildLocal.jvmToolchainStatus()' \
-  '"jvm-dex" -> buildLocal.dexJvmClasses('; do
-  grep -Fq "$required_hot_command" "$riftbuild_platform_source" || {
-    echo "Builder contract is stale: generic RiftBuild platform command missing: $required_hot_command" >&2
-    exit 1
-  }
-done
+
 if grep -Eq '"managed-status"[[:space:]]*->|"managed-copy"[[:space:]]*->|"kotlin-compile"[[:space:]]*->' "$riftbuild_platform_source"; then
   echo 'Builder contract failed: retired embedded compiler and managed-copy shell commands resurfaced.' >&2
   exit 1
 fi
 
-for required_rapp_contract in \
-  '"pack-rapp" -> packRapp(' \
-  '"install-rapp" -> installRapp(' \
-  '"uninstall-rapp" -> {' \
-  '"launch-rapp" -> launchRapp(' \
-  '"rapp-list" -> JSONObject()'; do
-  grep -Fq "$required_rapp_contract" "$riftbuild_platform_source" || {
-    echo "Builder contract is stale: RiftOS RAPP command missing: $required_rapp_contract" >&2
-    exit 1
-  }
-done
+
 for required_rapp_source in \
   '"src/main/java/com/riftos/app/RiftAppAbi.kt"' \
   '"src/main/java/com/riftos/app/RiftRappRiftppWs15Adapter.kt"' \
@@ -2281,7 +2212,7 @@ for required_native_shell_job_contract in \
   }
 done
 for required_shell_tool_contract in \
-  'shouldSubmitShellJob(command)' \
+  'val runAsJob = action == "submit"' \
   '"auto", "exec", "submit", "status", "result", "cancel", "list"'; do
   grep -Fq "$required_shell_tool_contract" "$tool_host_source" || {
     echo "Builder MCP RiftShell job routing contract missing: $required_shell_tool_contract" >&2
@@ -2290,6 +2221,10 @@ for required_shell_tool_contract in \
 done
 if grep -Fq '"kotlin-compile"' "$tool_host_source"; then
   echo 'Builder contract failed: retired Kotlin compiler job routing resurfaced.' >&2
+  exit 1
+fi
+if grep -Fq 'shouldSubmitShellJob(' "$tool_host_source"; then
+  echo 'Builder contract failed: retired RiftBuild auto-job classifier resurfaced.' >&2
   exit 1
 fi
 for required_managed_jvm_contract in \
@@ -2387,4 +2322,3 @@ fi
 sha256sum "$FINAL" >"$LOG_DIR/apk-sha256.log"
 
 echo "RiftOS Android APK built, packaged, signed and verified."
-

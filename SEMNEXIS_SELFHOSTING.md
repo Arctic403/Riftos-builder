@@ -1,15 +1,20 @@
 # Semnexis self-hosting build contract
 
+## 2026-10-11 — current packaging boundary
+
+Semnexis compiler source and independent source/self-hosting regressions remain in the RiftOS repository, but its `semx` shell command and `RiftHeadlessJsRuntime` have been retired from the upcoming RiftOS APK. The base APK **must not** package `src/semnexis-bootstrap.js` or any Semnexis-specific developer language CLI. Builder still runs source/machine verification, then verifies that the signed APK **excludes** old `assets/www` compiler scripts. Historical promotion notes below describe the previous embedded host; they no longer specify APK packaging.
+
+
 Updated: 2026-09-27
 
 ## Purpose
 
-Riftos-builder does not own Semnexis compiler semantics. RiftOS owns the compiler, the source regressions, and the installed `semx` shell surface.
+Riftos-builder does not own Semnexis compiler semantics. RiftOS owns the reference compiler and independent source/machine regressions. The installed `semx` shell surface was retired in the post-#715 source cleanup.
 
 Builder owns two things:
 
 1. proving that the exact RiftOS commit still exposes and runs its Semnexis source gates before Android packaging; and
-2. proving that the final signed APK contains the exact packaged `src/semnexis-bootstrap.js` bytes from that source commit.
+2. proving that the final signed APK does **not** bundle `src/semnexis-bootstrap.js` or other obsolete project-specific language engines.
 
 Builder must not silently drift behind a promoted Semnexis self-hosting fixture.
 
@@ -18,8 +23,8 @@ Builder must not silently drift behind a promoted Semnexis self-hosting fixture.
 Current bootstrap source identity:
 
 - compiler: `0.7.0-quickjs-bootstrap`;
-- packaged authority: `src/semnexis-bootstrap.js`;
-- installed shell promotion remains `semnexis-bootstrap-self-test/17` until a newer APK is actually built, installed, and proved;
+- source/test authority: `src/semnexis-bootstrap.js` (not an APK asset);
+- the prior installed #715 shell implementation is historical; new signed APK source intentionally omits it;
 - frozen binary compatibility remains `SNIRV0` through additive `SNIRV7`.
 
 The source/machine self-hosting regression is owned by:
@@ -138,8 +143,8 @@ The source-only self-host fixtures and test scripts are not Android runtime payl
 
 The final signed APK gate therefore does not require those fixture files inside the APK. Instead it requires:
 
-- `assets/www/src/semnexis-bootstrap.js` exists;
-- that asset is byte-for-byte identical to the checked-out RiftOS `src/semnexis-bootstrap.js`;
+- the compiler remains available in the repository for independent verification;
+- no `assets/www/src/semnexis-bootstrap.js` (or Rift++/VM language assets) is present in the signed APK;
 - no unexpected retired/broad `assets/www` tree returns.
 
 Installed-device promotion remains separate from source verification.

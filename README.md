@@ -1,5 +1,15 @@
 # Riftos-builder
 
+## 2026-10-11 — retired APK proof-bridge and class checks
+
+The unused APK-owned RiftBuild command parser, proof-only APK v2 verifier, PackageInstaller proof activity/receiver, and automatic RiftBuild shell-job classifier are removed from the next source build. The embedded migration Core retains only RAPP install/uninstall through `RiftBuildPlatformTools`. Builder source gates now require those methods, reject the retired classes and manifest components, and no longer demand obsolete DEX command strings. Actual signature verification of the final APK still belongs to the Builder's `verify-riftos-apk.sh`; the **modern** protected Recovery verification is unaffected. Manual signed build flow is unchanged.
+
+
+## 2026-10-11 — retired language/legacy build shell APK exclusion
+
+Post-#715 source cleanup removes the obsolete APK-native `riftbuild` shell command, the shell `qjs`/`semx`/`riftpp`/`rift-tool` commands, orphaned `RiftHeadlessJsRuntime`, and packaged compiler/VM JS assets. Builder preflight and signed APK verification must now **reject** those retired in-APK classes/assets, not require them. This does **not** remove active RAPP QuickJS (`RiftHostQuickJsV1`), generic compiler/D8/signing services, protected Recovery, or embedded migration fallback. The installed #715 with independent external Core v0.6 is unchanged; the next APK remains unsigned until the user runs the same manual Builder workflow. The older entries below are historical.
+
+
 ## 2026-10-11 — APK Recovery local protected Builds staging guard
 
 Android's document picker cannot browse private RiftOS `/D:/Builds` files. The standalone APK Recovery process now has a **generic local folder staging** control, restricted to virtual `/D:/Builds/Components/core|shell/...`. It verifies a same-directory `component.json` plus the manifest-specified DEX, rejects symlinks/path escape/oversized metadata and invokes the existing `RiftProtectedComponentInstaller.stage` through the Recovery-process-only bridge. It never hot-swaps or selects anything: selecting the protected version still requires the user's separate Install confirmation. Original Android SAF file-picker path and embedded fallback remain untouched.

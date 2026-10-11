@@ -395,29 +395,14 @@ for marker in \
   require_dex_string "$marker" "generic RAPP marker $marker"
 done
 
-# Retained Rift++ compatibility/reference headless-shell proof. These strings are emitted from the native QuickJS host
-# and its embedded runtime scripts, so the signed APK must retain the stateful/software command
-# families plus the canonical UTF-8/unsigned-byte boundary proved by test-riftpp-shell.mjs.
-for marker in \
+# Retired in-APK shell-specific developer compiler/VM strings must not
+# return. Core's active generic RAPP engine and host service ABI are checked
+# separately below; do not forbid words shared with those active interfaces.
+for retired in \
   'riftpp-shell-self-test/3' \
   'riftpp-text-model-benchmark-v2' \
-  'riftpp-semantic-compat-device-suite/1' \
-  'headless-quickjs' \
-  'run-stateful' \
-  'exec-stateful' \
-  'run-software' \
-  'exec-software' \
-  'state.load' \
-  'state.save' \
-  'state.remove' \
-  'software.caseId' \
-  'software.source' \
-  'text-model-benchmark' \
-  'semantic-compat' \
-  'Only SHA-256 is available' \
-  'out[i] = raw[i] & 255;' \
-  'Array.from(view, value => value & 255)'; do
-  require_dex_string "$marker" "Rift++ headless runtime marker $marker"
+  'riftpp-semantic-compat-device-suite/1'; do
+  forbid_dex_string "$retired" "retired shell-only compiler $retired"
 done
 # The promoted generic build-provider boundary must survive into the signed DEX.
 # Build recipes/packing/signing stay external; RiftOS retains only reusable execution,
@@ -428,15 +413,7 @@ for marker in \
   'rift-jvm-dex/1' \
   'compiler-status' \
   'compiler-run' \
-  'jvm-status' \
-  'jvm-dex' \
-  'pack-rapp' \
-  'install-rapp' \
-  'uninstall-rapp' \
-  'launch-rapp' \
-  'rapp-list' \
-  'v2 signed-data RSA signature verification failed' \
-  'v2 protected APK content digest mismatch'; do
+  'jvm-dex'; do
   require_dex_string "$marker" "generic post-purge RiftBuild marker $marker"
 done
 
@@ -603,24 +580,25 @@ if [ -n "${SOURCE_SHA:-}" ]; then
   require_dex_string "$SOURCE_SHA" "embedded RiftOS source SHA $SOURCE_SHA"
 fi
 
-# The native Android build intentionally packages only the bounded headless compiler/runtime
-# assets beneath assets/www. The retired HTML/DOM shell, broad src tree and workspace-live tree
-# must never return as OS execution assets.
-require_matches_source "assets/www/src/riftpp-core.js" "src/riftpp-core.js"
-require_matches_source "assets/www/src/riftvm.js" "src/riftvm.js"
-require_matches_source "assets/www/src/semnexis-bootstrap.js" "src/semnexis-bootstrap.js"
-
+# Retired project-specific QuickJS/Rift++/Semnexis scripts no longer belong
+# in the base APK. Compilers/VMs remain source-only until packaged as registered
+# external tools; preserve the active generic host services and RAPP adapters.
 while IFS= read -r entry; do
   case "$entry" in
     assets/www/*)
-      case "$entry" in
-        */) continue ;;
-        assets/www/src/riftpp-core.js|assets/www/src/riftvm.js|assets/www/src/semnexis-bootstrap.js) ;;
-        *) echo "APK smoke check failed: unexpected OS web asset: $entry" >&2; exit 1 ;;
-      esac
-      ;;
+      case "$entry" in */) ;; *)
+        echo "APK smoke check failed: retired in-APK language asset: $entry" >&2
+        exit 1
+      ;; esac
+    ;;
   esac
 done <<< "$entries"
+for retired_language_dex in RiftHeadlessJsRuntime; do
+  forbid_dex_string "Lcom/riftos/app/${retired_language_dex};" "retired APK language host $retired_language_dex"
+done
+for retired_proof_dex in RiftBuildInstaller RiftApkV2Verifier RiftBuildInstallActivity RiftBuildInstallReceiver; do
+  forbid_dex_string "Lcom/riftos/app/${retired_proof_dex};" "retired APK build proof class $retired_proof_dex"
+done
 
 # Verify every explicit Android runtime asset, including RiftBrowser adapters.
 # Android's asset merger does not promise to package documentation files.
