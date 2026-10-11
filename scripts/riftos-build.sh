@@ -1399,7 +1399,9 @@ for marker in 'riftos.protected-component/1' \
 done
 for marker in 'riftos.protected-dex-closure/1' \
   'External component references APK-owned execution' \
-  'Critical DEX defines class outside its independent namespace' \
+  'Critical DEX defines class outside component or Kotlin runtime namespace' \
+  'val kotlinSupport = name.startsWith("Lkotlin/")' \
+  'definitions.add(name)' 'bundledKotlinRuntimeClassCount' \
   'behavioralDeviceProof", false'; do
   grep -Fq "$marker" "$critical_src/RiftProtectedDexVerifier.kt" || {
     echo "Builder H external binary closure not enforced: $marker" >&2; exit 1;

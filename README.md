@@ -1,5 +1,11 @@
 # Riftos-builder
 
+## 2026-10-10 — Registered external Kotlin+D8 component compatibility in protected verifier
+
+User's manual signed RiftOS #701 (source 6a31b999) is installed/device-proven with embedded default Core/Shell, separate Core observer and existing graphical RAPP. Independent Core and graphical Shell source now compiled through the actual **registered** external Kotlin compiler and generic D8, producing `core.dex` 2,574,604 bytes SHA `44d1b9745f63...` and `shell.dex` 2,594,884 bytes SHA `f29747a5828b...` under `/D:/Builds/Components`; the source is versioned under RiftOS `external-components/`, **outside** APK Gradle sources. Neither component is production complete or activated.
+
+Discovered real platform contract mismatch: `RiftJvmDexService` packages `kotlin-stdlib.jar` as D8 PROGRAM definitions, while #701 `RiftProtectedDexVerifier` rejects every defined class outside the candidate namespace. Builder preflight now requires narrow Kotlin `Lkotlin/` allowance, duplicate-def rejection, and a distinct library-class count while retaining strict restrictions on APK-owned Core classes and foreign components. Python Builder selftest pins these requirements. **This source update needs a user-manual signed RiftOS APK rebuild** to be active, and no full external Core/Shell/N-1 execution proof has happened. Backup remains recovery-only.
+
 ## 2026-10-10 — Manual signed build 38093548465: external Shell onResume source contract repaired
 
 User-provided zipped workflow and failure-context logs show `SOURCE_SHA=a2de72cb0ee9bcd782298705ec3a945495783bc8`, manual run `38093548465`. Builder's own Python/bash script-validation step was **GREEN**; the following `Build RiftOS APK` step failed **before** RiftOS Node validation, Gradle/Kotlin compile or APK signing, at the Builder Bash preflight assertion `Builder S graphical Shell Activity missing guarded external lifecycle: externalShell?.onResume()`. RiftOS production `RiftShellActivity.onResume()` actually delegates through `externalShell?.let { it.onResume(); return }`, so the preflight searched for an obsolete spelling, not a missing lifecycle capability.
