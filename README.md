@@ -1,5 +1,10 @@
 # Riftos-builder
 
+## 2026-10-11 — Manual worker #38169506311 C1.0 inverted legacy-ownership guard fixed
+
+The user-manual worker for RiftOS source `96e4453975bb10a5d2f964cd1448fd66694ea4dd` passed the Builder Python/shell syntax preflight but then stopped before Gradle inside `scripts/riftos-build.sh` with `Builder C1.0 shell still owns RiftBuild platform.`. Root cause: a stale **positive** `grep -Fq 'RiftCoreRuntime.buildPlatform(appContext)'` against `RiftNativeShell.kt`, even though source migration had deliberately removed that call. The gate was inverted to **forbid** restoring the embedded `RiftBuild` shell facade and positively require generic `RiftHostCoreComponents.executionView().startApp/stopApp` routes. Python Builder regression now requires the corrected C1.0 check. Twelve targeted source/fallback/Recovery checks passed via device MCP. Full Builder preflight, Gradle, signing and device proof for this patch remain pending the next **user-manual** build. The installed signed #715/external Core v0.6 remains untouched.
+
+
 ## 2026-10-11 — Manual worker #38168843768 source-contract repair (no APK produced)
 
 The user-dispatched signed Builder run for RiftOS source `96e4453975bb10a5d2f964cd1448fd66694ea4dd` stopped at `Validate RiftOS Builder scripts`, before Gradle and before signing. The first Python exception required the retired shell fragment `"uninstall-rapp" -> {`; that command was intentionally removed from `RiftBuildPlatformTools` during the preceding APK legacy purge, while Core-owned `uninstallRapp` and its RAPP lifecycle protocol remain. Remove the stale positive shell assertion, **not** the Core package feature. Also remove `pack-rapp`/`install-rapp`/`uninstall-rapp`/`launch-rapp`/`rapp-list` as mandatory *signed DEX literals*, retaining actual Core package/app-launch ABI and generic build interfaces. A Builder Python regression now rejects old shell verbs in the signed-RAPP proof marker block.

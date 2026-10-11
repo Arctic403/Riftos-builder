@@ -387,6 +387,17 @@ require(BUILD, "'RAPP Core effect chain exceeded bound'", "C1.1-B2-B early sourc
 require(VERIFY, "'RAPP Core effect chain exceeded bound'", "C1.1-B2-B final signed DEX marker")
 forbid(VERIFY, "'RAPP host effect chain exceeded bound'", "C1.1-B2-B retired desktop effect marker")
 
+# Manual worker #38169506311: the prior C1.0 preflight incorrectly
+# required native RiftShell to create the retired embedded RiftBuild facade.
+# Keep this inversion fixed and verify the real independent Core ABI.
+require(BUILD, "Builder C1.0 shell regained retired embedded RiftBuild platform.", "retired C1.0 CLI guard")
+require(BUILD, "if grep -Fq 'RiftCoreRuntime.buildPlatform(appContext)'", "C1.0 forbids embedded build in native shell")
+for core_route in (
+    "RiftHostCoreComponents.executionView().startApp(appContext, args[1])",
+    "RiftHostCoreComponents.executionView().stopApp(appContext, args[1])",
+):
+    require(BUILD, core_route, "C1.0 generic external Core execution route")
+
 # C1.1-P: Core installed RAPP lifecycle and replaceable shell package client.
 for marker in (
     "RiftCorePackageEvents.kt",

@@ -436,10 +436,19 @@ for core_marker in 'object RiftCoreRuntime' 'fun packages(context: Context)' \
     echo "Builder C1.0 core contract missing: $core_marker" >&2; exit 1;
   }
 done
-grep -Fq 'RiftCoreRuntime.buildPlatform(appContext)' \
-  android/app/src/main/java/com/riftos/app/RiftNativeShell.kt || {
-  echo 'Builder C1.0 shell still owns RiftBuild platform.' >&2; exit 1;
-}
+# The legacy RiftBuild command must stay retired: generic RAPP/OS execution
+# is selected through the component ABI, never by creating embedded buildPlatform.
+if grep -Fq 'RiftCoreRuntime.buildPlatform(appContext)' \
+  android/app/src/main/java/com/riftos/app/RiftNativeShell.kt; then
+  echo 'Builder C1.0 shell regained retired embedded RiftBuild platform.' >&2; exit 1
+fi
+for core_route in \
+  'RiftHostCoreComponents.executionView().startApp(appContext, args[1])' \
+  'RiftHostCoreComponents.executionView().stopApp(appContext, args[1])'; do
+  grep -Fq "$core_route" android/app/src/main/java/com/riftos/app/RiftNativeShell.kt || {
+    echo "Builder C1.0 generic Core execution route missing: $core_route" >&2; exit 1
+  }
+done
 grep -Fq 'RiftCoreRuntime.packages(activity.applicationContext)' \
   android/app/src/main/java/com/riftos/app/RiftRappHost.kt || {
   echo 'Builder C1.0 desktop still owns package manager.' >&2; exit 1;
