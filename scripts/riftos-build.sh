@@ -1454,6 +1454,28 @@ for marker in 'fun checkManualRestoreTarget(context: Context, id: String, sha: S
   }
 done
 
+# Recovery local RiftFS Builds staging: same protected verifier, no direct
+# Core selection or public Android storage permission. Actual install remains
+# user-confirmed in the independent :riftRecovery process.
+for marker in 'fun stageLocal(context: Context, virtualDirectory: String)' \
+  'RiftVolumePaths.normalizeDisplay(virtualDirectory)' \
+  'val prefix = "/D:/Builds/Components/"' \
+  'RiftProtectedComponentManifest.parse(manifestBytes)' \
+  'java.nio.file.Files.isSymbolicLink(candidate.toPath())' \
+  'dex.inputStream().use { stage(context, manifestBytes, it) }'; do
+  grep -Fq "$marker" "$recovery_installer_src" || {
+    echo "Builder Recovery private Builds staging guard missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'Stage verified LOCAL component pair' \
+  'RiftManualRecoveryInstaller.stageLocal(' \
+  'Install verified staged update' \
+  'setPositiveButton("Install")'; do
+  grep -Fq "$marker" "$recovery_activity_src" || {
+    echo "Builder Recovery local user-confirmed staging UI missing: $marker" >&2; exit 1;
+  }
+done
+
 # S: real graphical Shell must be separately qualified and must own its
 # entire native desktop; preserve embedded default until source/device proof.
 shell_component_src="android/app/src/main/java/com/riftos/app/RiftShellComponentAbiV1.kt"

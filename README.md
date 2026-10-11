@@ -1,5 +1,11 @@
 # Riftos-builder
 
+## 2026-10-11 — APK Recovery local protected Builds staging guard
+
+Android's document picker cannot browse private RiftOS `/D:/Builds` files. The standalone APK Recovery process now has a **generic local folder staging** control, restricted to virtual `/D:/Builds/Components/core|shell/...`. It verifies a same-directory `component.json` plus the manifest-specified DEX, rejects symlinks/path escape/oversized metadata and invokes the existing `RiftProtectedComponentInstaller.stage` through the Recovery-process-only bridge. It never hot-swaps or selects anything: selecting the protected version still requires the user's separate Install confirmation. Original Android SAF file-picker path and embedded fallback remain untouched.
+
+The next signed host build is **user-manual as always**. Builder Bash/Python preflight now requires the exact local importer, protected stage delegation and separate Install UI. Installed signed #714 does not include the local importer. The version-matched v0.6 experimental pair is already placed at `/D:/Builds/Components/core/trial/`; preserve the pre-existing old `/D:/Builds/Components/core/component.json` and `core.dex`. User should test stage locally after a new signed APK is green, but must separately confirm before any Core activation.
+
 ## 2026-10-11 — Core v0.6 manual trial host-interface preflight
 
 RiftOS source now includes versioned generic `RiftHostCapabilityUiV1` (bounded Core↔Shell permission consent and UI-effect ticket transport) and `RiftHostBuildLocalV1` (registered compiler/D8 platform plumbing) in the permanent signed APK. External Core alone owns installed RAPP identity, declared/user-granted permissions, session expiry, effect dispatch and grant revocation. APK hosting remains generic; native-buffer and QuickJS host interfaces are unchanged. Strict protected DEX verifier allows exactly the four host service classes. The independent producer strips **all eight** compile-only ABI mirrors from its standalone DEX. Builder Bash and Python self-tests now require these capabilities.

@@ -615,6 +615,11 @@ for marker in (
 
     'Manual Recovery Patch A:',
     'Manual Recovery Patch B:',
+    'Builder Recovery private Builds staging guard missing:',
+    'Builder Recovery local user-confirmed staging UI missing:',
+    'fun stageLocal(context: Context, virtualDirectory: String)',
+    'RiftManualRecoveryInstaller.stageLocal(',
+    'val prefix = "/D:/Builds/Components/"',
     'RiftManualRecoveryInstaller.kt',
     'fun preserveAcceptedBeforeUpdate(context: Context, component: String)',
     'RiftManualRecoveryStore.preserveAcceptedBeforeUpdate(context, component)',
