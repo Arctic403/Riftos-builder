@@ -1240,6 +1240,25 @@ grep -Fq 'Lcom/riftos/app/RiftHostNativeBufferV1;' \
   "android/app/src/main/java/com/riftos/app/RiftProtectedDexVerifier.kt" || {
   echo 'Builder protected DEX verifier missing exact NativeBuffer host service allowlist' >&2; exit 1;
 }
+# External Core manual-trial capability transport and registered local build:
+# Core retains all package/grant/effect policy; APK only routes bounded work.
+for marker in 'object RiftHostCapabilityUiV1' \
+  'RiftCoreShellCapabilityRequests.requestConsent(' \
+  'RiftCoreShellCapabilityRequests.requestUiEffect(' \
+  'object RiftHostBuildLocalV1' \
+  'RiftLocalBuildCapability(context.applicationContext)' \
+  'tool.compilerRunInline(' \
+  'tool.dexJvmClasses('; do
+  grep -Fq "$marker" "$host_component_src" || {
+    echo "Builder external Core capability host bridge missing: $marker" >&2; exit 1;
+  }
+done
+for service in 'RiftHostCapabilityUiV1' 'RiftHostBuildLocalV1'; do
+  grep -Fq "Lcom/riftos/app/$service;" \
+    "android/app/src/main/java/com/riftos/app/RiftProtectedDexVerifier.kt" || {
+    echo "Builder external Core protected verifier missing exact $service" >&2; exit 1;
+  }
+done
 grep -Fq 'RiftHostCoreComponents.initializeAtBoot(application)' \
   "android/app/src/main/java/com/riftos/app/RiftBootstrapHost.kt" || {
   echo 'Builder E0 default Core startup did not select versioned embedded adapter' >&2; exit 1;

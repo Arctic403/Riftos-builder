@@ -1,5 +1,11 @@
 # Riftos-builder
 
+## 2026-10-11 — Core v0.6 manual trial host-interface preflight
+
+RiftOS source now includes versioned generic `RiftHostCapabilityUiV1` (bounded Core↔Shell permission consent and UI-effect ticket transport) and `RiftHostBuildLocalV1` (registered compiler/D8 platform plumbing) in the permanent signed APK. External Core alone owns installed RAPP identity, declared/user-granted permissions, session expiry, effect dispatch and grant revocation. APK hosting remains generic; native-buffer and QuickJS host interfaces are unchanged. Strict protected DEX verifier allows exactly the four host service classes. The independent producer strips **all eight** compile-only ABI mirrors from its standalone DEX. Builder Bash and Python self-tests now require these capabilities.
+
+The user must continue their existing normal **manual signed Builder → install → device test** procedure. Current installed signed #710 predates consent/build host bridges and must NOT load v0.6. Real signed APK compile and Core-process behavior are unproven until the user's next build. Only after a green host + Recovery + normal RAPP test can the user explicitly select a verified independent Core for an *unaccepted trial*, test full installed-app/runtime/grant/package behavior, then prove manual return to embedded and accepted working backup. Do not auto-build, auto-select, or delete embedded Core.
+
 ## 2026-10-11 — Signed host native-buffer V1 bridge required for external Core v0.5
 
 RiftOS source now publishes a zero-RAPP-authority `RiftHostNativeBufferV1` APK class. It calls only the existing isolated `RiftNativeBufferCompilerService` with bounded bytes/capacity, so external Core can choose native-buffer and QuickJS by installed RAPP adapter without importing APK Core/session/capability logic. The protected DEX verifier admits only the new exact ABI descriptor; independent component producer strips the compile-only host class before D8.
