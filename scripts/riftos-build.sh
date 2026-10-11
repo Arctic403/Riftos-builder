@@ -2037,6 +2037,8 @@ for required_rapp_view_contract in \
 done
 
 for required_rapp_manager_contract in \
+  'MAX_RUNTIME_BYTES = 8 * 1024 * 1024' \
+  'MAX_PACKAGE_BYTES = 16L * 1024L * 1024L' \
   'readPermissions(' \
   'RiftAppAdapters.find(' \
   'private const val STATE_ENTRY = "state.bin"' \

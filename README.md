@@ -1,5 +1,9 @@
 # Riftos-builder
 
+## 2026-10-10 — Expanded executable RAPP payload, not effect/state budget
+
+The next user-manual signed RiftOS APK will support up to **8 MiB** of individual RAPP `runtime.js` executable bytes and a **16 MiB** compressed/extracted `.rapp` package limit. This is coordinated in `RiftRappManager`, QuickJS execution and independently compiled external Core source. Mutable program/state **remains 1 MiB** and per-event input/output stays bounded; a larger source allowance does not inherently accelerate Kotlin/D8 compilation. Builder preflight now pins both manager size constants and the Builder Python selftest pins the preflight markers; RiftOS canonical `npm check` adds `scripts/test-rapp-payload-limits.mjs`. User installed #702 stays unchanged until a new manual signed APK; no external Core/Shell promotion is authorized.
+
 ## 2026-10-10 — Registered external Kotlin+D8 component compatibility in protected verifier
 
 User's manual signed RiftOS #701 (source 6a31b999) is installed/device-proven with embedded default Core/Shell, separate Core observer and existing graphical RAPP. Independent Core and graphical Shell source now compiled through the actual **registered** external Kotlin compiler and generic D8, producing `core.dex` 2,574,604 bytes SHA `44d1b9745f63...` and `shell.dex` 2,594,884 bytes SHA `f29747a5828b...` under `/D:/Builds/Components`; the source is versioned under RiftOS `external-components/`, **outside** APK Gradle sources. Neither component is production complete or activated.

@@ -397,6 +397,14 @@ for marker in (
 ):
     require(VERIFY, marker, "C1.1-P signed APK package lifecycle")
 
+# Larger executable RAPP sources remain bounded consistently at pack/install.
+for marker in (
+    "'MAX_RUNTIME_BYTES = 8 * 1024 * 1024'",
+    "'MAX_PACKAGE_BYTES = 16L * 1024L * 1024L'",
+    "Builder generic RAPP package contract missing:",
+):
+    require(BUILD, marker, "RAPP executable/package size policy")
+
 # C1.3-C: Core runs its own FIFO; the UI cannot drive dispatch.
 for marker in (
     "Builder C1.3-C Core execution ownership missing:",
