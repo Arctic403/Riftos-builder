@@ -309,17 +309,12 @@ done
 # eight Gradle-owned RAPP classes survived compilation; these literal markers prove the forward
 # ABI/adapter/capability semantics survived too rather than leaving only empty class shells.
 for marker in \
-  'pack-rapp' \
-  'install-rapp' \
-  'uninstall-rapp' \
   'riftos.core.package-uninstall/1' \
   'riftos.core.packages.change/1' \
   'riftos.core.app-launch/1' \
   'riftos.core.capability-consent/1' \
   'riftos.core.ui-effect/1' \
   'installed-apps' \
-  'launch-rapp' \
-  'rapp-list' \
   'riftos.rapp-project/1' \
   'riftos.rapp/1' \
   'riftos-app-abi/1' \

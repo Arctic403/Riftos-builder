@@ -401,17 +401,25 @@ for marker in (
     "RiftCoreRuntime.lifecycle(appContext).start(id)",
     "presentationDispatched",
     "core-running",
-    "'\"uninstall-rapp\" -> {'",
 ):
     require(BUILD, marker, "C1.1-P Core managed RAPP package contract")
 for marker in (
-    "'uninstall-rapp'",
     "'riftos.core.package-uninstall/1'",
     "'riftos.core.packages.change/1'",
     "'riftos.core.app-launch/1'",
     "'installed-apps'",
 ):
     require(VERIFY, marker, "C1.1-P signed APK package lifecycle")
+
+# The old CLI spellings are not Core ABI nor required DEX literals.
+# A prior manual build failed before Gradle because this test still demanded
+# the removed "uninstall-rapp" dispatch. Keep the source/signed-proof gates
+# focused on the Core-owned package protocol instead.
+rapp_dex_proof = VERIFY.split("# Generic RAPP final-artifact proof.", 1)[1].split(
+    "# Retired in-APK shell-specific", 1
+)[0]
+for obsolete in ("pack-rapp", "install-rapp", "uninstall-rapp", "launch-rapp", "rapp-list"):
+    forbid(rapp_dex_proof, "'" + obsolete + "'", "retired shell verb in signed RAPP DEX proof")
 
 # Larger executable RAPP sources remain bounded consistently at pack/install.
 for marker in (

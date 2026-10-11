@@ -1,5 +1,12 @@
 # Riftos-builder
 
+## 2026-10-11 — Manual worker #38168843768 source-contract repair (no APK produced)
+
+The user-dispatched signed Builder run for RiftOS source `96e4453975bb10a5d2f964cd1448fd66694ea4dd` stopped at `Validate RiftOS Builder scripts`, before Gradle and before signing. The first Python exception required the retired shell fragment `"uninstall-rapp" -> {`; that command was intentionally removed from `RiftBuildPlatformTools` during the preceding APK legacy purge, while Core-owned `uninstallRapp` and its RAPP lifecycle protocol remain. Remove the stale positive shell assertion, **not** the Core package feature. Also remove `pack-rapp`/`install-rapp`/`uninstall-rapp`/`launch-rapp`/`rapp-list` as mandatory *signed DEX literals*, retaining actual Core package/app-launch ABI and generic build interfaces. A Builder Python regression now rejects old shell verbs in the signed-RAPP proof marker block.
+
+This is a Builder-only gate correction. Signed host #715 with experimental external Core v0.6 remains installed and unchanged. No APK was compiled or signed by the failed run. Full Builder Python/source validation and the Android build must be proven by the next **user-manual** signed run; never auto-dispatch.
+
+
 ## 2026-10-11 — retired APK proof-bridge and class checks
 
 The unused APK-owned RiftBuild command parser, proof-only APK v2 verifier, PackageInstaller proof activity/receiver, and automatic RiftBuild shell-job classifier are removed from the next source build. The embedded migration Core retains only RAPP install/uninstall through `RiftBuildPlatformTools`. Builder source gates now require those methods, reject the retired classes and manifest components, and no longer demand obsolete DEX command strings. Actual signature verification of the final APK still belongs to the Builder's `verify-riftos-apk.sh`; the **modern** protected Recovery verification is unaffected. Manual signed build flow is unchanged.
