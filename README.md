@@ -1,5 +1,11 @@
 # Riftos-builder
 
+## 2026-10-11 — Patch B signed Builder source contract (APK Recovery installer + manual restore)
+
+RiftOS Recovery remains a dedicated APK `:riftRecovery` Android process and is already device-proven to launch independently on signed #709 following Android force-stop. Patch B now adds a bounded Android document picker for separately produced `component.json` and Core/Shell DEX, the APK-local `RiftManualRecoveryInstaller` process gate, a verified stage followed by **separate Install confirmation**, and manually confirmed Restore controls for one SHA/receipt-verified, previously device-accepted external backup or the still-embedded migration Core/Shell. Existing `RiftProtectedComponentInstaller` saves the last accepted external revision before selecting a later update. Backup and restore synchronize the old release ledger until Patch C can safely remove it. No Core/Shell/RAPP process is hot-swapped.
+
+Builder preflight now requires the new exact Gradle Kotlin file, separate process gate, staged-install calls, accepted backup path, explicit UI confirmations and journal reconciliation. Python Builder selftest pins the same contract. Nothing changes who starts builds: **the user manually runs the normal signed Builder**. Patch B implementation is **source-only until a green APK and physical device proof**. Do not activate the incomplete independent Core or Shell as a shortcut. Embedded fallback and existing older recovery remain intact until real qualified external-component rollback passes.
+
 ## 2026-10-10 — Manual Recovery Patch A source integration (normal signed build remains user-manual)
 
 RiftOS source now includes a separate Android launcher Recovery Activity running as `:riftRecovery`, bypassing Core/Shell in `RiftCoreApplication.onCreate`. Read-only `RiftManualRecoveryStore` inspects the existing APK-owned selected Core/Shell and an optional atomic, SHA-verified/qualified last-working external backup, with the current embedded Core/Shell as first-install migration fallback. **Patch A does not write backup slots, switch/restore Core, or modify protected activation**; that comes in later device-gated Patch B. Recovery also does not require MCP or a running RAPP.

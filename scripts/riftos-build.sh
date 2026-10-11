@@ -1343,8 +1343,9 @@ done
 # active and last-working backup records. It must NEVER load/activate Core.
 recovery_activity_src="android/app/src/main/java/com/riftos/app/RiftManualRecoveryActivity.kt"
 recovery_store_src="android/app/src/main/java/com/riftos/app/RiftManualRecoveryStore.kt"
+recovery_installer_src="android/app/src/main/java/com/riftos/app/RiftManualRecoveryInstaller.kt"
 recovery_app_src="android/app/src/main/java/com/riftos/app/RiftCoreApplication.kt"
-for file in "$recovery_activity_src" "$recovery_store_src"; do
+for file in "$recovery_activity_src" "$recovery_store_src" "$recovery_installer_src"; do
   test -f "$file" || { echo "Builder Recovery A source missing: $file" >&2; exit 1; }
   grep -Fq "${file#android/app/}" "$gradle_contract" || {
     echo "Builder Recovery A file not in Gradle source contract: $file" >&2; exit 1;
@@ -1374,9 +1375,49 @@ for marker in 'riftos.host.working-backup/1' \
     echo "Builder Recovery A protected backup inspection missing: $marker" >&2; exit 1;
   }
 done
-if grep -Eq 'RiftCoreRuntime\.|writeProtectedPointer\(|\.activate\(' "$recovery_activity_src" "$recovery_store_src"; then
-  echo 'Builder Recovery A may not invoke Core or change selected components.' >&2; exit 1;
+if grep -Eq 'RiftCoreRuntime\\.|writeProtectedPointer\\(|RiftProtectedComponentInstaller\\.activate\\(' "$recovery_activity_src"; then
+  echo 'Builder Recovery UI must never directly invoke Core or protected selector.' >&2; exit 1;
 fi
+
+# Manual Recovery Patch B: APK-owned independent verified installer, one
+# last device-accepted backup, and explicit user-confirmed restore. No Core
+# process is required to open/stage/install from Recovery.
+for marker in 'fun preserveAcceptedBeforeUpdate(context: Context, component: String)' \
+  'RiftComponentReleaseLedger.isAccepted(context, component, sha)' \
+  'fun restore(context: Context, component: String, selection: String)' \
+  'RiftBootstrapComponentStore.resetCoreToEmbedded(context)' \
+  'RiftComponentReleaseLedger.manualRestored(context, component, backup)'; do
+  grep -Fq "$marker" "$recovery_store_src" || {
+    echo "Builder Recovery B accepted backup/manual restore missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'RiftManualRecoveryStore.preserveAcceptedBeforeUpdate(context, component)' \
+  'RiftComponentReleaseLedger.recordPrepared(context, component, pointer)'; do
+  grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/RiftProtectedComponentInstaller.kt" || {
+    echo "Builder Recovery B protected installer backup wiring missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'Application.getProcessName() == context.packageName + ":riftRecovery"' \
+  'RiftProtectedComponentInstaller.stage(context, manifestBytes, dex)' \
+  'RiftProtectedComponentInstaller.activate(context, component, sha256)'; do
+  grep -Fq "$marker" "$recovery_installer_src" || {
+    echo "Builder Recovery B independent installer gate missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'Restore working Core backup' 'Restore embedded Core' \
+  'Intent.ACTION_OPEN_DOCUMENT' 'RiftManualRecoveryInstaller.stage(this, manifest, it)' \
+  'RiftManualRecoveryStore.restore(this, component, selection)' \
+  'setNegativeButton("Cancel", null)' 'setPositiveButton("Install")'; do
+  grep -Fq "$marker" "$recovery_activity_src" || {
+    echo "Builder Recovery B explicit user interface missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'fun checkManualRestoreTarget(context: Context, id: String, sha: String)' \
+  'fun manualRestored(context: Context, id: String, target: JSONObject?)'; do
+  grep -Fq "$marker" "$revision_src" || {
+    echo "Builder Recovery B old ledger reconciliation missing: $marker" >&2; exit 1;
+  }
+done
 
 # S: real graphical Shell must be separately qualified and must own its
 # entire native desktop; preserve embedded default until source/device proof.
