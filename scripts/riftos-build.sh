@@ -1339,6 +1339,45 @@ for marker in '.put("coreRecoverySupervisor", RiftCoreRecoverySupervisorService.
     echo "Builder H Core/Shell release status wiring missing: $marker" >&2; exit 1;
   }
 done
+# Manual Recovery Patch A: APK-owned separate launcher/process reads immutable
+# active and last-working backup records. It must NEVER load/activate Core.
+recovery_activity_src="android/app/src/main/java/com/riftos/app/RiftManualRecoveryActivity.kt"
+recovery_store_src="android/app/src/main/java/com/riftos/app/RiftManualRecoveryStore.kt"
+recovery_app_src="android/app/src/main/java/com/riftos/app/RiftCoreApplication.kt"
+for file in "$recovery_activity_src" "$recovery_store_src"; do
+  test -f "$file" || { echo "Builder Recovery A source missing: $file" >&2; exit 1; }
+  grep -Fq "${file#android/app/}" "$gradle_contract" || {
+    echo "Builder Recovery A file not in Gradle source contract: $file" >&2; exit 1;
+  }
+done
+for marker in 'android:name=".RiftManualRecoveryActivity"' \
+  'android:process=":riftRecovery"' \
+  'android:exported="true"' 'android:label="RiftOS Recovery"'; do
+  grep -Fq "$marker" "$manifest_contract" || {
+    echo "Builder Recovery A Android launcher/process missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq 'if (currentProcess == packageName + ":riftRecovery") return' "$recovery_app_src" || {
+  echo 'Builder Recovery A must bypass Core initialization' >&2; exit 1;
+}
+for marker in 'class RiftManualRecoveryActivity : Activity()' \
+  'RiftManualRecoveryStore.status(this)' 'Refresh recovery status'; do
+  grep -Fq "$marker" "$recovery_activity_src" || {
+    echo "Builder Recovery A APK UI missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'riftos.host.working-backup/1' \
+  'RiftBootstrapComponentStore.active(context, component)' \
+  'RiftProtectedRevisionRecovery.verifiedReceipt(context, component, candidate)' \
+  'firstInstallFallback' '"restoreEnabled", false'; do
+  grep -Fq "$marker" "$recovery_store_src" || {
+    echo "Builder Recovery A protected backup inspection missing: $marker" >&2; exit 1;
+  }
+done
+if grep -Eq 'RiftCoreRuntime\.|writeProtectedPointer\(|\.activate\(' "$recovery_activity_src" "$recovery_store_src"; then
+  echo 'Builder Recovery A may not invoke Core or change selected components.' >&2; exit 1;
+fi
+
 # S: real graphical Shell must be separately qualified and must own its
 # entire native desktop; preserve embedded default until source/device proof.
 shell_component_src="android/app/src/main/java/com/riftos/app/RiftShellComponentAbiV1.kt"

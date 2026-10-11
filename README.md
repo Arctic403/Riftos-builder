@@ -1,5 +1,11 @@
 # Riftos-builder
 
+## 2026-10-10 — Manual Recovery Patch A source integration (normal signed build remains user-manual)
+
+RiftOS source now includes a separate Android launcher Recovery Activity running as `:riftRecovery`, bypassing Core/Shell in `RiftCoreApplication.onCreate`. Read-only `RiftManualRecoveryStore` inspects the existing APK-owned selected Core/Shell and an optional atomic, SHA-verified/qualified last-working external backup, with the current embedded Core/Shell as first-install migration fallback. **Patch A does not write backup slots, switch/restore Core, or modify protected activation**; that comes in later device-gated Patch B. Recovery also does not require MCP or a running RAPP.
+
+Signed Builder shell preflight now mandates both Kotlin files in the exact Gradle allowlist, dedicated Android Recovery process and launcher, Core-startup skip, bounded backing store and no Recovery-side activation calls; Builder Python selftest pins these preflight checks. Android APK compilation/signing flow and user-manual dispatch remain unchanged. Signed installed #706 predates this change; user next manually builds from green normal RiftOS/Builder `main`, installs, then opens **RiftOS Recovery** directly from Android launcher even if Core/Shell unavailable, checks normal and empty/invalid backup status and ordinary RiftOS boot. **Do not claim device gate A passed before physical validation; do not proceed to B/C automatically.**
+
 ## 2026-10-10 — QuickJS locked in host; shared execution entrypoint and required manual signed upgrade
 
 User-approved architecture: **QuickJS remains inside the signed RiftOS APK** as a generic, zero-authority `RiftHostQuickJsV1` service, with callable ABI version and bounded `execute(runtime,input,outputLimit)`. Both existing embedded Core and future independent external Core call this **same** host service; the external Core no longer ships a separately pinned QuickJS VM DEX. The Core still exclusively owns RAPP lifecycle, session/state, permissions, grants, capability effects and frame publication. This new host ABI **does not yet exist in signed installed #705**; user must manually trigger the normal signed Builder and install the new APK before testing external Core linkage. No automatic or alternative signing/build pipeline is authorized.
