@@ -2009,7 +2009,7 @@ grep -Fq '"src/main/java/com/riftos/app/RiftCoreAppExecutor.kt"' "$gradle_contra
   exit 1
 }
 for marker in 'class RiftCoreAppExecutor' 'RiftBoundedAsync.submit(' \
-  'RiftRappQuickJsExecutor()' 'RiftNativeBufferCompilerService.compile(' \
+  'RiftHostQuickJsV1.execute(' 'RiftNativeBufferCompilerService.compile(' \
   'adapter.encodeEvent(' 'adapter.decodeOutput(' \
   'sessions.commitFromExecution(' 'sessions.matchesExecution(' \
   'providers.execute(' \

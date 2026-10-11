@@ -582,6 +582,7 @@ for marker in (
     '"native-buffer-v1"',
     '"quickjs-v1"',
     'class RiftRappQuickJsExecutor',
+    'RiftHostQuickJsV1.execute(',
     'RiftAppExecutionKind.QUICKJS',
     "private const val RPE4_MAGIC",
     "private const val RWS4_MAGIC",
