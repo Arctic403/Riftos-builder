@@ -1,5 +1,9 @@
 # Riftos-builder
 
+## 2026-10-12 — Retire obsolete Core v0.7 source/host gates
+
+The user-selected live independent Core is **v0.6.3**. The experimental v0.7 Core briefly ran historical device tests but its typed system-service feature never achieved full qualification. Its source, recipe, component Builder button, optional `shell.system` Android host IPC, and all *mandatory* v0.7-only preflight/contract checks have now been removed. Existing v0.6.3 and `apk.install` build validation, Android signing and Recovery protections remain. The older v0.7 Builder checkpoint below is retained strictly as historical documentation, not an actionable deployment instruction. No Builder run was triggered.
+
 ## 2026-10-12 — Worker `5e9b4a6c` signed-APK XML resource verification fix
 
 User-manual Worker `manual-38300926578` passed Builder contracts, RiftOS source gates and Android Gradle compilation (`BUILD SUCCESSFUL`, 103 tasks). The signed APK's v2 signature and ZIP alignment verified, but `verify-riftos-apk.sh` failed because it hardcoded `res/xml/rift_build_apk_paths.xml` as a ZIP member. Android's AAPT2/AGP resource packaging renames XML files (for example `res/bX.xml`), while preserving the logical resource name in `resources.arsc`. This was a **Builder postflight false negative**, not a Kotlin/DEX/signing failure.

@@ -142,26 +142,6 @@ for fixture in (
     else:
         raise AssertionError("Compiled XML resolver must fail closed on missing/ambiguous resources")
 
-# C07 additive private-device Core system service owner. The manual worker
-# checks host ABI, authenticated typed IPC and separate V07 source while leaving
-# existing MCP/relay commands, Core V061 and independent recovery intact.
-for marker in (
-    "Builder C07 additive Core system ABI missing:",
-    "Builder C07 authenticated Core system IPC or existing MCP route missing:",
-    "Builder C07 additive graphical Shell API missing:",
-    "Builder C07 protected independent Core v0.7 class ABI missing:",
-    "Builder C07 independent Core v0.7 source/recipe missing:",
-    "interface RiftCoreSystemServicesV1",
-    "fun systemServices(): RiftCoreSystemServicesV1",
-    'const val METHOD_SHELL_SYSTEM = "shell.system"',
-    "RiftHostCoreComponents.systemServices()",
-    "RiftMcpRuntime.nativeShell(ctx).execute(command, cwd)",
-    "RiftCoreSystemServicesV1::class.java.isAssignableFrom(type)",
-    "IndependentCoreSystemServicesV07.kt",
-    "compile-core-v07.json",
-):
-    require(BUILD, marker, "Core V07 source and protected IPC contract")
-
 # C1.2-B2-B1: Core focus leases are versioned and signed-DEX reachable.
 for marker in [
     "Builder B2-B1 focus source missing",
