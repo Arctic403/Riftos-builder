@@ -1269,16 +1269,12 @@ grep -Fq '.put("hostComponents", RiftHostCoreComponents.status())' \
   "android/app/src/main/java/com/riftos/app/RiftCoreRuntime.kt" || {
   echo 'Builder E0 read-only component provenance status missing' >&2; exit 1;
 }
-# E1 guarded Core switch: the Android host may select an independently
-# qualified Core at bootstrap only. There is no trusted activation writer,
-# no in-process hot swap; Core now automatically promotes only after
-# verified real-process boot success. Shell still requires separate acceptance.
+# E1 Core selected revision is verified at load, but NEVER judged,
+# promoted, quarantined or switched automatically. User owns Recovery restore.
 e1_core_switch_src="android/app/src/main/java/com/riftos/app/RiftCoreCandidateSwitch.kt"
-test -f "$e1_core_switch_src" || {
-  echo 'Builder E1 safe-startup Core candidate selector source missing' >&2; exit 1;
-}
+test -f "$e1_core_switch_src" || { echo 'Builder Core selector missing' >&2; exit 1; }
 grep -Fq '"src/main/java/com/riftos/app/RiftCoreCandidateSwitch.kt"' "$gradle_contract" || {
-  echo 'Builder E1 Core candidate selector missing from exact Gradle Kotlin source set' >&2; exit 1;
+  echo 'Builder Core selector missing from Gradle Kotlin sources' >&2; exit 1;
 }
 for marker in 'internal object RiftCoreCandidateSwitch' \
   'fun selectAtBoot(application: Application)' \
@@ -1286,37 +1282,26 @@ for marker in 'internal object RiftCoreCandidateSwitch' \
   'Core candidate duplicates an APK-owned class' \
   'Core DEX SHA mismatch' \
   'RiftProtectedRevisionRecovery.verifiedReceipt(' \
-  'unaccepted-core-startup' \
-  'RiftProtectedRevisionRecovery.rollback(' \
-  'fun markAccepted(application: Application, sha: String)' \
-  'automaticPromotionEnabled", true' \
+  'lastSelection = "external-selected"' \
+  'automaticPromotionEnabled", false' \
+  'manualRecoveryOnly", true' \
   'inProcessHotSwapEnabled", false'; do
   grep -Fq "$marker" "$e1_core_switch_src" || {
-    echo "Builder E1 Core candidate/fallback contract missing: $marker" >&2; exit 1;
-  }
-done
-for marker in 'fun resetCoreToEmbedded(context: Context)' \
-  'AtomicFile(pointer).delete()' 'core.booting'; do
-  grep -Fq "$marker" "$bootstrap_store_source" || {
-    echo "Builder E1 embedded Core rollback contract missing: $marker" >&2; exit 1;
+    echo "Builder verified manual Core selector missing: $marker" >&2; exit 1;
   }
 done
 grep -Fq 'RiftHostCoreComponents.initializeAtBoot(application)' "$bootstrap_host_source" || {
-  echo 'Builder E1 Core startup selector not wired through actual main-process host' >&2; exit 1;
+  echo 'Builder selected Core not initialized from real process' >&2; exit 1;
 }
-for marker in 'RiftHostCoreComponents.acceptSuccessfulBoot(application)' \
-  'RiftCoreShellRecovery.initialize(application)'; do
-  grep -Fq "$marker" "$bootstrap_host_source" || {
-    echo "Builder Core boot acceptance startup coordinator missing: $marker" >&2; exit 1;
-  }
-done
-for marker in 'fun acceptSuccessfulBoot(application: android.app.Application)' \
-  'executionView().coreStatus(application).optString("schema").isNotBlank()' \
-  'RiftProtectedComponentInstaller.acceptBootedCore(application, sha)'; do
-  grep -Fq "$marker" "$host_component_src" || {
-    echo "Builder Core boot known-good host ABI path missing: $marker" >&2; exit 1;
-  }
-done
+grep -Fq 'selectedKind = "external-selected"' "$host_component_src" || {
+  echo 'Builder Core host lacks manual selected-state' >&2; exit 1;
+}
+if grep -Fq 'RiftHostCoreComponents.acceptSuccessfulBoot(application)' "$bootstrap_host_source"; then
+  echo 'Builder must never automatically promote a booted Core' >&2; exit 1;
+fi
+if grep -Fq 'RiftProtectedRevisionRecovery.rollback(' "$e1_core_switch_src"; then
+  echo 'Builder must not automatically roll back selected Core' >&2; exit 1;
+fi
 if grep -Fq 'RiftHostCoreComponents.core().initialize(ctx)' "$core_ipc_source"; then
   echo 'Builder E1 ContentProvider must not initialize embedded Core before Application' >&2; exit 1;
 fi
@@ -1431,24 +1416,29 @@ if grep -Eq 'RiftCoreRuntime\.|writeProtectedPointer\(|RiftProtectedComponentIns
   echo 'Builder Recovery UI must never directly invoke Core or protected selector.' >&2; exit 1;
 fi
 
-# Manual Recovery Patch B: APK-owned independent verified installer, one
-# last device-accepted backup, and explicit user-confirmed restore. No Core
-# process is required to open/stage/install from Recovery.
-for marker in 'fun preserveAcceptedBeforeUpdate(context: Context, component: String)' \
-  'RiftComponentReleaseLedger.isAccepted(context, component, sha)' \
+# Manual Recovery: backup is saved ONLY on explicit user confirmation,
+# never by installation, boot health, process death or a release ledger.
+for marker in 'fun saveSelectedBackup(context: Context, component: String): JSONObject' \
   'fun restore(context: Context, component: String, selection: String)' \
   'RiftBootstrapComponentStore.resetCoreToEmbedded(context)' \
-  'RiftComponentReleaseLedger.manualRestored(context, component, backup)'; do
+  'verifyExternal(context, component, selected)' \
+  'writeBackup(context, component, selected)'; do
   grep -Fq "$marker" "$recovery_store_src" || {
-    echo "Builder Recovery B accepted backup/manual restore missing: $marker" >&2; exit 1;
+    echo "Builder explicit user-owned Recovery backup/restore missing: $marker" >&2; exit 1;
   }
 done
-for marker in 'RiftManualRecoveryStore.preserveAcceptedBeforeUpdate(context, component)' \
-  'RiftComponentReleaseLedger.recordPrepared(context, component, pointer)'; do
-  grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/RiftProtectedComponentInstaller.kt" || {
-    echo "Builder Recovery B protected installer backup wiring missing: $marker" >&2; exit 1;
+for marker in 'saveCoreBackup = saveAction(' \
+  'saveShellBackup = saveAction(' \
+  'setPositiveButton("Save backup")' \
+  'setPositiveButton("Restore")'; do
+  grep -Fq "$marker" "$recovery_activity_src" || {
+    echo "Builder Recovery UI user-confirmed save/restore missing: $marker" >&2; exit 1;
   }
 done
+if grep -Fq 'preserveAcceptedBeforeUpdate(' "$recovery_store_src" ||
+   grep -Fq 'RiftComponentReleaseLedger.recordPrepared(' "$critical_src/RiftProtectedComponentInstaller.kt"; then
+  echo 'Builder forbids automatic backup replacement or boot acceptance' >&2; exit 1;
+fi
 for marker in 'Application.getProcessName() == context.packageName + ":riftRecovery"' \
   'RiftProtectedComponentInstaller.stage(context, manifestBytes, dex)' \
   'RiftProtectedComponentInstaller.activate(context, component, sha256)'; do
@@ -1456,7 +1446,7 @@ for marker in 'Application.getProcessName() == context.packageName + ":riftRecov
     echo "Builder Recovery B independent installer gate missing: $marker" >&2; exit 1;
   }
 done
-for marker in 'Restore working Core backup' 'Restore embedded Core' \
+for marker in 'Restore saved Core backup' 'Restore embedded Core' \
   'Intent.ACTION_OPEN_DOCUMENT' 'RiftManualRecoveryInstaller.stage(this, manifest, it)' \
   'RiftManualRecoveryStore.restore(this, component, selection)' \
   'setNegativeButton("Cancel", null)' 'setPositiveButton("Install")'; do
@@ -1516,14 +1506,14 @@ done
 for marker in 'RiftBootstrapComponentStore.active(application, "shell")' \
   'Shell candidate class shadows host APK' \
   'Shell candidate does not implement native graphical V1 contract' \
-  'unaccepted-shell-startup' 'automaticPromotionEnabled", false'; do
+  'selection = "external-selected"' 'automaticPromotionEnabled", false'; do
   grep -Fq "$marker" "$shell_candidate_src" || {
     echo "Builder S external graphical Shell loader guard missing: $marker" >&2; exit 1;
   }
 done
 for marker in 'RiftShellCandidateSwitch.selectAtBoot(application)' \
   'candidate.attach(this, host,' 'externalShell?.let { it.onResume(); return }' \
-  'RiftShellCandidateSwitch.fallback(application, "external-shell-attach-exception")'; do
+  'throw failure'; do
   grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/RiftShellActivity.kt" || {
     echo "Builder S graphical Shell Activity missing guarded external lifecycle: $marker" >&2; exit 1;
   }
@@ -1563,10 +1553,9 @@ for marker in 'riftos.protected-dex-closure/1' \
 done
 for marker in 'riftos.protected-component-operation/1' \
   'RiftProtectedDexVerifier.inspect(' \
-  'RiftComponentReleaseLedger.recordPrepared(' \
+  'RiftBootstrapComponentStore.writeProtectedPointer(context, component, pointer)' \
+  'RiftBootstrapComponentStore.clearProtectedStartupMarker(context, component)' \
   'RiftComponentReleaseLedger.acceptProven(' \
-  'fun acceptBootedCore(context: Context, sha: String): JSONObject' \
-  'RiftBootstrapComponentStore.clearProtectedStartupMarker(context, "core")' \
   'fun acceptProven(context: Context, component: String, sha: String,'; do
   grep -Fq "$marker" "$critical_src/RiftProtectedComponentInstaller.kt" || {
     echo "Builder H protected install/accept contract missing: $marker" >&2; exit 1;
@@ -1594,12 +1583,10 @@ for marker in '"execute-protected-stage"' \
     }
   done
 done
-grep -Fq 'RiftProtectedRevisionRecovery.rollback(' "$critical_src/RiftCoreRecoveryDiagnostics.kt" || {
-  echo 'Builder H accepted Core fatal-exit N-1 recovery missing' >&2; exit 1;
-}
-grep -Fq 'RiftProtectedRevisionRecovery.rollback(' "$critical_src/RiftCoreShellRecovery.kt" || {
-  echo 'Builder H accepted graphical Shell process-loss N-1 recovery missing' >&2; exit 1;
-}
+if grep -Fq 'RiftProtectedRevisionRecovery.rollback(' "$critical_src/RiftCoreRecoveryDiagnostics.kt" ||
+   grep -Fq 'RiftProtectedRevisionRecovery.rollback(' "$critical_src/RiftCoreShellRecovery.kt"; then
+  echo 'Builder forbids automatic version rollback based on Android crash reports' >&2; exit 1;
+fi
 
 # E1-A transitive class closure remains mandatory, but external selection
 # is impossible until a separately approved exact Core qualification is made.

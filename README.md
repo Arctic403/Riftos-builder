@@ -1,9 +1,8 @@
 # Riftos-builder
 
-## 2026-10-11 — Core boot-success auto-promotion source contract (manual build pending)
+## 2026-10-11 — User-manual Core/Shell Recovery selection and backup, source only
 
-RiftOS host source now accepts an independently selected external Core as `lastKnownGood` automatically when its real process initialization and Core status ABI complete. The exact-SHA protected journal commits, `core.booting` clears, and `core status` reports host-owned release/marker data. RAPP, permission, compiler and optional relay functionality are **not** Core boot acceptance gates; prior known-good/embedded fallback survives. The **Shell** promotion flow remains separately approved. Builder `scripts/riftos-build.sh` was changed from requiring `automaticPromotionEnabled=false` for Core to `true`, with additional exact boot acceptance checks, while keeping Shell `false`. **This is source only; user triggers the next Builder/Gradle/signing/device run manually.** Do not rebuild or force-stop the currently installed experimental v0.6.1 Core as a side effect of this patch.
-
+The user's final Recovery policy removes automatic Core boot acceptance and automatic Core/Shell revision rollback. The separate `:riftRecovery` APK process adds explicit user-confirmed **Save selected Core/Shell as backup** actions and retains separate manual Restore saved/embedded. An installed exact SHA remains selected across boots; broken startup does not rewrite the pointer. Protected DEX/ABI/manifest verification and user-confirmed installs remain. `scripts/riftos-build.sh` checks manual selection and forbids release-on-boot or automatic rollback. Installed APK #722 does not inherit this until the user manually triggers and installs their next signed Builder run. [RiftOS policy](../RiftOS-main/docs/systems/android-host/MANUAL_RECOVERY_ONLY.md).
 
 ## 2026-10-11 — Manual worker #38169506311 C1.0 inverted legacy-ownership guard fixed
 
