@@ -187,6 +187,31 @@ if ! grep -Eq 'android:targetSdkVersion\([^)]*\)=(36|\(type 0x10\)0x24)([[:space
   exit 1
 fi
 
+# V063 APK installer bridge must survive all the way into the SIGNED
+# Android host. The independent Core still owns permission grants and
+# RiftBuild Hosted still verifies its own output; this is only Android UI.
+for marker in 'androidx.core.content.FileProvider' \
+  'com.riftos.app.buildapks' \
+  'android:grantUriPermissions' \
+  'android.support.FILE_PROVIDER_PATHS'; do
+  if ! grep -Fq "$marker" <<<"$manifest_tree"; then
+    echo "APK smoke check failed: generic Android installer provider missing $marker." >&2
+    exit 1
+  fi
+done
+require_entry "res/xml/rift_build_apk_paths.xml"
+build_apk_paths_tree="$($AAPT2 dump xmltree "$APK" --file res/xml/rift_build_apk_paths.xml)"
+for marker in 'rift-build-apks' 'riftfs/documents/builds/'; do
+  if ! grep -Fq "$marker" <<<"$build_apk_paths_tree"; then
+    echo "APK smoke check failed: confined APK FileProvider XML missing $marker." >&2
+    exit 1
+  fi
+done
+# DEX owners and the capability marker must be retained even if the Android
+# manifest/provider survived a broken or incomplete compilation.
+require_dex_string 'apk.install' "apk.install Core/Shell capability constant"
+require_dex_string 'APK installation is limited to D:/Builds artifacts' "APK installation path confinement"
+
 # Codynex compiler authority lives in the standalone Codynex Editor. The final
 # RiftOS manifest must not restore the retired provider/LR0 surfaces.
 if grep -Eq 'CodynexCompilerProvider|com\.riftos\.app\.codynexcompiler|com\.codynex\.lr0lab' <<<"$manifest_tree"; then

@@ -342,6 +342,67 @@ grep -Fq '<action android:name="com.riftos.runtime.EXECUTE_V1" />' "$manifest_co
   echo 'Builder generic runtime provider Android query action missing.' >&2
   exit 1
 }
+# Generic Android APK installer capability: host only launches Android's
+# user-confirmed installer. External Core owns grants; Hosted owns verification.
+# This is NOT permission to restore embedded RiftBuild/installer pipelines.
+apk_install_xml="android/app/src/main/res/xml/rift_build_apk_paths.xml"
+apk_shell_ui="android/app/src/main/java/com/riftos/app/RiftRemoteShellUiClient.kt"
+apk_core_host="android/app/src/main/java/com/riftos/app/RiftHostComponentAbiV1.kt"
+apk_app_abi="android/app/src/main/java/com/riftos/app/RiftAppAbi.kt"
+apk_external_abi="external-components/ExternalRiftAppAbi.kt"
+apk_external_effects="external-components/IndependentRappEffectsV1.kt"
+for source in "$apk_install_xml" "$apk_shell_ui" "$apk_core_host" "$apk_app_abi" "$apk_external_abi" "$apk_external_effects" "external-components/IndependentCoreV063.kt" "external-components/compile-core-v063.json"; do
+  test -f "$source" || { echo "Builder APK install bridge required source missing: $source" >&2; exit 1; }
+done
+for marker in 'android:name="androidx.core.content.FileProvider"' \
+  'android:authorities="com.riftos.app.buildapks"' \
+  'android:exported="false"' \
+  'android:grantUriPermissions="true"' \
+  'android:resource="@xml/rift_build_apk_paths"'; do
+  grep -Fq "$marker" "$manifest_contract" || {
+    echo "Builder APK install bridge provider contract missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq 'android.permission.REQUEST_INSTALL_PACKAGES' "$manifest_contract" || {
+  echo 'Builder Android package installer request permission missing.' >&2; exit 1;
+}
+for marker in '<files-path name="rift-build-apks" path="riftfs/documents/builds/" />'; do
+  grep -Fq "$marker" "$apk_install_xml" || {
+    echo 'Builder APK FileProvider must be limited to D:/Builds.' >&2; exit 1;
+  }
+done
+for abi in "$apk_app_abi" "$apk_external_abi"; do
+  grep -Fq 'const val APK_INSTALL = "apk.install"' "$abi" || {
+    echo "Builder apk.install permission absent from $abi" >&2; exit 1;
+  }
+done
+for marker in '"share", "apk.install", "window.title"' 'RiftCoreShellCapabilityRequests.requestUiEffect('; do
+  grep -Fq "$marker" "$apk_core_host" || {
+    echo "Builder APK install Core-to-Shell host transport missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'effect.capability == RiftAppAbi.Capability.APK_INSTALL' \
+  'effect.operation != "open"' \
+  'apk.startsWith("/D:/Builds/")' \
+  'RiftAppAbi.Capability.APK_INSTALL,'; do
+  grep -Fq "$marker" "$apk_external_effects" || {
+    echo "Builder external Core apk.install policy missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'RiftAppAbi.Capability.APK_INSTALL to "open"' \
+  'FileProvider.getUriForFile(' \
+  'Intent.FLAG_GRANT_READ_URI_PERMISSION' \
+  'APK package identity invalid or attempts to replace RiftOS' \
+  'activity.startActivity(intent)'; do
+  grep -Fq "$marker" "$apk_shell_ui" || {
+    echo "Builder Android package installer UI handoff missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq 'coreV063:108' external-components/runtime.js &&
+grep -Fq 'trial-v063/' external-components/runtime.js || {
+  echo 'Builder independent Core v0.6.3 isolated build recipe missing.' >&2; exit 1;
+}
+
 # C1.0: RiftOS Core must bootstrap without constructing a desktop shell;
 # package/runtime/build authority is process-owned, not Activity-owned.
 core_application_source="android/app/src/main/java/com/riftos/app/RiftCoreApplication.kt"

@@ -1,5 +1,13 @@
 # Riftos-builder
 
+## 2026-10-12 — Generic Android APK installer bridge parity (SOURCE ONLY)
+
+With the user's permission, RiftOS host sources gained a narrowly scoped, generic `apk.install` RAPP capability. Only the signed Android host can open Android's user-confirmed installer; independent Core v0.6.3 owns declaration/explicit grant and only forwards an authorized `open` operation, while RiftBuild Hosted verifies the output APK and offers **INSTALL VERIFIED APK**. This **does not** bring back embedded RiftBuild, CLI build tooling or retired `RiftBuildInstaller.kt`. The host FileProvider exposes only `riftfs/documents/builds/` with a temporary read-only URI grant.
+
+Builder now fails before Gradle if its source revision lacks the **v0.6.3** independent Core candidate, RAPP ABI permission, Shell UI transport, FileProvider Android manifest or confined XML path. Its signed APK postflight additionally requires the FileProvider in compiled Android manifest, the compiled restricted `res/xml/rift_build_apk_paths.xml` resource, and installer/capability markers in DEX; contract tests require these gates. Existing signed-APK signing, manual dispatch, verifier, Core Recovery, and per-user install confirmation are unchanged.
+
+**Deployment order:** (1) user pushes/chooses current RiftOS source and Builder revision, manually builds and installs new signed RiftOS APK; (2) installs the v0.6.3 external Core Builder RAPP and manually builds/stages/activates the independently compiled Core DEX in RiftOS Recovery (preserve v0.6.2/backup); (3) installs updated RiftBuild Hosted RAPP, builds/verifies an Editor APK, presses Install, and approves Android confirmation. Nothing is built, pushed, installed or activated automatically by this checkpoint. Source and static validation are not live-device proof.
+
 ## 2026-10-12 — Core v0.7 private-OS ABI signed-host preflight; manual build ONLY
 
 The separate independent Core `0.7.0` source uses `IndependentCoreV07.kt` plus a typed system services source; V1 RAPP execution remains in `IndependentCoreV1.kt`. Signed host gains additive `RiftCoreSystemServicesV1` and authenticated `shell.system` IPC, while APK MCP/relay stay in their original process and manual Recovery remains unchanged. New C07 source preflight in `scripts/riftos-build.sh` and matching markers in `scripts/test-builder-contracts.py` guard the ABI, protected DEX linker allowlist, exact production Shell IPC authentication and the independent `compile-core-v07.json` recipe. The existing user-manual Builder workflow is unchanged; no build was launched by this source-only change.

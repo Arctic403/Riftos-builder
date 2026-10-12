@@ -76,6 +76,38 @@ for marker in (
 ):
     require(BUILD, marker, "Shell crash diagnostics signed source gate")
 
+# Generic APK installer bridge is a narrowly constrained Android host
+# capability, NOT a revival of the embedded RiftBuild package installer.
+for marker in (
+    "Builder APK install bridge required source missing:",
+    "Builder APK install bridge provider contract missing:",
+    "Builder Android package installer request permission missing.",
+    "Builder APK FileProvider must be limited to D:/Builds.",
+    "Builder apk.install permission absent from",
+    "Builder APK install Core-to-Shell host transport missing:",
+    "Builder external Core apk.install policy missing:",
+    "Builder Android package installer UI handoff missing:",
+    "Builder independent Core v0.6.3 isolated build recipe missing.",
+    "apk_install_xml=",
+    "apk_external_effects=",
+    'const val APK_INSTALL = "apk.install"',
+    'androidx.core.content.FileProvider',
+    'android:grantUriPermissions="true"',
+    'FileProvider.getUriForFile(',
+    "apk.startsWith",
+    "trial-v063/",
+):
+    require(BUILD, marker, "generic APK install source and authority guard")
+for marker in (
+    "APK smoke check failed: generic Android installer provider missing",
+    "APK smoke check failed: confined APK FileProvider XML missing",
+    "res/xml/rift_build_apk_paths.xml",
+    "aapt2", # packed XML verification must use the existing AAPT2 tool
+    'require_dex_string \'apk.install\'',
+    "APK installation is limited to D:/Builds artifacts",
+):
+    require(VERIFY, marker, "signed APK installer bridge proof")
+
 # C07 additive private-device Core system service owner. The manual worker
 # checks host ABI, authenticated typed IPC and separate V07 source while leaving
 # existing MCP/relay commands, Core V061 and independent recovery intact.
