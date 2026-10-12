@@ -246,19 +246,19 @@ for marker in [
 ]:
     require(BUILD, marker, "E0 component ABI + protected Core Binder adapter")
 
-# E1-A: ensure Builder source gates cannot silently omit freshly added
-# RiftOS npm tests, and no external Core candidate is claimed/selected yet.
+# E1-A: ensure Builder source gates cannot silently omit RiftOS npm
+# tests or restore superseded automatic Core/Shell boot promotion/rollback.
 for marker in [
     "source_gate_manifest",
     "chain.split(/\\s*&&\\s*/)",
     "mapfile -t source_gate_scripts",
     'for source_gate_script in "${source_gate_scripts[@]}"; do',
     '"node scripts/test-e1-core-closure.mjs"',
-    "Builder E1 safe-startup Core candidate selector source missing",
-    "Builder E1 Core candidate selector missing from exact Gradle Kotlin source set",
-    "Builder E1 Core candidate/fallback contract missing:",
-    "Builder E1 embedded Core rollback contract missing:",
-    "Builder E1 Core startup selector not wired through actual main-process host",
+    "Builder Core selector missing",
+    "Builder Core selector missing from Gradle Kotlin sources",
+    "Builder verified manual Core selector missing:",
+    "Builder explicit user-owned Recovery backup/restore missing:",
+    "Builder selected Core not initialized from real process",
     "Builder E1 ContentProvider must not initialize embedded Core before Application",
     "Builder H version/observer source missing:",
     "Builder H version/observer Kotlin not Gradle-mandatory:",
@@ -285,8 +285,8 @@ for marker in [
     "Builder H external N-1 rollback contract missing:",
     "Builder H one-use protected Core approval contract missing:",
     "Builder H signed protected Binder/UI dispatch missing:",
-    "Builder H accepted Core fatal-exit N-1 recovery missing",
-    "Builder H accepted graphical Shell process-loss N-1 recovery missing",
+    "Builder must not automatically roll back selected Core",
+    "Builder forbids automatic version rollback based on Android crash reports",
     "Builder H Core recovery diagnostics Kotlin source missing",
     "Builder H Core recovery diagnostics absent from exact Gradle Kotlin list",
     "Builder H Core recovery evidence contract missing:",

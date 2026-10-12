@@ -1,5 +1,10 @@
 # Riftos-builder
 
+## 2026-10-12 — Manual Worker #38188788183 failed before Gradle: stale regression strings repaired
+
+User-supplied worker log for source `1568f8a08494ed0f9d9aead8395898a6e7996383` shows the **Validate RiftOS Builder scripts** step failed in `scripts/test-builder-contracts.py` at its E1-A source/preflight parity loop. The first missing string was `Builder E1 safe-startup Core candidate selector source missing` after `scripts/riftos-build.sh` had correctly switched to **manual-only Core/Shell Recovery** wording. Seven outdated expected Builder error messages were updated to match the current manual selector, user-saved Recovery backup and no-automatic-rollback guards. A read-only comparison now found all **117 checked list literals and 9 direct Builder literal assertions** present in the Builder script. Full Python execution, Gradle, signing and physical-device proof have **not** been run; user retains manual Builder dispatch. The installed RiftOS APK remains unchanged.
+
+
 ## 2026-10-11 — User-manual Core/Shell Recovery selection and backup, source only
 
 The user's final Recovery policy removes automatic Core boot acceptance and automatic Core/Shell revision rollback. The separate `:riftRecovery` APK process adds explicit user-confirmed **Save selected Core/Shell as backup** actions and retains separate manual Restore saved/embedded. An installed exact SHA remains selected across boots; broken startup does not rewrite the pointer. Protected DEX/ABI/manifest verification and user-confirmed installs remain. `scripts/riftos-build.sh` checks manual selection and forbids release-on-boot or automatic rollback. Installed APK #722 does not inherit this until the user manually triggers and installs their next signed Builder run. [RiftOS policy](../RiftOS-main/docs/systems/android-host/MANUAL_RECOVERY_ONLY.md).
