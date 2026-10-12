@@ -20,6 +20,24 @@ def forbid(text: str, needle: str, label: str) -> None:
         raise AssertionError(f"{label}: stale {needle!r}")
 
 
+# The Builder runs with bash nounset (-u). A source-path variable referenced
+# before its assignment fails BEFORE Gradle (manual Recovery previously used
+# $critical_src before its declaration). Check all local *_src path variables,
+# not just one hard-coded offending marker.
+for match in re.finditer(
+    r"\$(?:\{([A-Za-z_]\w*_src)\}|([A-Za-z_]\w*_src)\b)", BUILD
+):
+    line_start = BUILD.rfind("\n", 0, match.start()) + 1
+    if BUILD[line_start:match.start()].lstrip().startswith("#"):
+        continue  # Documentation references are not bash expansions.
+    name = match.group(1) or match.group(2)
+    assignment = re.search(rf"(?m)^[ \t]*{re.escape(name)}=", BUILD)
+    if assignment is None or assignment.start() > match.start():
+        raise AssertionError(
+            f"Builder bash nounset: ${name} used before assignment"
+        )
+
+
 # A malformed extended-regex guard once stopped a signed worker before Gradle.
 # Shell single quotes already preserve backslashes: never double-escape them.
 for match in re.finditer(r"grep -Eq '([^']*)'", BUILD):

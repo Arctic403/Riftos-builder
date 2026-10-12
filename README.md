@@ -1,5 +1,10 @@
 # Riftos-builder
 
+## 2026-10-11 — Manual worker #38193371481 unbound critical_src fixed before Gradle
+
+The user's new worker logs confirm Builder syntax and Python contract validation **passed**; the subsequent `Build RiftOS APK` step stopped immediately in `worker/scripts/riftos-build.sh` at line 1439 with `critical_src: unbound variable` under Bash `set -u`. In the manual Recovery backup preflight, `"$critical_src/RiftProtectedComponentInstaller.kt"` was referenced **before** the critical component source directory was assigned later in the script. This Builder-only patch initializes `critical_src` ahead of the Recovery checks and removes the duplicate later assignment. `scripts/test-builder-contracts.py` now verifies every `*_src` shell variable is defined before its first non-comment expansion; a static source audit found **93 uses across 28 variables with no read-before-definition**. No Gradle compile, signing or installed-APK change occurred. The next Builder run remains **user-manual**; success is not claimed without a clean worker result.
+
+
 ## 2026-10-12 — Manual Worker #38188788183 failed before Gradle: stale regression strings repaired
 
 User-supplied worker log for source `1568f8a08494ed0f9d9aead8395898a6e7996383` shows the **Validate RiftOS Builder scripts** step failed in `scripts/test-builder-contracts.py` at its E1-A source/preflight parity loop. The first missing string was `Builder E1 safe-startup Core candidate selector source missing` after `scripts/riftos-build.sh` had correctly switched to **manual-only Core/Shell Recovery** wording. Seven outdated expected Builder error messages were updated to match the current manual selector, user-saved Recovery backup and no-automatic-rollback guards. A read-only comparison now found all **117 checked list literals and 9 direct Builder literal assertions** present in the Builder script. Full Python execution, Gradle, signing and physical-device proof have **not** been run; user retains manual Builder dispatch. The installed RiftOS APK remains unchanged.

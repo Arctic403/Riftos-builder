@@ -1382,6 +1382,9 @@ recovery_activity_src="android/app/src/main/java/com/riftos/app/RiftManualRecove
 recovery_store_src="android/app/src/main/java/com/riftos/app/RiftManualRecoveryStore.kt"
 recovery_installer_src="android/app/src/main/java/com/riftos/app/RiftManualRecoveryInstaller.kt"
 recovery_app_src="android/app/src/main/java/com/riftos/app/RiftCoreApplication.kt"
+# Used by the Recovery backup guards below; must exist before first expansion
+# because this Builder executes under bash nounset (-u).
+critical_src="android/app/src/main/java/com/riftos/app"
 for file in "$recovery_activity_src" "$recovery_store_src" "$recovery_installer_src"; do
   test -f "$file" || { echo "Builder Recovery A source missing: $file" >&2; exit 1; }
   grep -Fq "${file#android/app/}" "$gradle_contract" || {
@@ -1521,10 +1524,8 @@ done
 grep -Fq 'fun resetShellToEmbedded(context: Context)' "$bootstrap_store_source" || {
   echo 'Builder S protected embedded graphical Shell rollback missing' >&2; exit 1;
 }
-# H3: protected real Core/Shell DEX distribution uses only the trusted
-# one-use native Binder admin route, exact SHA manifest, inactive bytecode
-# reference closure, and previous accepted external N-1 recovery.
-critical_src="android/app/src/main/java/com/riftos/app"
+# H3: protected real Core/Shell DEX verification reuses the same
+# critical_src initialized above before the manual Recovery checks.
 for name in RiftProtectedComponentManifest RiftProtectedDexVerifier \
   RiftProtectedComponentInstaller RiftProtectedRevisionRecovery; do
   test -f "$critical_src/$name.kt" || {
