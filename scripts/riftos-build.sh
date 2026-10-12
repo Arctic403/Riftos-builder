@@ -1226,6 +1226,42 @@ for marker in 'interface RiftCoreComponentV1' 'interface RiftShellPresentationV1
     echo "Builder E0 embedded-only host Core adapter contract missing: $marker" >&2; exit 1;
   }
 done
+# C07 private Core system services are separate from MCP/relay. This is an
+# additive ABI and signed host IPC bridge: V061 RAPP/Core selection stays valid.
+for marker in 'interface RiftCoreSystemServicesV1' \
+  'fun systemServices(): RiftCoreSystemServicesV1' \
+  'selected as? RiftCoreSystemServicesV1'; do
+  grep -Fq "$marker" "$host_component_src" || {
+    echo "Builder C07 additive Core system ABI missing: $marker" >&2; exit 1;
+  }
+done
+core07_ipc_src="android/app/src/main/java/com/riftos/app/RiftCoreSurfaceIpcProvider.kt"
+for marker in 'const val METHOD_SHELL_SYSTEM = "shell.system"' \
+  'if (method != METHOD_SNAPSHOT) requireProductionShellCaller()' \
+  'RiftHostCoreComponents.systemServices()' \
+  '.systemRequest(ctx, input)' \
+  'RiftMcpRuntime.nativeShell(ctx).execute(command, cwd)'; do
+  grep -Fq "$marker" "$core07_ipc_src" || {
+    echo "Builder C07 authenticated Core system IPC or existing MCP route missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'fun systemRequest(request: JSONObject): JSONObject' \
+  'client.systemRequest(request)'; do
+  grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/RiftShellComponentAbiV1.kt" || {
+    echo "Builder C07 additive graphical Shell API missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'Lcom/riftos/app/RiftCoreSystemServicesV1;' \
+  'RiftCoreSystemServicesV1::class.java.isAssignableFrom(type)'; do
+  grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/RiftProtectedDexVerifier.kt" || {
+    echo "Builder C07 protected independent Core v0.7 class ABI missing: $marker" >&2; exit 1;
+  }
+done
+for owner in 'IndependentCoreV07.kt' 'IndependentCoreSystemServicesV07.kt' 'compile-core-v07.json'; do
+  test -f "external-components/$owner" || {
+    echo "Builder C07 independent Core v0.7 source/recipe missing: $owner" >&2; exit 1;
+  }
+done
 # External Core native-buffer parity: bounded generic host execution only.
 # Preserve existing out-of-process worker; never move RAPP sessions or grants
 # back into the signed APK Core.
