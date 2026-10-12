@@ -1552,6 +1552,12 @@ for marker in 'interface RiftShellGraphicalComponentV1' \
 done
 for marker in 'RiftBootstrapComponentStore.active(application, "shell")' \
   'Shell candidate class shadows host APK' \
+  'val ownShell = name.startsWith(ENTRY_PREFIX)' \
+  'val kotlinSupport = name.startsWith("kotlin.")' \
+  'require(ownShell || kotlinSupport)' \
+  'if (ownShell) {' \
+  'require(count <= MAX_CLASSES)' \
+  'Shell candidate includes host or unsupported classes' \
   'Shell candidate does not implement native graphical V1 contract' \
   'selection = "external-selected"' 'automaticPromotionEnabled", false'; do
   grep -Fq "$marker" "$shell_candidate_src" || {
