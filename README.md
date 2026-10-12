@@ -1,5 +1,10 @@
 # Riftos-builder
 
+## 2026-10-11 — Core boot-success auto-promotion source contract (manual build pending)
+
+RiftOS host source now accepts an independently selected external Core as `lastKnownGood` automatically when its real process initialization and Core status ABI complete. The exact-SHA protected journal commits, `core.booting` clears, and `core status` reports host-owned release/marker data. RAPP, permission, compiler and optional relay functionality are **not** Core boot acceptance gates; prior known-good/embedded fallback survives. The **Shell** promotion flow remains separately approved. Builder `scripts/riftos-build.sh` was changed from requiring `automaticPromotionEnabled=false` for Core to `true`, with additional exact boot acceptance checks, while keeping Shell `false`. **This is source only; user triggers the next Builder/Gradle/signing/device run manually.** Do not rebuild or force-stop the currently installed experimental v0.6.1 Core as a side effect of this patch.
+
+
 ## 2026-10-11 — Manual worker #38169506311 C1.0 inverted legacy-ownership guard fixed
 
 The user-manual worker for RiftOS source `96e4453975bb10a5d2f964cd1448fd66694ea4dd` passed the Builder Python/shell syntax preflight but then stopped before Gradle inside `scripts/riftos-build.sh` with `Builder C1.0 shell still owns RiftBuild platform.`. Root cause: a stale **positive** `grep -Fq 'RiftCoreRuntime.buildPlatform(appContext)'` against `RiftNativeShell.kt`, even though source migration had deliberately removed that call. The gate was inverted to **forbid** restoring the embedded `RiftBuild` shell facade and positively require generic `RiftHostCoreComponents.executionView().startApp/stopApp` routes. Python Builder regression now requires the corrected C1.0 check. Twelve targeted source/fallback/Recovery checks passed via device MCP. Full Builder preflight, Gradle, signing and device proof for this patch remain pending the next **user-manual** build. The installed signed #715/external Core v0.6 remains untouched.

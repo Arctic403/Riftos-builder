@@ -1271,7 +1271,8 @@ grep -Fq '.put("hostComponents", RiftHostCoreComponents.status())' \
 }
 # E1 guarded Core switch: the Android host may select an independently
 # qualified Core at bootstrap only. There is no trusted activation writer,
-# no in-process hot swap and no automatic promotion in this source checkpoint.
+# no in-process hot swap; Core now automatically promotes only after
+# verified real-process boot success. Shell still requires separate acceptance.
 e1_core_switch_src="android/app/src/main/java/com/riftos/app/RiftCoreCandidateSwitch.kt"
 test -f "$e1_core_switch_src" || {
   echo 'Builder E1 safe-startup Core candidate selector source missing' >&2; exit 1;
@@ -1287,7 +1288,8 @@ for marker in 'internal object RiftCoreCandidateSwitch' \
   'RiftProtectedRevisionRecovery.verifiedReceipt(' \
   'unaccepted-core-startup' \
   'RiftProtectedRevisionRecovery.rollback(' \
-  'automaticPromotionEnabled", false' \
+  'fun markAccepted(application: Application, sha: String)' \
+  'automaticPromotionEnabled", true' \
   'inProcessHotSwapEnabled", false'; do
   grep -Fq "$marker" "$e1_core_switch_src" || {
     echo "Builder E1 Core candidate/fallback contract missing: $marker" >&2; exit 1;
@@ -1302,6 +1304,19 @@ done
 grep -Fq 'RiftHostCoreComponents.initializeAtBoot(application)' "$bootstrap_host_source" || {
   echo 'Builder E1 Core startup selector not wired through actual main-process host' >&2; exit 1;
 }
+for marker in 'RiftHostCoreComponents.acceptSuccessfulBoot(application)' \
+  'RiftCoreShellRecovery.initialize(application)'; do
+  grep -Fq "$marker" "$bootstrap_host_source" || {
+    echo "Builder Core boot acceptance startup coordinator missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'fun acceptSuccessfulBoot(application: android.app.Application)' \
+  'executionView().coreStatus(application).optString("schema").isNotBlank()' \
+  'RiftProtectedComponentInstaller.acceptBootedCore(application, sha)'; do
+  grep -Fq "$marker" "$host_component_src" || {
+    echo "Builder Core boot known-good host ABI path missing: $marker" >&2; exit 1;
+  }
+done
 if grep -Fq 'RiftHostCoreComponents.core().initialize(ctx)' "$core_ipc_source"; then
   echo 'Builder E1 ContentProvider must not initialize embedded Core before Application' >&2; exit 1;
 fi
@@ -1550,6 +1565,8 @@ for marker in 'riftos.protected-component-operation/1' \
   'RiftProtectedDexVerifier.inspect(' \
   'RiftComponentReleaseLedger.recordPrepared(' \
   'RiftComponentReleaseLedger.acceptProven(' \
+  'fun acceptBootedCore(context: Context, sha: String): JSONObject' \
+  'RiftBootstrapComponentStore.clearProtectedStartupMarker(context, "core")' \
   'fun acceptProven(context: Context, component: String, sha: String,'; do
   grep -Fq "$marker" "$critical_src/RiftProtectedComponentInstaller.kt" || {
     echo "Builder H protected install/accept contract missing: $marker" >&2; exit 1;
