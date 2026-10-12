@@ -199,8 +199,21 @@ for marker in 'androidx.core.content.FileProvider' \
     exit 1
   fi
 done
-require_entry "res/xml/rift_build_apk_paths.xml"
-build_apk_paths_tree="$($AAPT2 dump xmltree "$APK" --file res/xml/rift_build_apk_paths.xml)"
+# AAPT2/AGP resource optimization renames source res/xml/*.xml entries to
+# compiled names such as res/bX.xml. Resolve the logical symbol through the
+# signed APK resource table, then inspect that exact compiled XML entry.
+# Never accept a mere source-file check or a resource-table-only assertion.
+resolver="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/resolve-apk-xml-resource.py"
+test -f "$resolver" || {
+  echo 'APK smoke check failed: compiled XML resolver missing.' >&2
+  exit 1
+}
+build_apk_paths_file="$("$AAPT2" dump resources "$APK" | python3 "$resolver" xml/rift_build_apk_paths)" || {
+  echo 'APK smoke check failed: cannot resolve compiled FileProvider XML resource.' >&2
+  exit 1
+}
+require_entry "$build_apk_paths_file"
+build_apk_paths_tree="$("$AAPT2" dump xmltree "$APK" --file "$build_apk_paths_file")"
 for marker in 'rift-build-apks' 'riftfs/documents/builds/'; do
   if ! grep -Fq "$marker" <<<"$build_apk_paths_tree"; then
     echo "APK smoke check failed: confined APK FileProvider XML missing $marker." >&2

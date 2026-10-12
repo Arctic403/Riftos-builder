@@ -1,5 +1,11 @@
 # Riftos-builder
 
+## 2026-10-12 — Worker `5e9b4a6c` signed-APK XML resource verification fix
+
+User-manual Worker `manual-38300926578` passed Builder contracts, RiftOS source gates and Android Gradle compilation (`BUILD SUCCESSFUL`, 103 tasks). The signed APK's v2 signature and ZIP alignment verified, but `verify-riftos-apk.sh` failed because it hardcoded `res/xml/rift_build_apk_paths.xml` as a ZIP member. Android's AAPT2/AGP resource packaging renames XML files (for example `res/bX.xml`), while preserving the logical resource name in `resources.arsc`. This was a **Builder postflight false negative**, not a Kotlin/DEX/signing failure.
+
+The verifier now resolves `xml/rift_build_apk_paths` from the **signed APK's AAPT2 resource table**, requires that exact mapped ZIP entry, and dumps/checks the actual compiled FileProvider XML for the restricted `rift-build-apks` and `riftfs/documents/builds/` attributes. A fail-closed resolver and Builder contract fixtures test successful renamed-resource lookup and rejection of missing or ambiguous resources. No RiftOS Android source, external Core DEX, manual Recovery, signing identity, or build trigger was changed. The next complete signed-APK postflight and device install still require a new user-manual Builder run.
+
 ## 2026-10-12 — Generic Android APK installer bridge parity (SOURCE ONLY)
 
 With the user's permission, RiftOS host sources gained a narrowly scoped, generic `apk.install` RAPP capability. Only the signed Android host can open Android's user-confirmed installer; independent Core v0.6.3 owns declaration/explicit grant and only forwards an authorized `open` operation, while RiftBuild Hosted verifies the output APK and offers **INSTALL VERIFIED APK**. This **does not** bring back embedded RiftBuild, CLI build tooling or retired `RiftBuildInstaller.kt`. The host FileProvider exposes only `riftfs/documents/builds/` with a temporary read-only URI grant.

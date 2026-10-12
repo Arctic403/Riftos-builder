@@ -101,12 +101,46 @@ for marker in (
 for marker in (
     "APK smoke check failed: generic Android installer provider missing",
     "APK smoke check failed: confined APK FileProvider XML missing",
-    "res/xml/rift_build_apk_paths.xml",
-    "aapt2", # packed XML verification must use the existing AAPT2 tool
+    "resolve-apk-xml-resource.py",
+    "build_apk_paths_file=",
+    'dump resources "$APK"',
+    'require_entry "$build_apk_paths_file"',
+    'dump xmltree "$APK" --file "$build_apk_paths_file"',
+    "aapt2", # compiled XML is resolved from the packaged resource table
     'require_dex_string \'apk.install\'',
     "APK installation is limited to D:/Builds artifacts",
 ):
     require(VERIFY, marker, "signed APK installer bridge proof")
+
+# Compiled resources can be renamed by AAPT2: verify the resolver picks
+# the APK resource table path instead of expecting the source res/xml name.
+# This checks the actual helper imported from the Builder, not a duplicate
+# implementation hidden inside a test fixture.
+import runpy
+resolver = runpy.run_path(str(ROOT / "scripts" / "resolve-apk-xml-resource.py"))["resolve"]
+compiled_resources = (
+    "Package com.riftos.app\n"
+    "    spec resource 0x7f110001 com.riftos.app:xml/rift_build_apk_paths: flags=0x00000000\n"
+    "    resource 0x7f110001 com.riftos.app:xml/rift_build_apk_paths:\n"
+    "      () (file) res/bX.xml type=XML\n"
+    "    resource 0x7f110002 com.riftos.app:xml/unrelated:\n"
+    "      () (file) res/other.xml type=XML\n"
+)
+assert resolver(compiled_resources, "xml/rift_build_apk_paths") == "res/bX.xml"
+for fixture in (
+    compiled_resources.replace("xml/rift_build_apk_paths", "xml/renamed_away"),
+    compiled_resources.replace("() (file) res/bX.xml type=XML", "() (string) missing"),
+    compiled_resources.replace(
+        "() (file) res/bX.xml type=XML",
+        "() (file) res/bX.xml type=XML\n      () (file) res/wrong.xml type=XML"
+    ),
+):
+    try:
+        resolver(fixture, "xml/rift_build_apk_paths")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Compiled XML resolver must fail closed on missing/ambiguous resources")
 
 # C07 additive private-device Core system service owner. The manual worker
 # checks host ABI, authenticated typed IPC and separate V07 source while leaving
