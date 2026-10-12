@@ -1333,6 +1333,48 @@ for pair in \
     echo "Builder H Core recovery evidence integration missing: $owner $marker" >&2; exit 1;
   }
 done
+# S: external graphical Shell fatal evidence survives :riftShell death.
+# Pure APK-host diagnostics; never approve, replace backups or change pointers.
+shell_crash_src="android/app/src/main/java/com/riftos/app/RiftShellCrashDiagnostics.kt"
+test -f "$shell_crash_src" || {
+  echo 'Builder S graphical Shell crash source missing' >&2; exit 1;
+}
+grep -Fq '"src/main/java/com/riftos/app/RiftShellCrashDiagnostics.kt"' "$gradle_contract" || {
+  echo 'Builder S graphical Shell crash source absent from Gradle list' >&2; exit 1;
+}
+for marker in \
+  'Thread.setDefaultUncaughtExceptionHandler' \
+  'previous.uncaughtException(thread, error)' \
+  'lastCapturedFailure !== error' \
+  'getHistoricalProcessExitReasons(' \
+  'last-crash.json' \
+  'last-exit.json' \
+  'fullNativeTombstoneGuaranteed", false' \
+  'automaticRollbackEnabled", false'; do
+  grep -Fq "$marker" "$shell_crash_src" || {
+    echo "Builder S graphical Shell crash marker missing: $marker" >&2; exit 1;
+  }
+done
+for pair in \
+  'RiftCoreApplication.kt|RiftShellCrashDiagnostics.install(this)' \
+  'RiftShellActivity.kt|RiftShellCrashDiagnostics.recordFailure(application, "selected-dex-load", failure)' \
+  'RiftShellActivity.kt|RiftShellCrashDiagnostics.recordFailure(application, "external-shell-attach", failure)' \
+  'RiftCoreShellRecovery.kt|RiftShellCrashDiagnostics.refreshHistoricalExit(context)' \
+  'RiftCoreShellRecovery.kt|crashPollWorker.execute {' \
+  'RiftNativeShell.kt|"shell-crash" -> RiftShellCrashDiagnostics.report(appContext)'; do
+  owner="${pair%%|*}"
+  marker="${pair#*|}"
+  grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/$owner" || {
+    echo "Builder S graphical Shell crash path missing: $owner $marker" >&2; exit 1;
+  }
+done
+for forbidden in 'RiftManualRecoveryStore.restore(' 'writeProtectedPointer(' \
+  'resetShellToEmbedded(' 'RiftComponentReleaseLedger.acceptProven('; do
+  if grep -Fq "$forbidden" "$shell_crash_src"; then
+    echo "Builder S graphical Shell crash may not mutate Recovery: $forbidden" >&2; exit 1;
+  fi
+done
+
 # H2: source-only protected revision journal and best-effort separate
 # Android Core liveness observer; neither grants external Core activation.
 revision_src="android/app/src/main/java/com/riftos/app/RiftComponentReleaseLedger.kt"

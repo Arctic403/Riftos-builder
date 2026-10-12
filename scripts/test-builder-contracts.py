@@ -60,6 +60,22 @@ for task in (
 ):
     require(BUILD, task, "dedicated Gradle validation")
 
+# Shell diagnostic path must be part of signed APK source and preflight,
+# without resurrecting automated Recovery or depending on running Shell UI.
+for marker in (
+    "Builder S graphical Shell crash source missing",
+    "Builder S graphical Shell crash source absent from Gradle list",
+    "Builder S graphical Shell crash marker missing:",
+    "Builder S graphical Shell crash path missing:",
+    "Builder S graphical Shell crash may not mutate Recovery:",
+    "RiftShellCrashDiagnostics.install(this)",
+    'RiftShellCrashDiagnostics.recordFailure(application, "selected-dex-load", failure)',
+    'RiftShellCrashDiagnostics.recordFailure(application, "external-shell-attach", failure)',
+    'RiftShellCrashDiagnostics.refreshHistoricalExit(context)',
+    '"shell-crash" -> RiftShellCrashDiagnostics.report(appContext)',
+):
+    require(BUILD, marker, "Shell crash diagnostics signed source gate")
+
 # C1.2-B2-B1: Core focus leases are versioned and signed-DEX reachable.
 for marker in [
     "Builder B2-B1 focus source missing",
