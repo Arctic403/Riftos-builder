@@ -8,18 +8,12 @@ LOG_DIR="${RUNNER_TEMP:?}/riftos-private-logs"
 OUT_DIR="${RUNNER_TEMP:?}/riftos-output"
 mkdir -p "$LOG_DIR" "$OUT_DIR"
 
-for required_command in timeout node npm gradle git grep sed sha256sum python3 dpkg-deb readelf patchelf; do
+for required_command in timeout gradle git grep sed sha256sum python3 dpkg-deb readelf patchelf; do
   command -v "$required_command" >/dev/null 2>&1 || {
     echo "Builder runtime is missing required command: $required_command" >&2
     exit 1
   }
 done
-NODE_MAJOR="$(node -p 'Number(process.versions.node.split(".")[0])')"
-[ "$NODE_MAJOR" -ge 24 ] || {
-  echo "Builder requires Node 24+ for the RiftOS source gate; observed $(node --version)." >&2
-  exit 1
-}
-
 SOURCE_CHECK_TIMEOUT="${SOURCE_CHECK_TIMEOUT:-12m}"
 GRADLE_VALIDATE_TIMEOUT="${GRADLE_VALIDATE_TIMEOUT:-6m}"
 GRADLE_BUILD_TIMEOUT="${GRADLE_BUILD_TIMEOUT:-20m}"
@@ -52,70 +46,13 @@ if ! git diff --quiet HEAD -- || [ -n "$(git status --porcelain=v1 --untracked-f
   exit 1
 fi
 
-# Builder-owned syntax preflight for the source-gate entrypoints. This runs before the
-# source-owned validator so a malformed validator cannot hide its own parse failure.
-# Derive syntax gates from the exact checked-out RiftOS npm check chain, not
-# a stale Builder-side subset. Unknown/non-node commands fail closed.
-source_gate_manifest="$(node -e '
-  const pkg = require("./package.json");
-  const chain = String(pkg.scripts?.["check:transport"] || "");
-  const commands = chain.split(/\s*&&\s*/).filter(Boolean);
-  if (!commands.length) {
-    console.error("Builder source-gate chain missing from RiftOS package.json");
-    process.exit(1);
-  }
-  for (const command of commands) {
-    const match = /^node (scripts\/[A-Za-z0-9_-]+\.mjs)$/.exec(command.trim());
-    if (!match) {
-      console.error("Builder source-gate chain has unexpected command: " + command);
-      process.exit(1);
-    }
-    console.log(match[1]);
-  }
-')" || exit 1
-test -n "$source_gate_manifest" || {
-  echo 'Builder source-gate manifest is empty.' >&2
+# RiftOS is a platform-only repository. Legacy npm/browser tests are NOT host inputs.
+# Builder-owned validation enforces host-only layout and OS security contracts.
+python3 "$SCRIPT_DIR/validate-platform-source.py" "$SOURCE_DIR" \
+  >"$LOG_DIR/source-layout.log" 2>&1 || {
+  echo 'Builder platform-only source layout validation failed.' >&2
   exit 1
 }
-mapfile -t source_gate_scripts <<<"$source_gate_manifest"
-for source_gate_script in "${source_gate_scripts[@]}"; do
-  node --check "$source_gate_script" >>"$LOG_DIR/source-syntax.log" 2>&1 || {
-    echo "RiftOS source-gate syntax failed: $source_gate_script" >&2
-    exit 1
-  }
-done
-
-node -e '
-  const pkg = require("./package.json");
-  const check = String(pkg.scripts?.check || "");
-  const transport = String(pkg.scripts?.["check:transport"] || "");
-  if (!check.includes("npm run check:transport")) {
-    console.error("Builder contract is stale: npm check no longer delegates to check:transport");
-    process.exit(1);
-  }
-  for (const required of [
-    "node scripts/validate-rift-wiring.mjs",
-    "node scripts/validate-rift-transport.mjs",
-    "node scripts/validate-rift-docs.mjs",
-    "node scripts/test-rift-mcp-event-channel.mjs",
-    "node scripts/test-rift-local-agent-batch.mjs",
-    "node scripts/test-rift-mcp-operation-journal.mjs",
-    "node scripts/test-rift-debug-hub.mjs",
-    "node scripts/test-riftbuild-native.mjs",
-    "node scripts/test-riftpp-shell.mjs",
-    "node scripts/test-rift-shell-bridge.mjs",
-    "node scripts/test-riftllm-bridge.mjs",
-    "node scripts/test-semnexis-bootstrap.mjs",
-    "node scripts/test-semnexis-arm32-exec.mjs",
-    "node scripts/test-semnexis-shell.mjs",
-    "node scripts/test-e1-core-closure.mjs",
-  ]) {
-    if (!transport.includes(required)) {
-      console.error("Builder contract is stale: check:transport missing " + required);
-      process.exit(1);
-    }
-  }
-'
 
 # Retired shell-only build/language command family must never be baked into RiftOS again.
 # The Core's generic RAPP execution, compiler services and embedded recovery fallback are separate.
@@ -142,48 +79,9 @@ for retired_asset_marker in \
     exit 1
   fi
 done
-test -f "scripts/test-riftpp-shell.mjs" || {
-  echo 'Builder retired shell negative regression missing' >&2
-  exit 1
-}
 
-# Semnexis self-hosting source contract. Product semantics remain owned by RiftOS,
-# but Builder must fail early if the promoted source fixtures or gate wiring disappear.
-semnexis_bootstrap_gate="scripts/test-semnexis-bootstrap.mjs"
-semnexis_arm_gate="scripts/test-semnexis-arm32-exec.mjs"
-test -f "$semnexis_bootstrap_gate" || {
-  echo "Builder Semnexis contract is missing bootstrap gate: $semnexis_bootstrap_gate" >&2
-  exit 1
-}
-grep -Fq 'ARM32 runtime must accept more than 256 functions when real artifact bounds are satisfied' "$semnexis_bootstrap_gate" || {
-  echo "Builder Semnexis contract is stale: >256-function ARM32 regression marker is missing" >&2
-  exit 1
-}
-for semnexis_fixture in \
-  scripts/fixtures/semnexis-selfhost-frontend-v18.snx \
-  scripts/fixtures/semnexis-selfhost-semantic-v19.snx \
-  scripts/fixtures/semnexis-selfhost-native-ir-v25.snx; do
-  test -f "$semnexis_fixture" || {
-    echo "Builder Semnexis contract is missing promoted fixture: $semnexis_fixture" >&2
-    exit 1
-  }
-  grep -Fq "${semnexis_fixture#scripts/fixtures/}" "$semnexis_arm_gate" || {
-    echo "Builder Semnexis contract is stale: ARM32 gate no longer references $semnexis_fixture" >&2
-    exit 1
-  }
-done
-for semnexis_contract_marker in \
-  'self-host v25 graph topology parity' \
-  'self-host v25 graph verifier acceptance' \
-  'self-host v25 execution-plan parity' \
-  'self-host v25 IR function parity' \
-  'self-host v25 IR parameter parity' \
-  'self-host v25 IR instruction parity'; do
-  grep -Fq "$semnexis_contract_marker" "$semnexis_arm_gate" || {
-    echo "Builder Semnexis v25 contract marker missing: $semnexis_contract_marker" >&2
-    exit 1
-  }
-done
+# Semnexis compiler/fixture tests now live with the Semnexis project.
+# Android host builds must not require those project-specific fixtures.
 
 # Validate the Builder's DEX-verifier assumption against the exact source contract before
 # source tests/Gradle: every mandatory Kotlin source must expose a package plus at least one
@@ -349,10 +247,11 @@ apk_install_xml="android/app/src/main/res/xml/rift_build_apk_paths.xml"
 apk_shell_ui="android/app/src/main/java/com/riftos/app/RiftRemoteShellUiClient.kt"
 apk_core_host="android/app/src/main/java/com/riftos/app/RiftHostComponentAbiV1.kt"
 apk_app_abi="android/app/src/main/java/com/riftos/app/RiftAppAbi.kt"
-apk_external_abi="external-components/ExternalRiftAppAbi.kt"
-apk_external_effects="external-components/IndependentRappEffectsV1.kt"
-for source in "$apk_install_xml" "$apk_shell_ui" "$apk_core_host" "$apk_app_abi" "$apk_external_abi" "$apk_external_effects" "external-components/IndependentCoreV063.kt" "external-components/compile-core-v063.json"; do
-  test -f "$source" || { echo "Builder APK install bridge required source missing: $source" >&2; exit 1; }
+# Independent Core/Shell implementation, policy, recipes and component Builder
+# live in their own RiftComponents workspace, not RiftOS-main.
+# Host-only APK installer security contracts remain mandatory.
+for source in "$apk_install_xml" "$apk_shell_ui" "$apk_core_host" "$apk_app_abi"; do
+  test -f "$source" || { echo "Builder host APK installer source missing: $source" >&2; exit 1; }
 done
 for marker in 'android:name="androidx.core.content.FileProvider"' \
   'android:authorities="com.riftos.app.buildapks"' \
@@ -360,33 +259,22 @@ for marker in 'android:name="androidx.core.content.FileProvider"' \
   'android:grantUriPermissions="true"' \
   'android:resource="@xml/rift_build_apk_paths"'; do
   grep -Fq "$marker" "$manifest_contract" || {
-    echo "Builder APK install bridge provider contract missing: $marker" >&2; exit 1;
+    echo "Builder host APK installer FileProvider contract missing: $marker" >&2; exit 1
   }
 done
 grep -Fq 'android.permission.REQUEST_INSTALL_PACKAGES' "$manifest_contract" || {
-  echo 'Builder Android package installer request permission missing.' >&2; exit 1;
+  echo 'Builder Android installer permission missing.' >&2; exit 1
 }
-for marker in '<files-path name="rift-build-apks" path="riftfs/documents/builds/" />'; do
-  grep -Fq "$marker" "$apk_install_xml" || {
-    echo 'Builder APK FileProvider must be limited to D:/Builds.' >&2; exit 1;
-  }
-done
-for abi in "$apk_app_abi" "$apk_external_abi"; do
-  grep -Fq 'const val APK_INSTALL = "apk.install"' "$abi" || {
-    echo "Builder apk.install permission absent from $abi" >&2; exit 1;
-  }
-done
-for marker in '"share", "apk.install", "window.title"' 'RiftCoreShellCapabilityRequests.requestUiEffect('; do
+grep -Fq '<files-path name="rift-build-apks" path="riftfs/documents/builds/" />' "$apk_install_xml" || {
+  echo 'Builder FileProvider path must remain confined to D:/Builds.' >&2; exit 1
+}
+grep -Fq 'const val APK_INSTALL = "apk.install"' "$apk_app_abi" || {
+  echo 'Builder host APK install permission missing.' >&2; exit 1
+}
+for marker in '"share", "apk.install", "window.title"' \
+  'RiftCoreShellCapabilityRequests.requestUiEffect('; do
   grep -Fq "$marker" "$apk_core_host" || {
-    echo "Builder APK install Core-to-Shell host transport missing: $marker" >&2; exit 1;
-  }
-done
-for marker in 'effect.capability == RiftAppAbi.Capability.APK_INSTALL' \
-  'effect.operation != "open"' \
-  'apk.startsWith("/D:/Builds/")' \
-  'RiftAppAbi.Capability.APK_INSTALL,'; do
-  grep -Fq "$marker" "$apk_external_effects" || {
-    echo "Builder external Core apk.install policy missing: $marker" >&2; exit 1;
+    echo "Builder Core-to-Shell install host transport missing: $marker" >&2; exit 1
   }
 done
 for marker in 'RiftAppAbi.Capability.APK_INSTALL to "open"' \
@@ -395,13 +283,9 @@ for marker in 'RiftAppAbi.Capability.APK_INSTALL to "open"' \
   'APK package identity invalid or attempts to replace RiftOS' \
   'activity.startActivity(intent)'; do
   grep -Fq "$marker" "$apk_shell_ui" || {
-    echo "Builder Android package installer UI handoff missing: $marker" >&2; exit 1;
+    echo "Builder Android installer UI contract missing: $marker" >&2; exit 1
   }
 done
-grep -Fq 'coreV063:108' external-components/runtime.js &&
-grep -Fq 'trial-v063/' external-components/runtime.js || {
-  echo 'Builder independent Core v0.6.3 isolated build recipe missing.' >&2; exit 1;
-}
 
 # C1.0: RiftOS Core must bootstrap without constructing a desktop shell;
 # package/runtime/build authority is process-owned, not Activity-owned.
@@ -1318,9 +1202,15 @@ for marker in 'const val METHOD_SHELL_EXTERNAL_APP = "shell.external-app"' \
     echo "Builder authenticated Core app-connection IPC missing: $marker" >&2; exit 1;
   }
 done
-for owner in 'IndependentCoreV063.kt' 'IndependentCoreV064.kt' 'compile-core-v064.json'; do
-  test -f "external-components/$owner" || {
-    echo "Builder Core v0.6.4 component source missing: $owner" >&2; exit 1;
+# External Core implementation checks now belong to RiftComponents.
+# New Android host Binder FD streaming ABI is generic, and mandatory.
+for marker in 'fun abiVersion(): Int = 2' \
+  'fun streamFile(context: Context' \
+  'binder.transact(IBinder.FIRST_CALL_TRANSACTION + 2' \
+  'ParcelFileDescriptor.CREATOR' \
+  'context.unbindService(connection)'; do
+  grep -Fq "$marker" "$app_bridge_src" || {
+    echo "Builder generic streaming Binder ABI missing: $marker" >&2; exit 1
   }
 done
 for marker in 'Lcom/riftos/app/RiftCoreExternalAppConnectionsV1;' \
@@ -1746,24 +1636,8 @@ if grep -Fq 'RiftProtectedRevisionRecovery.rollback(' "$critical_src/RiftCoreRec
   echo 'Builder forbids automatic version rollback based on Android crash reports' >&2; exit 1;
 fi
 
-# E1-A transitive class closure remains mandatory, but external selection
-# is impossible until a separately approved exact Core qualification is made.
-e1_core_closure_src="scripts/test-e1-core-closure.mjs"
-test -f "$e1_core_closure_src" || {
-  echo 'Builder E1-A transitive Core source audit is missing' >&2; exit 1;
-}
-test -f "docs/systems/android-host/E1_CORE_CANDIDATE.md" || {
-  echo 'Builder E1-A inactive external Core acceptance contract is missing' >&2; exit 1;
-}
-for marker in "RiftCoreRuntime" "RiftCoreAppLifecycle" \
-  "RiftCoreAppSessions" "RiftCoreAppSurfaces" "RiftCoreAppExecutor" \
-  "RiftCoreInputFocus" "RiftRappManager" \
-  "hostBoundaryEdgeCount:" "candidateReady: false" \
-  "externalCoreEnabled: false" "productionCore: 'embedded'"; do
-  grep -Fq "$marker" "$e1_core_closure_src" || {
-    echo "Builder E1-A Core dependency audit contract missing: $marker" >&2; exit 1;
-  }
-done
+# E1 Node closure fixture moved with the legacy web test archive.
+# Retain the installed host's IPC and Recovery source contracts below.
 for marker in 'contentResolver.call(' \
   'Process.myPid()' 'Separate Android processes:' \
   'mainHandler.removeCallbacks(poll)'; do
@@ -2437,8 +2311,9 @@ export RIFT_SIGN_STORE_PASS="${RIFT_SIGN_STORE_PASS:?Release store password requ
 export RIFT_SIGN_KEY_PASS="${RIFT_SIGN_KEY_PASS:?Release key password required}"
 
 if ! timeout --signal=TERM --kill-after=30s "$SOURCE_CHECK_TIMEOUT" \
-    npm run check >"$LOG_DIR/source-check.log" 2>&1; then
-  echo "Source checks failed or exceeded $SOURCE_CHECK_TIMEOUT; APK build stopped." >&2
+    python3 "$SCRIPT_DIR/validate-platform-source.py" "$SOURCE_DIR" \
+    >"$LOG_DIR/source-check.log" 2>&1; then
+  echo "Builder-owned platform source checks failed or exceeded $SOURCE_CHECK_TIMEOUT; APK build stopped." >&2
   exit 1
 fi
 

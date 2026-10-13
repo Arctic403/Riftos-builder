@@ -1,5 +1,24 @@
 # Riftos-builder
 
+## CURRENT — platform-only RiftOS source (2026-10-13)
+
+**Builder aligned to pushed RiftOS platform-only source commit `23ec8068f04c`.** The user removed obsolete project/proof content from `RiftOS-main`: no `external-components/`, `src/`, `relay/`, `scripts/`, `bootstrap/`, `package.json`, app examples or historical web workspace. The signed Android host stays in `RiftOS-main/android/` and retains current embedded graphical Shell, manual Recovery and generic external-Core host ABI.
+
+The **separate** source owners are:
+- `/D:/Workspace/RiftComponents` — independent Core/Shell implementations, compile recipes and their Builder RAPP (new Builder package `/D:/Builds/external-core-shell-builder-v065-repo-split.rapp`).
+- `/D:/Workspace/RiftMcpRelay` — Cloudflare Worker relay.
+- `/D:/Workspace/RiftOS-LegacyWeb` — retired JavaScript/browser code and historical Node tests.
+- App/language sources and fixtures live in their own repos (Codynex, Rift++, RiftLLM, Semnexis, Vortex3d, etc.).
+
+**Riftos-builder still builds the signed RiftOS Android host only.** `scripts/riftos-build.sh` now calls Builder-owned `scripts/validate-platform-source.py` rather than requiring `RiftOS-main` to ship Node tests, Semnexis fixtures or independent Core recipes. The private worker checks this source layout **before restoring signing identity**. `scripts/test-builder-contracts.py` checks that clean split and that source SHA integrity, Gradle validation, APK build, signing, APK postflight and user-controlled Recovery contracts remain mandatory. `scripts/verify-riftos-apk.sh` retains signed APK/Dex/assets verification.
+
+The new Android-host Binder FD streaming ABI v2 for full repository/folder transport is verified by source markers, not by bundling Codynex Editor or independent Core source. **No Gradle signed APK build, independent Core 0.6.5 device activation or Binder transfer was performed as part of this synchronization.** Installed RiftOS #742 still uses external Core v0.6.4 and user-restorable v0.6.3 backup. User triggers a Worker build separately.
+
+Historical entries below describe older, larger RiftOS trees. Treat their dated compiler/proof source-path requirements as historical only, not current Builder dependencies.
+
+---
+
+
 ## 2026-10-12 — Fix manual-run 38331033067 C0.2 visibility conflict
 
 The `e21da5d8` manual source build failed *before Gradle compilation* with `Builder C0.2 project editor manifest visibility resurfaced: com.codynex.editor`. The obsolete C0.2 manifest package ban conflicted with the explicit v0.6.4 signed-host Binder package-visibility requirement introduced above it in the same script. The old blacklist now retains only `com.riftpp.editor` and the Rift++ proof identities; `com.codynex.editor` is allowed for the optional installed Editor Binder service. The independent RiftOS `validate-rift-wiring.mjs` check is synchronized. `test-builder-contracts.py` adds regression coverage so the contradictory guard cannot silently return. No Core or Recovery modification; user manually triggers the next build.
