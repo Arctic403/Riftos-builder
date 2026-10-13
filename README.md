@@ -1,5 +1,9 @@
 # Riftos-builder
 
+## 2026-10-12 — Core v0.6.4 optional Android Binder host gate (manual build only)
+
+The separate source-only 0.6.4 Core candidate requires the additive `RiftCoreExternalAppConnectionsV1` ABI, APK-owned `RiftHostExternalAppBinderV1`, its correct custom Binder `INTERFACE_TRANSACTION` descriptor handshake, authenticated Shell/Core IPC, and Android package visibility for Codynex Editor. `riftos-build.sh` and `test-builder-contracts.py` enforce these source requirements without reviving the discarded 0.7 system-services stack. The device-built Core v0.6.4 DEX is SHA-verified, **not boot-qualified**; user-selected 0.6.3 and Recovery backups remain intact. Only a user-triggered normal signed RiftOS APK build can update the host. Do not stage or activate Core v0.6.4 until the resulting APK is installed and validated.
+
 ## 2026-10-12 — Retire obsolete Core v0.7 source/host gates
 
 The user-selected live independent Core is **v0.6.3**. The experimental v0.7 Core briefly ran historical device tests but its typed system-service feature never achieved full qualification. Its source, recipe, component Builder button, optional `shell.system` Android host IPC, and all *mandatory* v0.7-only preflight/contract checks have now been removed. Existing v0.6.3 and `apk.install` build validation, Android signing and Recovery protections remain. The older v0.7 Builder checkpoint below is retained strictly as historical documentation, not an actionable deployment instruction. No Builder run was triggered.

@@ -1287,6 +1287,51 @@ for marker in 'interface RiftCoreComponentV1' 'interface RiftShellPresentationV1
     echo "Builder E0 embedded-only host Core adapter contract missing: $marker" >&2; exit 1;
   }
 done
+# Additive independent Core v0.6.4 external-app Binder seam.
+# Keep selected v0.6.3 and Recovery untouched; this is signed-host ABI only.
+app_bridge_src="android/app/src/main/java/com/riftos/app/RiftHostExternalAppBinderV1.kt"
+test -f "$app_bridge_src" || {
+  echo 'Builder app Binder transport source missing' >&2; exit 1;
+}
+grep -Fq '"src/main/java/com/riftos/app/RiftHostExternalAppBinderV1.kt"' "$gradle_contract" || {
+  echo 'Builder app Binder transport missing from Gradle source allowlist' >&2; exit 1;
+}
+for marker in 'interface RiftCoreExternalAppConnectionsV1' \
+  'fun externalAppConnections(): RiftCoreExternalAppConnectionsV1'; do
+  grep -Fq "$marker" "$host_component_src" || {
+    echo "Builder Core external app ABI missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'object RiftHostExternalAppBinderV1' \
+  'binder.transact(IBinder.INTERFACE_TRANSACTION' \
+  'descriptorReply.readString() == descriptor' \
+  'binder.transact(IBinder.FIRST_CALL_TRANSACTION' \
+  'context.unbindService(serviceConnection)'; do
+  grep -Fq "$marker" "$app_bridge_src" || {
+    echo "Builder Android app Binder transport missing: $marker" >&2; exit 1;
+  }
+done
+for marker in 'const val METHOD_SHELL_EXTERNAL_APP = "shell.external-app"' \
+  'RiftHostCoreComponents.externalAppConnections()' \
+  '.appConnectionRequest(ctx, input)'; do
+  grep -Fq "$marker" "android/app/src/main/java/com/riftos/app/RiftCoreSurfaceIpcProvider.kt" || {
+    echo "Builder authenticated Core app-connection IPC missing: $marker" >&2; exit 1;
+  }
+done
+for owner in 'IndependentCoreV063.kt' 'IndependentCoreV064.kt' 'compile-core-v064.json'; do
+  test -f "external-components/$owner" || {
+    echo "Builder Core v0.6.4 component source missing: $owner" >&2; exit 1;
+  }
+done
+for marker in 'Lcom/riftos/app/RiftCoreExternalAppConnectionsV1;' \
+  'Lcom/riftos/app/RiftHostExternalAppBinderV1;'; do
+  grep -Fq "$marker" 'android/app/src/main/java/com/riftos/app/RiftProtectedDexVerifier.kt' || {
+    echo "Builder external-app DEX stable ABI allowlist missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq '<package android:name="com.codynex.editor" />' android/app/src/main/AndroidManifest.xml || {
+  echo 'Builder Android package visibility for Codynex Editor missing' >&2; exit 1;
+}
 # Removed retired v0.7-only typed Core system-services/IPC source gates.
 # External Core native-buffer parity: bounded generic host execution only.
 # Preserve existing out-of-process worker; never move RAPP sessions or grants

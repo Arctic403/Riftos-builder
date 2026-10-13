@@ -142,6 +142,22 @@ for fixture in (
     else:
         raise AssertionError("Compiled XML resolver must fail closed on missing/ambiguous resources")
 
+# Optional v0.6.4 bridge, never a prerequisite for selecting v0.6.3.
+for marker in (
+    "Builder app Binder transport source missing",
+    "Builder app Binder transport missing from Gradle source allowlist",
+    "Builder Core external app ABI missing:",
+    "Builder Android app Binder transport missing:",
+    "Builder authenticated Core app-connection IPC missing:",
+    "Builder Core v0.6.4 component source missing:",
+    "Builder external-app DEX stable ABI allowlist missing:",
+    "Builder Android package visibility for Codynex Editor missing",
+    "binder.transact(IBinder.INTERFACE_TRANSACTION",
+    "IndependentCoreV064.kt",
+    "compile-core-v064.json",
+):
+    require(BUILD, marker, "Independent Core v0.6.4 optional Binder bridge")
+
 # C1.2-B2-B1: Core focus leases are versioned and signed-DEX reachable.
 for marker in [
     "Builder B2-B1 focus source missing",
