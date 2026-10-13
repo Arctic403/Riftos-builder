@@ -158,6 +158,15 @@ for marker in (
 ):
     require(BUILD, marker, "Independent Core v0.6.4 optional Binder bridge")
 
+# Regress the pre-Gradle failure in manual run 38331033067:
+# prior C0.2 blanket ban contradicted the v0.6.4 Binder visibility gate.
+require(BUILD, "for editor_package in com.riftpp.editor; do",
+        "C0.2 retired Rift++ package visibility ban preserved")
+require(BUILD, """grep -Fq '<package android:name="com.codynex.editor" />'""",
+        "v0.6.4 explicit external Editor visibility")
+forbid(BUILD, "for editor_package in com.riftpp.editor com.codynex.editor; do",
+       "v0.6.4 must not reject its own explicitly required Codynex visibility")
+
 # C1.2-B2-B1: Core focus leases are versioned and signed-DEX reachable.
 for marker in [
     "Builder B2-B1 focus source missing",

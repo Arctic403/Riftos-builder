@@ -1,5 +1,9 @@
 # Riftos-builder
 
+## 2026-10-12 — Fix manual-run 38331033067 C0.2 visibility conflict
+
+The `e21da5d8` manual source build failed *before Gradle compilation* with `Builder C0.2 project editor manifest visibility resurfaced: com.codynex.editor`. The obsolete C0.2 manifest package ban conflicted with the explicit v0.6.4 signed-host Binder package-visibility requirement introduced above it in the same script. The old blacklist now retains only `com.riftpp.editor` and the Rift++ proof identities; `com.codynex.editor` is allowed for the optional installed Editor Binder service. The independent RiftOS `validate-rift-wiring.mjs` check is synchronized. `test-builder-contracts.py` adds regression coverage so the contradictory guard cannot silently return. No Core or Recovery modification; user manually triggers the next build.
+
 ## 2026-10-12 — Core v0.6.4 optional Android Binder host gate (manual build only)
 
 The separate source-only 0.6.4 Core candidate requires the additive `RiftCoreExternalAppConnectionsV1` ABI, APK-owned `RiftHostExternalAppBinderV1`, its correct custom Binder `INTERFACE_TRANSACTION` descriptor handshake, authenticated Shell/Core IPC, and Android package visibility for Codynex Editor. `riftos-build.sh` and `test-builder-contracts.py` enforce these source requirements without reviving the discarded 0.7 system-services stack. The device-built Core v0.6.4 DEX is SHA-verified, **not boot-qualified**; user-selected 0.6.3 and Recovery backups remain intact. Only a user-triggered normal signed RiftOS APK build can update the host. Do not stage or activate Core v0.6.4 until the resulting APK is installed and validated.

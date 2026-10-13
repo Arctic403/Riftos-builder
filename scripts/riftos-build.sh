@@ -2019,7 +2019,10 @@ for retired_riftbuild_source in \
     exit 1
   fi
 done
-for editor_package in com.riftpp.editor com.codynex.editor; do
+# C0.2 still prohibits old embedded/project-editor package dependencies.
+# The external Codynex Editor alone is explicitly visible for the optional
+# Core v0.6.4 Binder connection (validated above); it is NOT packaged here.
+for editor_package in com.riftpp.editor; do
   if grep -Fq "<package android:name=\"$editor_package\" />" "$manifest_contract"; then
     echo "Builder C0.2 project editor manifest visibility resurfaced: $editor_package" >&2
     exit 1
