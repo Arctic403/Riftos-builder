@@ -1,5 +1,12 @@
 # Riftos-builder
 
+## 2026-10-13 — External graphical Shell V2 host-ABI build gate
+
+The RiftOS host now has pushed source revision `f1636bd7107f7a8d0fc90d75b5b57e8e075e4cc4` with an **optional** `RiftShellPlatformServicesV2` extension. Shell V1 and the embedded Recovery fallback remain supported. V2 forwards already-authenticated Core external-app connection requests, Core UI-effect ticket replies, and user-confirmed Android APK installer launches. The host does not own an independent graphical Shell implementation.
+
+Builder checks now require the new host interface, adapter, Activity binding, exact protected DEX allowlist, and a matching V2 class/schema inside the signed APK. Changes are limited to the host build and verification scripts; the independent Shell V3 is separately compiled from `/D:/Workspace/RiftComponents` **after** the user installs the new signed host. No external Shell activation or Recovery update occurs in the Builder.
+
+
 ## CURRENT — platform-only RiftOS source (2026-10-13)
 
 **Builder aligned to pushed RiftOS platform-only source commit `23ec8068f04c`.** The user removed obsolete project/proof content from `RiftOS-main`: no `external-components/`, `src/`, `relay/`, `scripts/`, `bootstrap/`, `package.json`, app examples or historical web workspace. The signed Android host stays in `RiftOS-main/android/` and retains current embedded graphical Shell, manual Recovery and generic external-Core host ABI.

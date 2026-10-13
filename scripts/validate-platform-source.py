@@ -69,7 +69,15 @@ contracts = {
     "RiftManualRecoveryStore.kt": [
         "restoreWorkingBackup", "manual"],
     "RiftProtectedDexVerifier.kt": [
-        "RiftHostExternalAppBinderV1"],
+        "RiftHostExternalAppBinderV1",
+        "Lcom/riftos/app/RiftShellPlatformServicesV2;"],
+    "RiftShellComponentAbiV1.kt": [
+        "interface RiftShellPlatformServicesV1",
+        "interface RiftShellPlatformServicesV2 : RiftShellPlatformServicesV1",
+        "client.externalAppRequest(request)",
+        "client.respondEffect(ticket, RiftRappCapabilityBroker.Result(",
+        "override fun launchApkInstall(path: String): Boolean",
+        'activity.packageName + ".buildapks"'],
     "RiftCoreSurfaceIpcProvider.kt": [
         'shell.external-app'],
     "RiftNativeWorkspaceApps.kt": [

@@ -41,6 +41,23 @@ for marker in (
 ):
     require(BUILD, marker, "safe host build")
 
+# Signed-host Shell V2 is strictly additive to existing V1 candidates.
+for marker in (
+    'interface RiftShellPlatformServicesV2 : RiftShellPlatformServicesV1',
+    'fun externalAppRequest(request: JSONObject): JSONObject',
+    'fun respondEffect(ticket: Long, response: JSONObject): Boolean',
+    'fun launchApkInstall(path: String): Boolean',
+    'Lcom/riftos/app/RiftShellPlatformServicesV2;',
+    'RiftShellPlatformServicesAdapter(externalCore, this)',
+):
+    require(BUILD, marker, "Shell V2 host compatibility gate")
+for marker in (
+    'RiftShellComponentAbiV1.kt',
+    'interface RiftShellPlatformServicesV2 : RiftShellPlatformServicesV1',
+    'Lcom/riftos/app/RiftShellPlatformServicesV2;',
+):
+    require(SOURCE, marker, "Shell V2 platform source verification")
+
 for marker in (
     "npm run check", "scripts/test-", "external-components/",
     'require("./package.json")', "semnexis-selfhost-frontend-v18.snx",

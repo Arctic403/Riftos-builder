@@ -1547,6 +1547,28 @@ for marker in 'interface RiftShellGraphicalComponentV1' \
     echo "Builder S real graphical Shell V1 ABI missing: $marker" >&2; exit 1;
   }
 done
+# Additive Shell services V2: preserve V1 entrypoint/ABI and expose only
+# authenticated Core transport + bounded Android installer UI to external DEX.
+for marker in \
+  'interface RiftShellPlatformServicesV2 : RiftShellPlatformServicesV1' \
+  'fun externalAppRequest(request: JSONObject): JSONObject' \
+  'fun respondEffect(ticket: Long, response: JSONObject): Boolean' \
+  'fun launchApkInstall(path: String): Boolean' \
+  'client.externalAppRequest(request)' \
+  'client.respondEffect(ticket, RiftRappCapabilityBroker.Result(' \
+  'activity.packageName + ".buildapks"'; do
+  grep -Fq "$marker" "$shell_component_src" || {
+    echo "Builder S independent Shell V2 host bridge missing: $marker" >&2; exit 1;
+  }
+done
+grep -Fq 'RiftShellPlatformServicesAdapter(externalCore, this)' \
+  "android/app/src/main/java/com/riftos/app/RiftShellActivity.kt" || {
+  echo 'Builder S external Shell Activity missing authenticated V2 Activity adapter' >&2; exit 1;
+}
+grep -Fq 'Lcom/riftos/app/RiftShellPlatformServicesV2;' \
+  "android/app/src/main/java/com/riftos/app/RiftProtectedDexVerifier.kt" || {
+  echo 'Builder S independent Shell V2 DEX stable ABI allowlist missing' >&2; exit 1;
+}
 for marker in 'RiftBootstrapComponentStore.active(application, "shell")' \
   'Shell candidate class shadows host APK' \
   'val ownShell = name.startsWith(ENTRY_PREFIX)' \

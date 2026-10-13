@@ -540,6 +540,11 @@ require_dex_string 'train-v2-builder-status' 'RiftLLM RiftTrainData V2 builder q
 require_dex_string 'train_v2_builder_start' 'RiftLLM RiftTrainData V2 builder qualification start Provider method'
 require_dex_string 'train_v2_builder_status' 'RiftLLM RiftTrainData V2 builder qualification status Provider method'
 
+# Independently built graphical Shell V3 links only to this narrow optional
+# APK-owned V2 service; existing V1 Shell DEXes remain binary compatible.
+require_dex_string 'Lcom/riftos/app/RiftShellPlatformServicesV2;' 'optional external graphical Shell V2 IPC ABI'
+require_dex_string 'riftos.shell.ui-effect-result/1' 'bounded Core UI effect ticket reply schema'
+
 # C0.2 final-artifact proof: project editor implementation and its stale
 # Binder protocol must NOT be part of the signed OS DEX. The independent
 # project repos own these implementations; RiftOS retains the generic host.
