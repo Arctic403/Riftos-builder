@@ -167,6 +167,20 @@ require(BUILD, """grep -Fq '<package android:name="com.codynex.editor" />'""",
 forbid(BUILD, "for editor_package in com.riftpp.editor com.codynex.editor; do",
        "v0.6.4 must not reject its own explicitly required Codynex visibility")
 
+# Regress signed APK smoke failure in manual run 38334793379:
+# the compiled manifest must retain optional external Codynex Binder discovery,
+# while still forbidding the retired Rift++ editor package.
+require(VERIFY, "if grep -Fq 'com.riftpp.editor' <<<\"$manifest_tree\"; then",
+        "signed APK must reject retired Rift++ editor visibility")
+require(VERIFY, "if ! grep -Fq 'com.codynex.editor' <<<\"$manifest_tree\"; then",
+        "signed APK must retain required external Codynex Editor visibility")
+require(VERIFY, "external Codynex Editor visibility is absent",
+        "signed APK missing external Editor must fail closed")
+forbid(VERIFY, "for editor_package in 'com.riftpp.editor' 'com.codynex.editor'; do",
+       "signed APK smoke must not reject the required v0.6.4 Codynex query")
+forbid(VERIFY, "fixed project editor visibility resurfaced: $editor_package",
+       "signed APK smoke must not use obsolete blanket editor ban")
+
 # C1.2-B2-B1: Core focus leases are versioned and signed-DEX reachable.
 for marker in [
     "Builder B2-B1 focus source missing",

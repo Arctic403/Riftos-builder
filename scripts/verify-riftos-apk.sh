@@ -244,13 +244,17 @@ if ! grep -Fq 'com.riftos.runtime.EXECUTE_V1' <<<"$manifest_tree"; then
   exit 1
 fi
 
-# C0.2: no project editor package dependency is baked into the OS manifest.
-for editor_package in 'com.riftpp.editor' 'com.codynex.editor'; do
-  if grep -Fq "$editor_package" <<<"$manifest_tree"; then
-    echo "APK smoke check failed: fixed project editor visibility resurfaced: $editor_package" >&2
-    exit 1
-  fi
-done
+# C0.2: forbid retired Rift++ editor visibility in the signed APK.
+# v0.6.4 intentionally discovers the separately installed Codynex Editor for
+# user-approved Binder connections; it is NOT an embedded compiler/editor.
+if grep -Fq 'com.riftpp.editor' <<<"$manifest_tree"; then
+  echo 'APK smoke check failed: retired Rift++ editor package visibility resurfaced.' >&2
+  exit 1
+fi
+if ! grep -Fq 'com.codynex.editor' <<<"$manifest_tree"; then
+  echo 'APK smoke check failed: external Codynex Editor visibility is absent.' >&2
+  exit 1
+fi
 for retired_riftpp_visibility in 'com.riftpp.editor.nativev1' 'com.riftpp.editor.adapterr1' 'com.riftpp.nativeproof'; do
   if grep -Fq "$retired_riftpp_visibility" <<<"$manifest_tree"; then
     echo "APK smoke check failed: Rift++ proof package visibility resurfaced in the compiled RiftOS manifest: $retired_riftpp_visibility" >&2
