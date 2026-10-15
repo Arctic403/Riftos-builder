@@ -94,6 +94,7 @@ host_requirements = {
     "RiftNativeShell.kt": ("class RiftNativeShell",),
     "RiftNativeGit.kt": ("git",),
     "RiftRappCapabilityBroker.kt": ("class RiftRappCapabilityBroker",),
+    "RiftAppAbi.kt": ('const val TOOL_INVOKE = "tool.invoke"', "TOOL_INVOKE,"),
 }
 for file, markers in host_requirements.items():
     if file not in android_sources:

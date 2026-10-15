@@ -102,6 +102,8 @@ for obsolete in (
     require(SOURCE, '"' + obsolete + '.kt"', "removed embedded source gate")
     require(VERIFY, obsolete, "signed APK embedded DEX exclusion")
 require(VERIFY, "RiftNativeShell;", "MCP command shell must survive")
+require(SOURCE, 'const val TOOL_INVOKE = "tool.invoke"', "RAPP tool invoke host ABI source gate")
+require(VERIFY, "generic RAPP Core-owned tool invocation ABI constant", "RAPP tool invoke final DEX gate")
 require(SOURCE, 'com.riftos.tool.BIND_V1', "generic Android tool visibility source gate")
 require(VERIFY, 'com.riftos.tool.BIND_V1', "generic Android tool visibility signed APK gate")
 # The installer moved to retained Android Shell V2 platform services.

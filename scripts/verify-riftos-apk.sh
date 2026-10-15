@@ -223,6 +223,7 @@ done
 # DEX owners and the capability marker must be retained even if the Android
 # manifest/provider survived a broken or incomplete compilation.
 require_dex_string 'apk.install' "apk.install Core/Shell capability constant"
+require_dex_string 'tool.invoke' "generic RAPP Core-owned tool invocation ABI constant"
 require_dex_string 'Lcom/riftos/app/RiftShellPlatformServicesAdapter;' "external Shell Android installer adapter"
 require_dex_string '/D:/Builds/' "Android APK installation confined to RiftFS Builds root"
 
