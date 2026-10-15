@@ -366,6 +366,24 @@ for host_descriptor in \
   require_dex_string "Lcom/riftos/app/${host_descriptor};" "APK host owner ${host_descriptor}"
 done
 
+# Exact final-DEX evidence: zero embedded Core and graphical Shell classes.
+# This must inspect the SIGNED APK rather than merely trusting Gradle lists.
+# RiftNativeShell itself is retained: it is the active MCP command service.
+for obsolete_impl in \
+  MainActivity RiftCoreRuntime RiftCoreAppSessions \
+  RiftCoreAppSurfaces RiftCoreInputFocus RiftCoreAppLifecycle \
+  RiftCoreAppExecutor RiftCorePackageEvents RiftCorePackageGrants \
+  RiftRappManager RiftBuildPlatformTools \
+  RiftNativeDesktop RiftNativeSystemApps RiftNativeWorkspaceApps \
+  RiftNativeAdminApprovals RiftRappHost RiftShellRappHost \
+  RiftRemoteShellUiClient RiftRappShellCapabilityClient \
+  RiftRappAbsoluteView RiftBrowserAppHost RiftBrowserWindow \
+  RiftAlternateGraphicalShellActivity RiftAlternateShellClient \
+  RiftRemoteShellProbeActivity; do
+  forbid_dex_string "Lcom/riftos/app/${obsolete_impl};" "retired embedded owner ${obsolete_impl}"
+done
+require_dex_string 'Lcom/riftos/app/RiftNativeShell;' 'MCP command shell remains present'
+
 # Generic MCP event-bus and relay diagnostics must survive in the signed DEX.
 # cli.* markers are intentionally preserved relay wire compatibility, not CLI execution.
 for marker in 'mcp.event-bus' 'mcp.relay' 'event.created' 'cli.event.send' 'relay.ready' 'cli.replay.request' 'cli.replay.send' 'cli.ack'; do

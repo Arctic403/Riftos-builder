@@ -2,13 +2,13 @@
 
 This project is the **standalone RiftOS Android host APK Builder**, not the independent Core/Shell Component Builder RAPP. It builds the checked-out `Arctic403/RiftOS` Android host, validates its host-only source and the final signed artifact, and publishes build output only when the user triggers the private workflow.
 
-## Ownership and frozen Core/Shell boundary
+## Ownership and external-only Core/Shell boundary
 
 - **RiftOS host repo**: `/D:/Workspace/RiftOS-main` — Android manifest/processes, host ABI, external DEX component loading, protected install/Recovery, Android binder/security, MCP relay client, Local Agent/Accessibility, RiftFS/workspace, generic RAPP/platform services and browser/tool support.
 - **Independent Core/Shell and their TODOs/tests**: `/D:/Workspace/RiftComponents` — separate source, independent DEX/manifest recipes, separate Core & Shell Builder RAPP, user-controlled stage/install/select.
 - **This Builder**: `/D:/Workspace/Riftos-builder-main` — workflow, exact-source verification, Gradle host source checks, package/sign/artifact verification.
 
-On the 2026-10-15 device checkpoint, external Core v0.6.9 and Shell V10 were selected. **That does not qualify any future host APK build**. The currently checked-out host still packages frozen embedded Core/Shell fallback/compatibility classes. Their E0/E1/C1 historical milestone tests, canaries, UI implementation proofs and old release narratives are retired; no such TODOs are maintained in the RiftOS repo or this Builder.
+On the 2026-10-15 device checkpoint, external Core v0.6.9 and Shell V10 were selected. **That does not qualify any future host APK build**. The current unbuilt source candidate removes embedded Core and graphical Shell implementations, MainActivity and alternate graphical proof Activities. Builder rejects these removed classes in source and signed DEX. E0/E1/C1 milestone test narratives remain retired. External component TODOs belong in RiftComponents.
 
 ## Manual user workflow
 
@@ -22,13 +22,13 @@ On the 2026-10-15 device checkpoint, external Core v0.6.9 and Shell V10 were sel
 ## What final APK validation still checks
 
 - Correct package, SDK/security manifest and packaged Android processes/entrypoints.
-- DEX presence for every mandatory top-level Android Kotlin owner derived from the current Gradle contract (including currently compiled compatibility/fallback classes **without** executing their old feature-specific test gates).
+- DEX presence for every mandatory Kotlin owner derived from Gradle, plus verified absence of retired embedded Core and graphical Shell implementations.
 - Current protected component/Recovery, host IPC/ABI and generic capability classes.
 - MCP, Local Agent/Accessibility, RiftFS/workspace, native build services, Android installer/FileProvider and correctly packaged browser assets.
 - Android arm64-v8a and armeabi-v7a native assets, exact source SHA where embedded, no unsafe/duplicate ZIP entries, no leaked source/signing material or retired web/CLI payloads.
 - Release identity, alignment, signature and source-to-asset correspondence.
 
-Legacy embedded Core/Shell implementation roadmaps, unit/device proofs and component-specific source-string gates are **not** Builder release requirements. Future external Core/Shell requirements and TODOs go to RiftComponents. **Do not delete the host's runtime safety checks or compiled compatibility classes without a separate source/ABI/device qualification.**
+Legacy embedded Core/Shell roadmaps and feature-specific proof strings are retired; absence of the embedded code is now a mandatory signed-APK release gate. Future external Core/Shell requirements and TODOs go to RiftComponents. **Do not delete the host's security checks, external ABI/IPC, MCP command executor or manual Recovery.**
 
 ## Files
 

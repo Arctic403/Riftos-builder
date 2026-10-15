@@ -2,7 +2,7 @@
 """Host-only RiftOS release source validation.
 
 Validate the Android APK envelope and selected external component transport,
-not frozen embedded Core/Shell milestone implementations or their retired tests.
+never an embedded Core/Shell implementation or its retired proof Activities.
 The user explicitly controls build/install, component selection and Recovery.
 """
 from pathlib import Path
@@ -51,11 +51,15 @@ for name in sorted(android_sources):
         fail("Gradle mandatory source missing: " + name)
 
 # Only APK-owned host, MCP, Local Agent, workspace, loader/recovery and
-# generic transport are qualified. Frozen embedded source may remain in Gradle.
+# generic transport are qualified. Embedded implementations cannot be packaged.
 host_requirements = {
     "RiftCoreApplication.kt": ("class RiftCoreApplication",),
     "RiftShellActivity.kt": ("class RiftShellActivity", "RiftShellCandidateSwitch"),
-    "RiftHostComponentAbiV1.kt": ("interface RiftCoreComponentV1",),
+    "RiftHostComponentAbiV1.kt": (
+        "interface RiftCoreComponentV1",
+        '.put("externalShellEnabled", true)',
+        '.put("embeddedFallbackAvailable", false)',
+    ),
     "RiftShellComponentAbiV1.kt": (
         "interface RiftShellGraphicalComponentV1",
         "interface RiftShellPlatformServicesV1",
@@ -82,6 +86,7 @@ host_requirements = {
     "RiftWorkspaceRecords.kt": ("class RiftWorkspaceRecords",),
     "RiftWorkspaceWatcher.kt": ("class RiftWorkspaceWatcher",),
     "RiftVolumePaths.kt": ("object RiftVolumePaths",),
+    "RiftNativeShell.kt": ("class RiftNativeShell",),
     "RiftNativeGit.kt": ("git",),
     "RiftRappCapabilityBroker.kt": ("class RiftRappCapabilityBroker",),
 }
@@ -116,6 +121,44 @@ for marker in (
 ):
     if marker not in gradle:
         fail("missing Android build contract: " + marker)
+
+# The signed host is external-only. No embedded Core/graphical Shell
+# implementation or legacy proof Activity may return in any release.
+retired_embedded_sources = (
+    "MainActivity.kt",
+    "RiftCoreRuntime.kt", "RiftCoreAppSessions.kt",
+    "RiftCoreAppSurfaces.kt", "RiftCoreInputFocus.kt",
+    "RiftCoreAppLifecycle.kt", "RiftCoreAppExecutor.kt",
+    "RiftCorePackageEvents.kt", "RiftCorePackageGrants.kt",
+    "RiftRappManager.kt", "RiftBuildPlatformTools.kt",
+    "RiftNativeDesktop.kt", "RiftNativeSystemApps.kt",
+    "RiftNativeWorkspaceApps.kt", "RiftNativeAdminApprovals.kt",
+    "RiftRappHost.kt", "RiftShellRappHost.kt",
+    "RiftRemoteShellUiClient.kt", "RiftRappShellCapabilityClient.kt",
+    "RiftRappAbsoluteView.kt", "RiftBrowserAppHost.kt",
+    "RiftBrowserWindow.kt", "RiftAlternateGraphicalShellActivity.kt",
+    "RiftAlternateShellClient.kt", "RiftRemoteShellProbeActivity.kt",
+)
+for name in retired_embedded_sources:
+    if name in android_sources or (root / prefix / name).exists():
+        fail("embedded Core/Shell implementation returned: " + name)
+
+for rel, forbidden in (
+    ("RiftHostComponentAbiV1.kt", "EmbeddedCoreComponentV1"),
+    ("RiftHostComponentAbiV1.kt", "RiftCoreRuntime.initialize"),
+    ("RiftShellActivity.kt", "RiftNativeDesktop("),
+    ("RiftCoreCandidateSwitch.kt", 'lastSelection = "embedded"'),
+    ("RiftShellCandidateSwitch.kt", 'selection = "embedded"'),
+    ("RiftBootstrapHost.kt", '.put("embeddedFallbackAvailable", true)'),
+    ("RiftMcpRuntime.kt", "MainActivity"),
+):
+    if forbidden in read(prefix + rel):
+        fail("embedded fallback still reachable: " + rel + " / " + forbidden)
+
+for obsolete in ('.MainActivity', '.RiftAlternateGraphicalShellActivity',
+                 '.RiftRemoteShellProbeActivity'):
+    if 'android:name="' + obsolete + '"' in manifest:
+        fail("retired embedded/proof Activity in manifest: " + obsolete)
 
 for retired in (
     "scripts", "package.json", "external-components", "relay",

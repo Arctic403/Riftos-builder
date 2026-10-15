@@ -93,6 +93,18 @@ for retired in (
 ):
     forbid(BUILD + SOURCE, retired, "frozen embedded/source proof gates")
 
+# The Builder must forbid every removed implementation at source and DEX
+# levels, while retaining the MCP command shell and user-controlled Recovery.
+for obsolete in (
+    "MainActivity", "RiftCoreRuntime", "RiftNativeDesktop",
+    "RiftRappManager", "RiftShellRappHost", "RiftBrowserWindow",
+):
+    require(SOURCE, '"' + obsolete + '.kt"', "removed embedded source gate")
+    require(VERIFY, obsolete, "signed APK embedded DEX exclusion")
+require(VERIFY, "RiftNativeShell;", "MCP command shell must survive")
+require(SOURCE, "embedded fallback still reachable", "external-only fail-closed")
+require(SOURCE, "retired embedded/proof Activity", "obsolete manifest source gate")
+
 for marker in ("Core", "Shell", "manual", "MCP", "Local Agent"):
     require(README, marker, "current Builder README")
 if re.search(r'^\s+push:', WORKFLOW, flags=re.M):
