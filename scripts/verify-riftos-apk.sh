@@ -245,6 +245,13 @@ if ! grep -Fq 'com.riftos.runtime.EXECUTE_V1' <<<"$manifest_tree"; then
   exit 1
 fi
 
+# Narrow generic Android Binder tool-provider visibility is required for
+# external Core v0.6.9. No broad QUERY_ALL_PACKAGES grant is necessary.
+if ! grep -Fq 'com.riftos.tool.BIND_V1' <<<"$manifest_tree"; then
+  echo 'APK smoke check failed: generic Binder tool-provider visibility is absent.' >&2
+  exit 1
+fi
+
 # C0.2: forbid retired Rift++ editor visibility in the signed APK.
 # v0.6.4 intentionally discovers the separately installed Codynex Editor for
 # user-approved Binder connections; it is NOT an embedded compiler/editor.

@@ -102,6 +102,8 @@ for obsolete in (
     require(SOURCE, '"' + obsolete + '.kt"', "removed embedded source gate")
     require(VERIFY, obsolete, "signed APK embedded DEX exclusion")
 require(VERIFY, "RiftNativeShell;", "MCP command shell must survive")
+require(SOURCE, 'com.riftos.tool.BIND_V1', "generic Android tool visibility source gate")
+require(VERIFY, 'com.riftos.tool.BIND_V1', "generic Android tool visibility signed APK gate")
 # The installer moved to retained Android Shell V2 platform services.
 # Require its DEX class and stable Builds-root literal, plus the actual
 # source-level path, symlink, package-identity, and FileProvider gates.

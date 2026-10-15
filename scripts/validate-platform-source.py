@@ -113,6 +113,7 @@ for marker in (
     'android:name="androidx.core.content.FileProvider"',
     'android:grantUriPermissions="true"',
     'android.permission.REQUEST_INSTALL_PACKAGES',
+    'android:name="com.riftos.tool.BIND_V1"',
     'android:usesCleartextTraffic="false"',
 ):
     if marker not in manifest:
