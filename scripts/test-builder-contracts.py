@@ -102,6 +102,24 @@ for obsolete in (
     require(SOURCE, '"' + obsolete + '.kt"', "removed embedded source gate")
     require(VERIFY, obsolete, "signed APK embedded DEX exclusion")
 require(VERIFY, "RiftNativeShell;", "MCP command shell must survive")
+# The installer moved to retained Android Shell V2 platform services.
+# Require its DEX class and stable Builds-root literal, plus the actual
+# source-level path, symlink, package-identity, and FileProvider gates.
+for marker in (
+    "Lcom/riftos/app/RiftShellPlatformServicesAdapter;",
+    "/D:/Builds/",
+):
+    require(VERIFY, marker, "external Shell Android installer final-DEX gate")
+for marker in (
+    'display.startsWith("/D:/Builds/")',
+    "file.path.startsWith(builds.path",
+    "Files.isSymbolicLink",
+    "getPackageArchiveInfo",
+    "FileProvider.getUriForFile",
+):
+    require(SOURCE, marker, "external Shell Android installer source gate")
+forbid(VERIFY, "APK installation is limited to D:/Builds artifacts",
+       "retired embedded installer smoke-test marker")
 require(SOURCE, "embedded fallback still reachable", "external-only fail-closed")
 require(SOURCE, "retired embedded/proof Activity", "obsolete manifest source gate")
 
