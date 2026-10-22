@@ -141,6 +141,7 @@ fi
 
 if ! timeout --signal=TERM --kill-after=30s "$GRADLE_BUILD_TIMEOUT" \
     gradle -p android --stacktrace --no-build-cache \
+      -Pandroid.onlyEnableUnitTestForTheTestedBuildType=false \
       :app:assembleRelease :app:testReleaseUnitTest --no-daemon \
     >"$LOG_DIR/android-build.log" 2>&1; then
   echo "RiftOS Android compilation/packaging failed or exceeded $GRADLE_BUILD_TIMEOUT. Detailed log will be returned privately." >&2

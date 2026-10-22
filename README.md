@@ -1,5 +1,13 @@
 # RiftOS Builder — manually triggered signed Android host APK
 
+## AGP 9 release-unit-test task parity
+
+The worker requires `:app:testReleaseUnitTest` to execute 20 JVM archive/classpath/DEX publication tests before signing. Under Android Gradle Plugin 9, only the selected test build type (usually debug) gets a unit-test task by default. The release Gradle invocation explicitly supplies `-Pandroid.onlyEnableUnitTestForTheTestedBuildType=false` to register the release test variant. Do not replace this with `testDebugUnitTest`, an empty placeholder task, or a skipped-test override; the worker validates the real release XML test receipt.
+
+This Builder-only correction follows a user-manual worker failure where source preflight and initial Gradle source validation passed but Gradle could not find `:app:testReleaseUnitTest`. No change to the RiftOS source commit or manual worker/install ownership.
+
+---
+
 ## 2026-10-21 — Generic JVM dependency / DEX integrity parity
 
 RiftOS source `main` at **`f80ec1cc4b93fb367bc5f398a1b9e531f27d3fc4`** contains the new generic JVM dependency inputs and the stricter host implementation. This Builder revision expands its source and final signed APK checks to cover:

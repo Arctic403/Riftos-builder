@@ -36,6 +36,7 @@ for marker in (
     ':app:verifyRiftOsAndroidSources',
     ':app:validateRiftBrowserWebViewOwnership',
     "gradle -p android --stacktrace --no-build-cache",
+    "-Pandroid.onlyEnableUnitTestForTheTestedBuildType=false",
     '"$BUILD_TOOLS/zipalign" -p -f 4',
     '"$BUILD_TOOLS/apksigner" sign',
     '"$BUILD_TOOLS/apksigner" verify --verbose --print-certs',
