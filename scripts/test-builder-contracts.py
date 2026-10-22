@@ -93,6 +93,45 @@ for retired in (
 ):
     forbid(BUILD + SOURCE, retired, "frozen embedded/source proof gates")
 
+# RiftOS generic JVM/JAR-D8 host changes must be enforced by all three
+# Builder gates: source preflight, executed Gradle JUnit receipts and signed DEX.
+for marker in (
+    'docs/JVM_DEPENDENCIES.md',
+    'RiftJvmDexService.kt',
+    'RiftJvmClasspathPolicy.requireExact',
+    'RiftJvmDexPublication.publish',
+    'RiftJvmJarSupportTest.kt',
+    'exactClasspathRejectsUndeclaredExtras',
+    'dexPublicationRestoresPreviousOutputWhenPublishFails',
+    'len(test_cases) < 20',
+    'platforms/android-36/android.jar',
+    'kotlin-stdlib:2.4.10',
+    'finalizedBy("testReleaseUnitTest")',
+):
+    require(SOURCE, marker, "generic JVM host source and test gate")
+for marker in (
+    ':app:assembleRelease :app:testReleaseUnitTest',
+    'test-results/testReleaseUnitTest',
+    'RiftJvmJarSupportTest',
+    'len(tests) < 20',
+    'failures or skipped',
+    'JVM dependency JUnit release receipt',
+):
+    require(BUILD, marker, "executed JVM unit test gate before signing")
+for marker in (
+    'toolchain.properties',
+    'androidApiLevel=36',
+    'androidJarSha256',
+    'kotlinStdlibSha256',
+    'RiftJvmDexService',
+    'RiftJvmJarSupport',
+    'RiftJvmClasspathPolicy',
+    'RiftJvmDexPublication',
+    'jvmDependencyInputsVersion',
+    'Compiler classpath contains missing, duplicate or undeclared JVM JARs',
+):
+    require(VERIFY, marker, "final signed APK JVM dependency integrity")
+
 # The Builder must forbid every removed implementation at source and DEX
 # levels, while retaining the MCP command shell and user-controlled Recovery.
 for obsolete in (

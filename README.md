@@ -1,5 +1,22 @@
 # RiftOS Builder — manually triggered signed Android host APK
 
+## 2026-10-21 — Generic JVM dependency / DEX integrity parity
+
+RiftOS source `main` at **`f80ec1cc4b93fb367bc5f398a1b9e531f27d3fc4`** contains the new generic JVM dependency inputs and the stricter host implementation. This Builder revision expands its source and final signed APK checks to cover:
+
+- `RiftJvmDexService` and its archive normalization, exact compiler classpath and recoverable DEX publication classes, plus host ownership of managed Kotlin/D8.
+- Source-pinned **Android SDK 36** and **Kotlin stdlib 2.4.10**, with the **actual packaged** `toolchain.properties` SHA-256 values independently matched to the two signed APK JAR assets.
+- A release Gradle `:app:testReleaseUnitTest` execution gate and XML receipt for **at least 20 successful, non-skipped JVM JUnit tests**, before signing and final artifact validation.
+- Signed-DEX presence for the generic JVM service, JAR helper, strict classpath policy, DEX publisher, and new versioned dependency response markers.
+
+All checks remain **generic**: no QuickJS, Rift++, or other language/provider implementation is embedded in the host APK or its release requirements. No independent Core/Shell selection or Recovery mutation is performed by the worker. The user manually triggers the worker, installs verified APKs, and conducts runtime tests. These Builder source changes alone are not a successful Android compile or release.
+
+For reproducibility, select `source_ref=main` only when RiftOS main still resolves to the SHA above, or use that exact commit as the requested source ref. On failure, inspect the **first** Builder gate failure and private logs before considering further patches.
+
+---
+
+
+
 This project is the **standalone RiftOS Android host APK Builder**, not the independent Core/Shell Component Builder RAPP. It builds the checked-out `Arctic403/RiftOS` Android host, validates its host-only source and the final signed artifact, and publishes build output only when the user triggers the private workflow.
 
 ## Ownership and external-only Core/Shell boundary

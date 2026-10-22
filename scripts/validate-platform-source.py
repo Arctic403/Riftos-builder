@@ -26,7 +26,7 @@ required_docs = (
     "README.md", "docs/README.md", "docs/ARCHITECTURE.md",
     "docs/EXTERNAL_COMPONENTS.md", "docs/OPERATING_SERVICES.md",
     "docs/PLATFORM_CAPABILITIES.md", "docs/HOST_VALIDATION.md",
-    "docs/SOURCE_OWNERSHIP.md"
+    "docs/SOURCE_OWNERSHIP.md", "docs/JVM_DEPENDENCIES.md"
 )
 for rel in required_docs:
     if not (root / rel).is_file():
@@ -56,7 +56,8 @@ host_requirements = {
     "RiftCoreApplication.kt": ("class RiftCoreApplication",),
     "RiftShellActivity.kt": ("class RiftShellActivity", "RiftShellCandidateSwitch"),
     "RiftHostComponentAbiV1.kt": (
-        "interface RiftCoreComponentV1",
+                "interface RiftCoreComponentV1",
+        'jvmInputs = if (request.has("jvmInputs"))',
         '.put("externalShellEnabled", true)',
         '.put("embeddedFallbackAvailable", false)',
     ),
@@ -93,7 +94,18 @@ host_requirements = {
     "RiftVolumePaths.kt": ("object RiftVolumePaths",),
     "RiftNativeShell.kt": ("class RiftNativeShell",),
     "RiftNativeGit.kt": ("git",),
-    "RiftRappCapabilityBroker.kt": ("class RiftRappCapabilityBroker",),
+    "RiftRappCapabilityBroker.kt": ("class RiftRappCapabilityBroker", 'jvmInputs = if (request.has("jvmInputs"))'),
+    "RiftJvmDexService.kt": (
+        "class RiftJvmDexService", "internal object RiftJvmJarSupport",
+        "internal object RiftJvmClasspathPolicy", "internal object RiftJvmDexPublication",
+        "RiftJvmClasspathPolicy.requireExact", "RiftJvmDexPublication.publish",
+        'put("jvmDependencyInputsVersion", 1)', '"javaResources"',
+        '"toolchain.properties"',
+    ),
+    "RiftLocalBuildCapability.kt": (
+        "class RiftLocalBuildCapability", "jvmDex.validateCompilerInputs",
+        "jvmInputs: JSONObject? = null",
+    ),
     "RiftAppAbi.kt": ('const val TOOL_INVOKE = "tool.invoke"', "TOOL_INVOKE,"),
 }
 for file, markers in host_requirements.items():
@@ -128,6 +140,31 @@ for marker in (
 ):
     if marker not in gradle:
         fail("missing Android build contract: " + marker)
+
+# The current APK must ship exactly one SDK36/stdlib2.4.10 build authority,
+# and its actual JVM archive tests must be release-wired, not documentation.
+for marker in (
+    "platforms/android-36/android.jar",
+    'kotlin-stdlib:2.4.10',
+    '"toolchain.properties"',
+    'finalizedBy("testReleaseUnitTest")',
+    'testImplementation("junit:junit:4.13.2")',
+):
+    if marker not in gradle:
+        fail("missing generic JVM dependency release gate: " + marker)
+test_source = read(
+    "android/app/src/test/java/com/riftos/app/RiftJvmJarSupportTest.kt"
+)
+test_cases = re.findall(r"@Test\s+fun\s+([A-Za-z0-9_]+)", test_source)
+if len(test_cases) < 20 or len(test_cases) != len(set(test_cases)):
+    fail("JVM archive/classpath/publication JUnit coverage is missing or duplicated")
+for marker in (
+    "exactClasspathRejectsUndeclaredExtras",
+    "dexPublicationRestoresPreviousOutputWhenPublishFails",
+    "dexPublicationKeepsBackupIfRollbackAlsoFails",
+):
+    if marker not in test_cases:
+        fail("missing mandatory JVM hardening regression: " + marker)
 
 # The signed host is external-only. No embedded Core/graphical Shell
 # implementation or legacy proof Activity may return in any release.

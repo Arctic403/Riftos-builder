@@ -112,6 +112,18 @@ require_entry "resources.arsc"
 kotlin_toolchain_prefix="assets/riftbuild/kotlin-toolchain"
 require_entry "$kotlin_toolchain_prefix/android.jar"
 require_entry "$kotlin_toolchain_prefix/kotlin-stdlib.jar"
+require_entry "$kotlin_toolchain_prefix/toolchain.properties"
+toolchain_metadata="$(unzip -p "$APK" "$kotlin_toolchain_prefix/toolchain.properties" | tr -d '\r')"
+if ! grep -Fxq 'androidApiLevel=36' <<<"$toolchain_metadata"; then
+  echo 'APK smoke check failed: signed SDK36 toolchain metadata is missing.' >&2
+  exit 1
+fi
+for sha_key in androidJarSha256 kotlinStdlibSha256; do
+  if [ "$(grep -Ec "^\${sha_key}=[0-9a-f]{64}$" <<<"$toolchain_metadata")" -ne 1 ]; then
+    echo "APK smoke check failed: invalid or missing JVM toolchain digest ${sha_key}." >&2
+    exit 1
+  fi
+done
 forbid_entry '^assets/riftbuild/managed-runtimes/riftpp-adapter-v1/classes([2-9]|[1-9][0-9]+)?\.dex$'
 
 for toolchain_asset in \
@@ -131,6 +143,18 @@ for toolchain_asset in \
   if ! unzip -tqq "$toolchain_tmp" >/dev/null 2>&1; then
     rm -f "$toolchain_tmp"
     echo "APK smoke check failed: Kotlin toolchain asset is not a valid JAR: $toolchain_asset" >&2
+    exit 1
+  fi
+  case "$toolchain_asset" in
+    */android.jar) toolchain_sha_key=androidJarSha256 ;;
+    */kotlin-stdlib.jar) toolchain_sha_key=kotlinStdlibSha256 ;;
+    *) echo 'APK smoke check failed: unrecognized JVM toolchain asset.' >&2; exit 1 ;;
+  esac
+  expected_sha="$(sed -n "s/^${toolchain_sha_key}=//p" <<<"$toolchain_metadata")"
+  actual_sha="$(sha256sum "$toolchain_tmp" | awk '{print $1}')"
+  if [ "$expected_sha" != "$actual_sha" ]; then
+    rm -f "$toolchain_tmp"
+    echo "APK smoke check failed: packaged JVM toolchain identity mismatch for $toolchain_asset." >&2
     exit 1
   fi
   rm -f "$toolchain_tmp"
@@ -354,6 +378,18 @@ for source_rel in "${required_native_sources[@]}"; do
     descriptor="L${descriptor_package}/${declaration};"
     require_dex_string "$descriptor" "required native class $descriptor from $source_rel"
   done
+done
+
+# Generic JVM dependency hardening must survive source->DEX packaging.
+# Unit tests are run and receipt-checked by the Builder; this is distinct
+# final signed-APK proof that the runtime and exact-classpath/rollback owners ship.
+for jvm_owner in RiftJvmDexService RiftJvmJarSupport RiftJvmClasspathPolicy RiftJvmDexPublication; do
+  require_dex_string "Lcom/riftos/app/${jvm_owner};" "generic JVM dependency runtime ${jvm_owner}"
+done
+for jvm_wire_marker in 'jvmDependencyInputsVersion' 'javaResources' \
+  'kotlinStdlibVersion' 'androidApiLevel' \
+  'Compiler classpath contains missing, duplicate or undeclared JVM JARs'; do
+  require_dex_string "$jvm_wire_marker" "generic JVM dependency capability $jvm_wire_marker"
 done
 
 # Host-focused signed-DEX gates. Kotlin top-level classes for ALL actual

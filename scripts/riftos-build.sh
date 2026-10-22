@@ -140,11 +140,41 @@ if ! timeout --signal=TERM --kill-after=30s "$GRADLE_VALIDATE_TIMEOUT" \
 fi
 
 if ! timeout --signal=TERM --kill-after=30s "$GRADLE_BUILD_TIMEOUT" \
-    gradle -p android --stacktrace --no-build-cache :app:assembleRelease --no-daemon \
+    gradle -p android --stacktrace --no-build-cache \
+      :app:assembleRelease :app:testReleaseUnitTest --no-daemon \
     >"$LOG_DIR/android-build.log" 2>&1; then
   echo "RiftOS Android compilation/packaging failed or exceeded $GRADLE_BUILD_TIMEOUT. Detailed log will be returned privately." >&2
   exit 1
 fi
+
+# The new bounded JVM dependency archive tests must actually execute in the
+# user's release build. Finalizer wiring alone is not a passing test receipt.
+# Inspect the checked-out source's Gradle XML, not an arbitrary filename.
+python3 - "$SOURCE_DIR/android/app/build/test-results/testReleaseUnitTest" <<'PY'
+from pathlib import Path
+import sys
+import xml.etree.ElementTree as ET
+
+directory = Path(sys.argv[1])
+results = sorted(directory.glob("TEST-*.xml")) if directory.is_dir() else []
+matches = []
+for result in results:
+    suite = ET.parse(result).getroot()
+    if suite.attrib.get("name") != "com.riftos.app.RiftJvmJarSupportTest":
+        continue
+    tests = suite.findall(".//testcase")
+    failures = sum(len(test.findall("failure")) + len(test.findall("error")) for test in tests)
+    skipped = sum(len(test.findall("skipped")) for test in tests)
+    if len(tests) < 20 or failures or skipped or len(tests) != len({t.attrib.get("name") for t in tests}):
+        raise SystemExit(
+            f"FAIL: RiftOS JVM JUnit receipt has {len(tests)} tests, "
+            f"{failures} failures and {skipped} skipped"
+        )
+    matches.append(result)
+if len(matches) != 1:
+    raise SystemExit("FAIL: missing or duplicate RiftJvmJarSupportTest Gradle release receipt")
+print("PASS: RiftOS JVM dependency JUnit release receipt (>=20 tests, 0 failures/skips)")
+PY
 
 BUILD_TOOLS="${ANDROID_HOME:?}/build-tools/36.0.0"
 UNSIGNED="android/app/build/outputs/apk/release/app-release-unsigned.apk"
