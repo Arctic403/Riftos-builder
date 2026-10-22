@@ -100,7 +100,7 @@ host_requirements = {
         "internal object RiftJvmClasspathPolicy", "internal object RiftJvmDexPublication",
         "RiftJvmClasspathPolicy.requireExact", "RiftJvmDexPublication.publish",
         'put("jvmDependencyInputsVersion", 1)', '"javaResources"',
-        '"toolchain.properties"',
+        'appContext.assets.open("$ASSET_ROOT/toolchain.properties")',
     ),
     "RiftLocalBuildCapability.kt": (
         "class RiftLocalBuildCapability", "jvmDex.validateCompilerInputs",

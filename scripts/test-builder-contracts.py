@@ -98,6 +98,7 @@ for retired in (
 for marker in (
     'docs/JVM_DEPENDENCIES.md',
     'RiftJvmDexService.kt',
+    'appContext.assets.open("$ASSET_ROOT/toolchain.properties")',
     'RiftJvmClasspathPolicy.requireExact',
     'RiftJvmDexPublication.publish',
     'RiftJvmJarSupportTest.kt',
