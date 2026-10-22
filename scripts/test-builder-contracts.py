@@ -7,6 +7,8 @@ workspace and manual Recovery. External component tests live in RiftComponents.
 """
 from pathlib import Path
 import re
+import shlex
+import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD = (ROOT / "scripts/riftos-build.sh").read_text(encoding="utf-8")
@@ -174,5 +176,29 @@ if re.search(r'^\s+push:', WORKFLOW, flags=re.M):
     raise AssertionError("RiftOS worker must stay manual workflow_dispatch")
 for forbidden in ("selectCoreCandidate(", "saveWorkingBackup(", "activateCore("):
     forbid(WORKFLOW + BUILD, forbidden, "CI may not select Core or Recovery")
+
+# Execute the exact SHA-key guard extracted from the actual signed-APK verifier.
+# This catches shell variable escaping bugs that marker-only tests cannot catch.
+begin = "for sha_key in androidJarSha256 kotlinStdlibSha256; do"
+if VERIFY.count(begin) != 1:
+    raise AssertionError("signed APK toolchain digest guard is missing or duplicated")
+digest_guard = begin + VERIFY.split(begin, 1)[1].split("\ndone", 1)[0] + "\ndone"
+if not digest_guard.endswith("\ndone"):
+    raise AssertionError("signed APK toolchain digest guard is malformed")
+valid_metadata = "androidApiLevel=36\nandroidJarSha256=" + "a" * 64 + "\nkotlinStdlibSha256=" + "b" * 64
+fixtures = (
+    ("valid", valid_metadata, True),
+    ("missing", valid_metadata.replace("androidJarSha256=" + "a" * 64 + "\n", ""), False),
+    ("malformed", valid_metadata.replace("a" * 64, "not-a-hash"), False),
+    ("duplicate", valid_metadata + "\nandroidJarSha256=" + "a" * 64, False),
+)
+for name, metadata, should_pass in fixtures:
+    script = "set -euo pipefail\ntoolchain_metadata=" + shlex.quote(metadata) + "\n" + digest_guard + "\n"
+    result = subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=10)
+    if (result.returncode == 0) != should_pass:
+        raise AssertionError(
+            "signed APK toolchain digest guard case " + name +
+            " returned " + str(result.returncode) + ": " + result.stderr.strip()
+        )
 
 print("PASS: host-only RiftOS Builder contracts, user-manual sign, DEX and Recovery integrity")

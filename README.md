@@ -1,5 +1,13 @@
 # RiftOS Builder — manually triggered signed Android host APK
 
+## 2026-10-21 — Signed APK metadata digest regression
+
+The first full Gradle release attempt against RiftOS `f80ec1cc4b93fb367bc5f398a1b9e531f27d3fc4` completed **109 Gradle tasks**, including host Kotlin compilation and `:app:testReleaseUnitTest`, and produced an aligned signed APK. The final APK smoke gate rejected `androidJarSha256` due to an escaped shell variable (`\${sha_key}`) in the grep regular expression; this did **not** establish a bad packaged SHA or an Android compilation failure.
+
+The Builder-only verifier now expands `${sha_key}` while retaining full SHA-256 metadata validation against both extracted JAR assets. Builder contract tests execute the extracted verifier digest guard in Bash with four synthetic cases: valid, missing, malformed, and duplicate keys. No signed-APK smoke success, installed-host qualification or device functionality is claimed until the next user-triggered full Builder completes.
+
+---
+
 ## AGP 9 release-unit-test task parity
 
 The worker requires `:app:testReleaseUnitTest` to execute 20 JVM archive/classpath/DEX publication tests before signing. Under Android Gradle Plugin 9, only the selected test build type (usually debug) gets a unit-test task by default. The release Gradle invocation explicitly supplies `-Pandroid.onlyEnableUnitTestForTheTestedBuildType=false` to register the release test variant. Do not replace this with `testDebugUnitTest`, an empty placeholder task, or a skipped-test override; the worker validates the real release XML test receipt.

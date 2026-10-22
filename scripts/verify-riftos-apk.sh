@@ -119,7 +119,7 @@ if ! grep -Fxq 'androidApiLevel=36' <<<"$toolchain_metadata"; then
   exit 1
 fi
 for sha_key in androidJarSha256 kotlinStdlibSha256; do
-  if [ "$(grep -Ec "^\${sha_key}=[0-9a-f]{64}$" <<<"$toolchain_metadata")" -ne 1 ]; then
+  if [ "$(grep -Ec "^${sha_key}=[0-9a-f]{64}$" <<<"$toolchain_metadata")" -ne 1 ]; then
     echo "APK smoke check failed: invalid or missing JVM toolchain digest ${sha_key}." >&2
     exit 1
   fi
