@@ -35,7 +35,7 @@ for marker in (
     "RiftWorkspaceRecords.kt", "RiftVolumePaths.kt",
     ':app:verifyRiftOsAndroidSources',
     ':app:validateRiftBrowserWebViewOwnership',
-    "gradle -p android --stacktrace --no-build-cache :app:assembleRelease",
+    "gradle -p android --stacktrace --no-build-cache",
     '"$BUILD_TOOLS/zipalign" -p -f 4',
     '"$BUILD_TOOLS/apksigner" sign',
     '"$BUILD_TOOLS/apksigner" verify --verbose --print-certs',
