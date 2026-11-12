@@ -1,5 +1,32 @@
 # RiftOS Builder — manually triggered signed Android host APK
 
+## 2026-11-11 — Native RiftShell Generic Tool CLI host build gate
+
+The host-owned native `RiftNativeShell.kt` adds a bounded `tool list` /
+`tool call` command pair. Commands forward complete provider JSON through
+the **selected external Core**; the Core continues to own saved grants,
+provider signer pinning, approved operation scopes and per-call consent.
+This requires an updated RiftOS **host APK**, NOT an external Core/Shell
+DEX rebuild or RiftBench reinstall.
+
+This Builder update adds `scripts/test-native-shell-tools.py` to the
+manual `workflow_dispatch` source-validation stage and pre-Gradle build
+checks. It verifies the CLI command route, response limits, safe JSON input
+boundaries, and absence of a direct Binder path. The source validator checks
+the new command's presence and the documented fixture; the signed-APK
+smoke gate checks for `tool-call`, `tool-list`, `tool list` and Core
+request-schema strings inside actual packaged DEX.
+
+**User-controlled build:** After BOTH `Arctic403/RiftOS` and
+`Arctic403/Riftos-builder` main branches are pushed, open the
+`RiftOS Private Build Worker` GitHub Actions workflow and manually run
+`workflow_dispatch` with `source_ref=main` (or the specific freshly
+pushed RiftOS commit). No automatic workflow run, installation, Core/Shell
+selection or Recovery mutation is introduced by these source changes.
+If a new command fails source validation, Kotlin compilation, signer
+validation or on-device consent, treat that as a failure and inspect the
+worker's private logs before manual installation.
+
 ## 2026-10-21 — Signed APK metadata digest regression
 
 The first full Gradle release attempt against RiftOS `f80ec1cc4b93fb367bc5f398a1b9e531f27d3fc4` completed **109 Gradle tasks**, including host Kotlin compilation and `:app:testReleaseUnitTest`, and produced an aligned signed APK. The final APK smoke gate rejected `androidJarSha256` due to an escaped shell variable (`\${sha_key}`) in the grep regular expression; this did **not** establish a bad packaged SHA or an Android compilation failure.

@@ -92,7 +92,14 @@ host_requirements = {
     "RiftWorkspaceRecords.kt": ("class RiftWorkspaceRecords",),
     "RiftWorkspaceWatcher.kt": ("class RiftWorkspaceWatcher",),
     "RiftVolumePaths.kt": ("object RiftVolumePaths",),
-    "RiftNativeShell.kt": ("class RiftNativeShell",),
+    "RiftNativeShell.kt": (
+        "class RiftNativeShell",
+        '"tool" -> genericToolCommand(raw, cwd)',
+        "RiftHostCoreComponents.externalAppConnections()",
+        ".appConnectionRequest(appContext, request)",
+        'request.put("operation", "tool-call")',
+        'request.put("operation", "tool-list")',
+    ),
     "RiftNativeGit.kt": ("git",),
     "RiftRappCapabilityBroker.kt": ("class RiftRappCapabilityBroker", 'jvmInputs = if (request.has("jvmInputs"))'),
     "RiftJvmDexService.kt": (
@@ -115,6 +122,12 @@ for file, markers in host_requirements.items():
     for marker in markers:
         if marker not in source:
             fail("missing host contract " + file + ": " + repr(marker))
+
+# The native shell test fixture is documentation-owned, not an extra APK
+# module or independent Core/Shell source. The builder independently executes
+# scripts/test-native-shell-tools.py against these checked-out source bytes.
+if not (root / "docs/tests/native-shell-generic-tool-source-test.js").is_file():
+    fail("native Generic Tool shell source regression fixture missing")
 
 for marker in (
     'android:name=".RiftCoreApplication"',

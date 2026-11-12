@@ -16,6 +16,7 @@ VERIFY = (ROOT / "scripts/verify-riftos-apk.sh").read_text(encoding="utf-8")
 SOURCE = (ROOT / "scripts/validate-platform-source.py").read_text(encoding="utf-8")
 WORKFLOW = (ROOT / ".github/workflows/riftos-worker.yml").read_text(encoding="utf-8")
 README = (ROOT / "README.md").read_text(encoding="utf-8")
+NATIVE_TOOL = (ROOT / "scripts/test-native-shell-tools.py").read_text(encoding="utf-8")
 
 def require(src, needle, label):
     if needle not in src:
@@ -135,6 +136,40 @@ for marker in (
     'Compiler classpath contains missing, duplicate or undeclared JVM JARs',
 ):
     require(VERIFY, marker, "final signed APK JVM dependency integrity")
+
+# Native Generic Tool CLI is host-owned, but external Core still owns
+# provider authorization. Every manual build must run the source/consent
+# route contract and inspect compiled DEX in the final signed APK.
+for marker in (
+    'python3 "$SCRIPT_DIR/test-native-shell-tools.py" "$SOURCE_DIR"',
+    'native-generic-tool-check.log',
+):
+    require(BUILD, marker, "native Generic Tool pre-Gradle contract")
+for marker in (
+    'python3 worker/scripts/test-native-shell-tools.py source',
+    'workflow_dispatch:',
+):
+    require(WORKFLOW, marker, "manual worker native shell gate")
+for marker in (
+    '"tool" -> genericToolCommand(raw, cwd)',
+    'docs/tests/native-shell-generic-tool-source-test.js',
+    'RiftHostCoreComponents.externalAppConnections()',
+):
+    require(SOURCE, marker, "native Generic Tool source/fixture gate")
+for marker in (
+    "test-native-shell-tools.py <checked-out-RiftOS-host-repo>",
+    "selected Core consent",
+    "provider file canonical-root check missing",
+    "provider request file symlink check missing",
+):
+    require(NATIVE_TOOL, marker, "native shell authorization boundary")
+for marker in (
+    "native RiftShell Generic Tool command help",
+    "native RiftShell Generic Tool call opcode",
+    "native RiftShell approved-tool list opcode",
+    "selected Core tool-request schema",
+):
+    require(VERIFY, marker, "native shell final signed DEX proof")
 
 # The Builder must forbid every removed implementation at source and DEX
 # levels, while retaining the MCP command shell and user-controlled Recovery.

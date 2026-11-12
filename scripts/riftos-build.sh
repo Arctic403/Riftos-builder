@@ -121,6 +121,16 @@ if ! timeout --signal=TERM --kill-after=30s "$SOURCE_CHECK_TIMEOUT" \
   exit 1
 fi
 
+# New native RiftShell generic-tool CLI is a host-owned feature.
+# Verify the checked-out source routes only through selected Core consent and
+# keeps provider JSON/file arguments bounded before expensive Gradle tasks.
+if ! timeout --signal=TERM --kill-after=10s "$SOURCE_CHECK_TIMEOUT" \
+    python3 "$SCRIPT_DIR/test-native-shell-tools.py" "$SOURCE_DIR" \
+    >"$LOG_DIR/native-generic-tool-check.log" 2>&1; then
+  echo "RiftOS native Generic Tool shell contract invalid; host build stopped." >&2
+  exit 1
+fi
+
 # Native runtime/editor hosts must be rebuilt from the checked-out source.
 # Discard CMake/native packaging intermediates that can survive worker reuse across source revisions.
 rm -rf \

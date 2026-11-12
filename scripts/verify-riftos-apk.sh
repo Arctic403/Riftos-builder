@@ -429,6 +429,16 @@ for obsolete_impl in \
 done
 require_dex_string 'Lcom/riftos/app/RiftNativeShell;' 'MCP command shell remains present'
 
+# New Generic Tool CLI must be inside the ACTUAL SIGNED HOST DEX, not
+# merely in checked-out Kotlin or external Core/Shell sources.
+# No tool-provider package is hardcoded; the selected Core checks grants,
+# package signer and per-call consent before dispatching a provider request.
+require_dex_string 'tool list' 'native RiftShell Generic Tool command help'
+require_dex_string 'tool-call' 'native RiftShell Generic Tool call opcode'
+require_dex_string 'tool-list' 'native RiftShell approved-tool list opcode'
+require_dex_string 'riftos.core.app-connection-request/1' 'selected Core tool-request schema'
+
+
 # Generic MCP event-bus and relay diagnostics must survive in the signed DEX.
 # cli.* markers are intentionally preserved relay wire compatibility, not CLI execution.
 for marker in 'mcp.event-bus' 'mcp.relay' 'event.created' 'cli.event.send' 'relay.ready' 'cli.replay.request' 'cli.replay.send' 'cli.ack'; do
