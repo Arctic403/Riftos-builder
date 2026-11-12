@@ -8,6 +8,7 @@ The user explicitly controls build/install, component selection and Recovery.
 from pathlib import Path
 import re
 import sys
+import xml.etree.ElementTree as ET
 
 def fail(message):
     raise SystemExit("RiftOS host source validation failed: " + message)
@@ -195,7 +196,23 @@ for marker in (
         fail("missing Blockbench batch validation: " + marker)
 if '"tree", "screenshot", "click"' not in tool_host:
     fail("MCP Local Agent schema does not expose the screenshot operation")
-if 'QUERY_ALL_PACKAGES' in manifest:
+# Check declarations with an XML parser rather than scanning raw text:
+# the Android manifest intentionally mentions QUERY_ALL_PACKAGES in comments.
+def declares_broad_package_permission(manifest_xml: str) -> bool:
+    root = ET.fromstring(manifest_xml)
+    android_name = "{http://schemas.android.com/apk/res/android}name"
+    return any(
+        element.tag in ("uses-permission", "uses-permission-sdk-23",
+                        "uses-permission-sdk-m")
+        and element.get(android_name) == "android.permission.QUERY_ALL_PACKAGES"
+        for element in root
+    )
+
+try:
+    broad_discovery = declares_broad_package_permission(manifest)
+except ET.ParseError as exc:
+    fail("invalid Android manifest XML: " + str(exc))
+if broad_discovery:
     fail("broad Android package discovery is forbidden for Blockbench UI access")
 
 for marker in (

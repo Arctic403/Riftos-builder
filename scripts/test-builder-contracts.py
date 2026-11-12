@@ -7,6 +7,8 @@ workspace and manual Recovery. External component tests live in RiftComponents.
 """
 from pathlib import Path
 import re
+import ast
+import xml.etree.ElementTree as ET
 import shlex
 import subprocess
 
@@ -247,6 +249,51 @@ if re.search(r'^\s+push:', WORKFLOW, flags=re.M):
     raise AssertionError("RiftOS worker must stay manual workflow_dispatch")
 for forbidden in ("selectCoreCandidate(", "saveWorkingBackup(", "activateCore("):
     forbid(WORKFLOW + BUILD, forbidden, "CI may not select Core or Recovery")
+
+# Execute the ACTUAL source-validator permission predicate against XML
+# fixtures. A comment mentioning QUERY_ALL_PACKAGES must not fail the build,
+# but a real declaration (including SDK-23 form) must still be rejected.
+validator_tree = ast.parse(SOURCE)
+permission_functions = [
+    node for node in validator_tree.body
+    if isinstance(node, ast.FunctionDef)
+    and node.name == "declares_broad_package_permission"
+]
+if len(permission_functions) != 1:
+    raise AssertionError("XML permission validator is absent or duplicated")
+permission_code = compile(
+    ast.Module(body=permission_functions, type_ignores=[]),
+    "<RiftOS permission validator>", "exec"
+)
+permission_scope = {"ET": ET}
+exec(permission_code, permission_scope)
+declares_permission = permission_scope["declares_broad_package_permission"]
+xml_prefix = '<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
+permission_fixtures = (
+    ("comment mentioning QUERY_ALL_PACKAGES",
+     xml_prefix + '<!-- no QUERY_ALL_PACKAGES permission -->'
+     + '<uses-permission android:name="android.permission.INTERNET" />'
+     + '</manifest>', False),
+    ("regular dangerous permission",
+     xml_prefix + '<uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />'
+     + '</manifest>', True),
+    ("SDK23 dangerous permission",
+     xml_prefix + '<uses-permission-sdk-23 android:name="android.permission.QUERY_ALL_PACKAGES" />'
+     + '</manifest>', True),
+    ("non-permission attribute mentions broad discovery",
+     xml_prefix + '<application android:label="QUERY_ALL_PACKAGES" />'
+     + '</manifest>', False),
+)
+for name, xml, expected in permission_fixtures:
+    result = declares_permission(xml)
+    if result is not expected:
+        raise AssertionError("Android package permission fixture failed: " + name)
+try:
+    declares_permission(xml_prefix + '<uses-permission')
+except ET.ParseError:
+    pass
+else:
+    raise AssertionError("Malformed Android manifest must fail XML parsing")
 
 # Execute the exact SHA-key guard extracted from the actual signed-APK verifier.
 # This catches shell variable escaping bugs that marker-only tests cannot catch.

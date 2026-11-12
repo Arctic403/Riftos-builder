@@ -1,5 +1,26 @@
 # RiftOS Builder — manually triggered signed Android host APK
 
+## 2026-11-12 — Fix false-positive Android package permission preflight
+
+The manual worker build for Host commit `e61a083206a3` (Actions run
+`43307407352`) stopped in `Validate RiftOS Builder scripts`, before
+Gradle, reporting that broad Android package discovery was forbidden.
+The Host manifest **did not** request this permission: a comment contained
+the words `QUERY_ALL_PACKAGES`, which the Builder's raw substring scan
+mistook for a declaration.
+
+Source validation now parses the manifest XML and rejects only an actual
+`android.permission.QUERY_ALL_PACKAGES` `uses-permission` declaration
+(including SDK-specific forms). Builder regression tests execute the exact
+predicate against comment-only, valid, forbidden, and malformed XML
+fixtures. All existing Blockbench and signed-APK checks remain intact.
+
+User re-runs the manual `RiftOS Private Build Worker` with
+`source_ref=main`. No build, signing, installation, external Core/Shell
+selection, or release publication is performed by this source correction.
+
+---
+
 ## 2026-11-12 — Blockbench Mobile Accessibility & screenshot Host gate
 
 The RiftOS Host source at `Arctic403/RiftOS` now has a fixed
