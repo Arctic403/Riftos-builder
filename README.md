@@ -1,5 +1,23 @@
 # RiftOS Builder — manually triggered signed Android host APK
 
+## 2026-11-11 — Opt-in temporary Generic Tool trust
+
+The Host APK's native `tool trust start|status|stop` commands are now
+covered by the **manual** RiftOS worker's source preflight and final
+signed-DEX checks. These commands send manager requests to **external
+Core v0.6.22**; the Host itself does not store the trust, grant tool
+permissions, or directly invoke Android Binder.
+
+Core v0.6.22 is separately compiled in the user-owned External Core &
+Shell Builder RAPP from
+`/D:/Workspace/RiftComponents/compile-core-v0622.json`. Both the
+updated signed Host APK and external Core v0.6.22 are required to use
+temporary trust. External graphical Shell and RiftBench companion APK
+remain unchanged. The trust session requires one explicit approval,
+lasts up to 15 minutes, covers only specifically selected operations
+(which may mutate data), and is revocable. No workflow auto-runs or
+installs/picks independent components.
+
 ## 2026-11-11 — Native RiftShell Generic Tool CLI host build gate
 
 The host-owned native `RiftNativeShell.kt` adds a bounded `tool list` /

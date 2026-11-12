@@ -161,6 +161,9 @@ for marker in (
     "selected Core consent",
     "provider file canonical-root check missing",
     "provider request file symlink check missing",
+    "temporary trust CLI missing",
+    "temporary trust duration not bounded",
+    "temporary trust operation count not bounded",
 ):
     require(NATIVE_TOOL, marker, "native shell authorization boundary")
 for marker in (
@@ -168,6 +171,10 @@ for marker in (
     "native RiftShell Generic Tool call opcode",
     "native RiftShell approved-tool list opcode",
     "selected Core tool-request schema",
+    "native RiftShell trust command help",
+    "native temporary trust start opcode",
+    "native temporary trust status opcode",
+    "native temporary trust stop opcode",
 ):
     require(VERIFY, marker, "native shell final signed DEX proof")
 

@@ -56,6 +56,24 @@ expect(handler, 'request.put("operation", "tool-call")',
        "tool call no longer routed to Core")
 expect(handler, ".put(\"id\", id).put(\"command\", provider)",
        "Core tool request no longer includes provider command")
+# The trust command must not add an alternate Binder or permission route.
+# It only transports typed start/status/stop requests into selected Core,
+# which always validates saved scopes and obtains fresh user consent on start.
+for marker, error in (
+    ('"trust" -> {', "temporary trust CLI missing"),
+    ('request.put("operation","tool-session-start")',
+     "temporary trust start not routed through Core"),
+    ('request.put("operation","tool-session-status")',
+     "temporary trust status not routed through Core"),
+    ('request.put("operation","tool-session-stop")',
+     "temporary trust stop not routed through Core"),
+    ('minutes in 1..15', "temporary trust duration not bounded"),
+    ('granted.size in 1..8', "temporary trust operation count not bounded"),
+    ('granted.size==granted.toSet().size',
+     "temporary trust must reject duplicate operations"),
+):
+    expect(handler, marker, error)
+
 expect(handler, "RiftHostCoreComponents.externalAppConnections()",
        "selected external Core gate missing")
 expect(handler, ".appConnectionRequest(appContext, request)",

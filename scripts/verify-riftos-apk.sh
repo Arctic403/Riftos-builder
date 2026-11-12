@@ -437,6 +437,11 @@ require_dex_string 'tool list' 'native RiftShell Generic Tool command help'
 require_dex_string 'tool-call' 'native RiftShell Generic Tool call opcode'
 require_dex_string 'tool-list' 'native RiftShell approved-tool list opcode'
 require_dex_string 'riftos.core.app-connection-request/1' 'selected Core tool-request schema'
+# Trust is temporary and opt-in; Core v0.6.22 still owns every approval.
+require_dex_string 'tool trust' 'native RiftShell trust command help'
+require_dex_string 'tool-session-start' 'native temporary trust start opcode'
+require_dex_string 'tool-session-status' 'native temporary trust status opcode'
+require_dex_string 'tool-session-stop' 'native temporary trust stop opcode'
 
 
 # Generic MCP event-bus and relay diagnostics must survive in the signed DEX.
