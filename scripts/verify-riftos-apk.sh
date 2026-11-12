@@ -244,6 +244,46 @@ for marker in 'rift-build-apks' 'riftfs/documents/builds/'; do
     exit 1
   fi
 done
+# Blockbench Accessibility capability must reach the SIGNED APK, not only
+# the checked-out source. AGP renames res/xml/*.xml: use the verified AAPT2
+# resource resolver rather than assuming the original entry path survives.
+if ! grep -Fq 'net.blockbench.androidcommunity' <<<"$manifest_tree"; then
+  echo 'APK smoke check failed: signed manifest lacks Blockbench package visibility.' >&2
+  exit 1
+fi
+if ! grep -Fq 'RiftVortexAccessibilityService' <<<"$manifest_tree"; then
+  echo 'APK smoke check failed: Accessibility service missing from signed manifest.' >&2
+  exit 1
+fi
+blockbench_accessibility_file="$("$AAPT2" dump resources "$APK" | python3 "$resolver" xml/vortex_agent_accessibility)" || {
+  echo 'APK smoke check failed: cannot resolve compiled Blockbench Accessibility XML.' >&2
+  exit 1
+}
+require_entry "$blockbench_accessibility_file"
+blockbench_accessibility_tree="$("$AAPT2" dump xmltree "$APK" --file "$blockbench_accessibility_file")"
+if ! grep -Fq 'net.blockbench.androidcommunity' <<<"$blockbench_accessibility_tree"; then
+  echo 'APK smoke check failed: compiled Accessibility package allowlist omits Blockbench.' >&2
+  exit 1
+fi
+if ! grep -Eq 'android:canTakeScreenshot.*(0xffffffff|true)' <<<"$blockbench_accessibility_tree"; then
+  echo 'APK smoke check failed: compiled Accessibility service lacks screenshot=true.' >&2
+  exit 1
+fi
+for marker in 'android:canRetrieveWindowContent' 'android:canPerformGestures'; do
+  if ! grep -Fq "$marker" <<<"$blockbench_accessibility_tree"; then
+    echo "APK smoke check failed: compiled Accessibility XML lacks $marker." >&2
+    exit 1
+  fi
+done
+# The exact fixed-target delegation, local batch routing, and real Android
+# screenshot code must also survive Kotlin compilation into the final DEX.
+require_dex_string 'Lcom/riftos/app/RiftBlockbenchLocalAgent;' 'Blockbench Accessibility controller'
+require_dex_string 'net.blockbench.androidcommunity' 'fixed Blockbench package target'
+require_dex_string 'Local Agent targetApp must be blockbench-mobile' 'bounded Local Agent target'
+require_dex_string 'android-accessibility-takeScreenshot' 'real Android screenshot result'
+require_dex_string 'Android Accessibility screenshot requires API 30+' 'screenshot API guard'
+require_dex_string 'imageBase64' 'screenshot result transport'
+
 # DEX owners and the capability marker must be retained even if the Android
 # manifest/provider survived a broken or incomplete compilation.
 require_dex_string 'apk.install' "apk.install Core/Shell capability constant"

@@ -148,6 +148,56 @@ for marker in (
     if marker not in manifest:
         fail("missing Android manifest security / platform contract: " + marker)
 
+# Blockbench Mobile Accessibility and real Android screenshot integration:
+# fail before Gradle unless the checked-out Host has the fixed package target,
+# the requested Accessibility metadata, and an actual native screenshot path.
+# Never weaken the original RiftOS/Vortex fixed-scope agent boundaries.
+accessibility_xml = read(
+    "android/app/src/main/res/xml/vortex_agent_accessibility.xml"
+)
+accessibility_host = read(prefix + "RiftVortexLocalAgent.kt")
+accessibility_batch = read(prefix + "RiftLocalAgentBatch.kt")
+tool_host = read(prefix + "RiftToolHost.kt")
+for marker in (
+    '<package android:name="net.blockbench.androidcommunity" />',
+    'android:name=".RiftVortexAccessibilityService"',
+):
+    if marker not in manifest:
+        fail("missing Blockbench Accessibility host manifest contract: " + marker)
+for marker in (
+    'android:canTakeScreenshot="true"',
+    'net.blockbench.androidcommunity',
+    'com.riftos.app',
+    'com.vortex3d.app',
+    'android:canRetrieveWindowContent="true"',
+):
+    if marker not in accessibility_xml:
+        fail("missing Blockbench Accessibility XML capability: " + marker)
+for marker in (
+    'object RiftBlockbenchLocalAgent',
+    '"net.blockbench.androidcommunity", "Blockbench Mobile"',
+    'require(targetApp == "blockbench-mobile")',
+    'private const val TARGET_PACKAGE = "com.riftos.app"',
+    'service.takeScreenshot(Display.DEFAULT_DISPLAY, context.mainExecutor',
+    'requireTargetServiceAndRoot(context)',
+    '"mimeType", "image/jpeg"',
+    '"imageBase64"',
+    '56 * 1024',
+):
+    if marker not in accessibility_host:
+        fail("missing fixed-scope Blockbench UI/screenshot host implementation: " + marker)
+for marker in (
+    'step.optString("targetApp") == "blockbench-mobile"',
+    '"status", "open", "back", "screenshot" -> Unit',
+    '"tree", "screenshot", "click"',
+):
+    if marker not in accessibility_batch:
+        fail("missing Blockbench batch validation: " + marker)
+if '"tree", "screenshot", "click"' not in tool_host:
+    fail("MCP Local Agent schema does not expose the screenshot operation")
+if 'QUERY_ALL_PACKAGES' in manifest:
+    fail("broad Android package discovery is forbidden for Blockbench UI access")
+
 for marker in (
     'namespace = "com.riftos.app"', 'applicationId = "com.riftos.app"',
     'abiFilters += listOf("arm64-v8a", "armeabi-v7a")',

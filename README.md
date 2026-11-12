@@ -1,5 +1,43 @@
 # RiftOS Builder — manually triggered signed Android host APK
 
+## 2026-11-12 — Blockbench Mobile Accessibility & screenshot Host gate
+
+The RiftOS Host source at `Arctic403/RiftOS` now has a fixed
+`targetApp=blockbench-mobile` Local Agent UI authority, allowing RiftOS
+Accessibility to foreground, inspect and control the separate Blockbench Mobile
+APK. It also adds Android Accessibility `takeScreenshot`, with a bounded
+base64 JPEG response. **The RiftOS Builder requires its own update too**,
+so that manual Host builds cannot succeed without this integration.
+
+The `RiftOS Private Build Worker` still checks out the exact requested
+RiftOS source commit. This Builder revision adds:
+- Source preflight checks for the named Blockbench target, narrow package
+  visibility, new Accessibility XML metadata, native screenshot code, and
+  Local Agent batch/MCP operation routing.
+- Post-sign APK checks that the compiled Android manifest contains the
+  Blockbench package query; the compiled Accessibility XML includes both
+  Blockbench and `canTakeScreenshot=true`; and the signed DEX includes
+  fixed-target dispatch and screenshot-result code.
+- Builder contract tests requiring both sets of checks, preventing regressions
+  where source passes but the release artifact drops the capability.
+
+Build remains a **user-triggered** GitHub Actions workflow. No build is
+automatically started, APK installed, or Core/Shell DEX selected by the
+Builder. This Host APK update is separate from the already-selected external
+Core v0.6.24 and external Shell. An Android Accessibility service toggle may
+be needed after manual Host APK installation to activate its new screenshot
+capability. Actual device screenshots/foregrounding are not qualified until
+that manually installed Host is tested.
+
+Use the `RiftOS Private Build Worker` workflow with
+`source_ref=e61a083206a3db8d8d1707842cc0331a79f0eebc` (or later
+compatible RiftOS main). If preflight or signed-APK verification fails,
+inspect the worker logs and don't install the artifact.
+
+---
+
+
+
 ## 2026-11-11 — Opt-in temporary Generic Tool trust
 
 The Host APK's native `tool trust start|status|stop` commands are now

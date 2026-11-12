@@ -178,6 +178,35 @@ for marker in (
 ):
     require(VERIFY, marker, "native shell final signed DEX proof")
 
+# Blockbench Mobile is a fixed, opt-in Accessibility UI target in the
+# RiftOS Host. The manual worker must validate both checked-out Kotlin/XML
+# and the ACTUAL signed APK's compiled Accessibility resource and DEX code.
+# Keep default RiftOS/Vortex authority and no arbitrary package target.
+for marker in (
+    "vortex_agent_accessibility.xml",
+    'android:canTakeScreenshot="true"',
+    'net.blockbench.androidcommunity',
+    'require(targetApp == "blockbench-mobile")',
+    "RiftBlockbenchLocalAgent",
+    "service.takeScreenshot(Display.DEFAULT_DISPLAY, context.mainExecutor",
+    'step.optString("targetApp") == "blockbench-mobile"',
+    "56 * 1024",
+    "QUERY_ALL_PACKAGES",
+):
+    require(SOURCE, marker, "fixed-scope Blockbench Accessibility source gate")
+for marker in (
+    "xml/vortex_agent_accessibility",
+    "blockbench_accessibility_tree",
+    "android:canTakeScreenshot",
+    "net.blockbench.androidcommunity",
+    "Lcom/riftos/app/RiftBlockbenchLocalAgent;",
+    "Local Agent targetApp must be blockbench-mobile",
+    "android-accessibility-takeScreenshot",
+    "Android Accessibility screenshot requires API 30+",
+    "imageBase64",
+):
+    require(VERIFY, marker, "signed APK Blockbench Accessibility screenshot gate")
+
 # The Builder must forbid every removed implementation at source and DEX
 # levels, while retaining the MCP command shell and user-controlled Recovery.
 for obsolete in (
