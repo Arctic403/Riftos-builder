@@ -74,6 +74,62 @@ for marker, error in (
 ):
     expect(handler, marker, error)
 
+# Core-owned binary transfer must be available from MCP's native RiftShell.
+# External graphical RiftShell is not sufficient; the native shell handles
+# MCP rift_shell_exec without Accessibility/terminal taps.
+for marker, error in (
+    ('"file" -> {', "native tool file command missing"),
+    ('"import" -> {', "tool file import branch missing"),
+    ('request.put("operation", "tool-file-send")',
+     "file import must route to selected Core"),
+    ('.put("from", checkedPath(pieces[4]))',
+     "file import source path must be checked"),
+    ('"export" -> {', "tool file export branch missing"),
+    ('request.put("operation", "tool-file-receive")',
+     "file export must route to selected Core"),
+    ('.put("to", checkedPath(pieces[5]))',
+     "file export destination path must be checked"),
+    ('"status" -> {', "file transfer status missing"),
+    ('request.put("operation", "tool-file-status")',
+     "file transfer status must route to Core"),
+    ('"cancel" -> {', "file transfer cancel missing"),
+    ('request.put("operation", "tool-file-cancel")',
+     "file transfer cancellation must route to Core"),
+    ('pieces.size == 5', "file import argument count not bounded"),
+    ('pieces.size == 6', "file export argument count not bounded"),
+    ('pieces.size == 3', "file status/cancel argument count not bounded"),
+    ('it.length in 16..512', "file path size not bounded"),
+    ('!it.contains("//")', "duplicate-separator file path not rejected"),
+    ('segment == "." || segment == ".."',
+     "file path traversal not rejected"),
+):
+    expect(handler, marker, error)
+
+file_allowed = re.compile(
+    r"^/D:/(Workspace|Projects|Documents|Downloads|Builds|Temp)/[A-Za-z0-9_./+()-]+$"
+)
+file_good = (
+    "/D:/Workspace/RiftElectricity/models/manual.bbmodel",
+    "/D:/Projects/models/panel-v1.bbmodel",
+    "/D:/Downloads/exports/optimized-model.bbmodel",
+)
+file_bad = (
+    "/D:/Workspace/../Documents/private.bbmodel",
+    "/D:/Workspace/./model.bbmodel",
+    "/D:/Workspace/models//model.bbmodel",
+    "/D:/Android/data/other.app/private.bbmodel",
+    "/C:/Workspace/model.bbmodel",
+)
+def valid_file_path(value: str) -> bool:
+    return (16 <= len(value) <= 512 and
+            bool(file_allowed.fullmatch(value)) and
+            "//" not in value and
+            not any(p in (".", "..") for p in value[len("/D:/"):].split("/")))
+if not all(valid_file_path(p) for p in file_good):
+    fail("valid Core file-transfer path rejected by reference parser")
+if any(valid_file_path(p) for p in file_bad):
+    fail("unsafe Core file-transfer path accepted by reference parser")
+
 expect(handler, "RiftHostCoreComponents.externalAppConnections()",
        "selected external Core gate missing")
 expect(handler, ".appConnectionRequest(appContext, request)",

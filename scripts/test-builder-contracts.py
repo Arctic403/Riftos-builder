@@ -166,6 +166,13 @@ for marker in (
     "temporary trust CLI missing",
     "temporary trust duration not bounded",
     "temporary trust operation count not bounded",
+    "native tool file command missing",
+    "file import must route to selected Core",
+    "file export must route to selected Core",
+    "file transfer status must route to Core",
+    "file transfer cancellation must route to Core",
+    "file path traversal not rejected",
+    "unsafe Core file-transfer path accepted by reference parser",
 ):
     require(NATIVE_TOOL, marker, "native shell authorization boundary")
 for marker in (
@@ -177,6 +184,11 @@ for marker in (
     "native temporary trust start opcode",
     "native temporary trust status opcode",
     "native temporary trust stop opcode",
+    "native RiftShell file-transfer command help",
+    "native tool file import Core opcode",
+    "native tool file export Core opcode",
+    "native tool file status Core opcode",
+    "native tool file cancel Core opcode",
 ):
     require(VERIFY, marker, "native shell final signed DEX proof")
 

@@ -483,6 +483,15 @@ require_dex_string 'tool-session-start' 'native temporary trust start opcode'
 require_dex_string 'tool-session-status' 'native temporary trust status opcode'
 require_dex_string 'tool-session-stop' 'native temporary trust stop opcode'
 
+# MCP native file transfer uses the SELECTED Core's generic file transport,
+# not Accessibility or a second Binder endpoint. Prove each entrypoint made it
+# into the actually signed RiftOS host APK.
+require_dex_string 'tool file import' 'native RiftShell file-transfer command help'
+require_dex_string 'tool-file-send' 'native tool file import Core opcode'
+require_dex_string 'tool-file-receive' 'native tool file export Core opcode'
+require_dex_string 'tool-file-status' 'native tool file status Core opcode'
+require_dex_string 'tool-file-cancel' 'native tool file cancel Core opcode'
+
 
 # Generic MCP event-bus and relay diagnostics must survive in the signed DEX.
 # cli.* markers are intentionally preserved relay wire compatibility, not CLI execution.

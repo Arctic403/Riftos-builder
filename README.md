@@ -1,3 +1,13 @@
+## 2026-11-12 — Native RiftShell file-transfer release gates
+
+The native RiftOS Host now supports Core-approved `tool file import|export|status|cancel` commands, so MCP can transfer full Blockbench models without tapping the graphical RiftShell terminal. The existing Builder **already** checks out the requested RiftOS commit and compiles the updated `RiftNativeShell.kt`; no dependency, workflow, build configuration, or Core/Shell payload change is needed.
+
+This Builder patch expands its existing mandatory `test-native-shell-tools.py` preflight to verify all four file commands route to the **selected external Core** with validated IDs, bounded public RiftFS paths and no duplicate Binder or permission shortcut. It also adds final signed-APK DEX checks for all four Core opcodes plus native help text, and extends builder contract coverage to enforce those gates.
+
+The user still manually triggers `RiftOS Private Build Worker` with `source_ref=cb18d2d66d6a785c3c1501fe8891a284db0d021a` (or later compatible RiftOS main), then installs the same-signer APK. Nothing is auto-built, installed, staged, activated, or tested on-device by this update.
+
+---
+
 # RiftOS Builder — manually triggered signed Android host APK
 
 ## 2026-11-12 — Fix false-positive Android package permission preflight
